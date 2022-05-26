@@ -3,40 +3,35 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <error.h>
 #include <repl.h>
-#include <types.h>
 
-void print_atom(Atom atom) {
-  switch (atom.type) {
-  case ATOM_TYPE_NIL:
-    printf("nil");
+void print_error(enum Error e) {
+  if (e == ERROR_NONE) {
+    return;
+  }
+  printf("ERROR: ");
+  switch (e) {
+  case ERROR_TODO:
+    puts("TODO: not yet implemented.");
     break;
-  case ATOM_TYPE_PAIR:
-    putchar('(');
-    print_atom(car(atom));
-    atom = cdr(atom);
-    while (!nilp(atom)) {
-      if (atom.type == ATOM_TYPE_PAIR) {
-        putchar(' ');
-        print_atom(car(atom));
-        atom = cdr(atom);
-      } else {
-        printf(" . ");
-        print_atom(atom);
-        break;
-      }
-    }
-    putchar(')');
+  case ERROR_SYNTAX:
+    puts("Syntax error.");
     break;
-  case ATOM_TYPE_SYMBOL:
-    printf("%s", atom.value.symbol);
+  case ERROR_TYPE:
+    puts("Type error.");
     break;
-  case ATOM_TYPE_INTEGER:
-    printf("%lli", atom.value.integer);
+  case ERROR_ARGUMENTS:
+    puts("Invalid arguments.");
+    break;
+  case ERROR_NOT_BOUND:
+    puts("Symbol not bound.");
+    break;
+  default:
+    puts("Unrecognized error.");
     break;
   }
-}
-
+  putchar('\n');
 }
 
 int main(int argc, char **argv) {
