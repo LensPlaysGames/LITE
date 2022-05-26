@@ -1,0 +1,16 @@
+#+title: LISP INTERPRETER AND TEXT EDITOR
+#+author: Rylan Lens Kellogg
+#+description: LITE is a lisp interpreter and text editor built in C.
+#+created: <2022-05-26 Thu>
+
+* LITE
+
+LITE may mean anything that abbreviates the letters;
+listed here are a few that are especially significant.
+
+- LISP INTERPRETER and TEXT EDITOR
+- LITE IS TOTALLY EMACS
+- LISP IMBUED with TONS of ECCENTRICITIES
+
+The goal of LITE is to create a modern, cross-platform tool
+for text editing and general scripting that is *easy to port*.

@@ -1,0 +1,32 @@
+# ccache
+/.cache/
+
+# Language Servers
+**/compile_commands.json
+
+# Generated build stuff
+/bin/
+/bld/
+/build/
+/tst/
+/test/
+/testing/
+/win/
+/winja/
+/winbld/
+/winbuild/
+/windows/
+/lin/
+/linbld/
+/linbuild/
+/linux/
+
+
+# Backups, temporary files, etc.
+**/*.tmp*
+**/*.temp*
+**/*~
+**/#*#
+**/.#*
+**/*.backup*
+**/.swp
