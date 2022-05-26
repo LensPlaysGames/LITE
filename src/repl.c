@@ -1,7 +1,11 @@
 #include <repl.h>
+
+#include <environment.h>
+#include <error.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <types.h>
 
 static const char *repl_prompt = "lite|> ";
 static char user_input[MAX_INPUT_BUFSZ];
@@ -21,6 +25,7 @@ char* readline() {
 }
 
 void enter_repl() {
+  Atom environment = env_create(nil);
   while (1) {
     //==== READ ====
     // Get current input as heap-allocated C string.
