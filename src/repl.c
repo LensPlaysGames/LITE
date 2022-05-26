@@ -64,6 +64,101 @@ int evaluate_expr(Atom expr, Atom environment, Atom *result) {
 
 //================================================================ END evaluation
 
+//================================================================ BEG builtins
+
+int builtin_car(Atom arguments, Atom *result) {
+  if (nilp(arguments) || !nilp(cdr(arguments))) {
+    return ERROR_ARGUMENTS;
+  }
+  if (nilp(car(arguments))) {
+    *result = nil;
+  } else if (car(arguments).type != ATOM_TYPE_PAIR) {
+    return ERROR_TYPE;
+  } else {
+    *result = car(car(arguments));
+  }
+  return ERROR_NONE;
+}
+
+int builtin_cdr(Atom arguments, Atom *result) {
+  if (nilp(arguments) || !nilp(cdr(arguments))) {
+    return ERROR_ARGUMENTS;
+  }
+  if (nilp(car(arguments))) {
+    *result = nil;
+  } else if (car(arguments).type != ATOM_TYPE_PAIR) {
+    return ERROR_TYPE;
+  } else {
+    *result = cdr(car(arguments));
+  }
+  return ERROR_NONE;
+}
+
+int builtin_cons(Atom arguments, Atom *result) {
+  if (nilp(arguments) || nilp(cdr(arguments)) || !nilp(cdr(cdr(arguments)))) {
+      return ERROR_ARGUMENTS;
+    }
+  *result = cons(car(arguments), car(cdr(arguments)));
+  return ERROR_NONE;
+}
+
+int builtin_add(Atom arguments, Atom *result) {
+  if (nilp (arguments) || nilp(cdr(arguments)) || !nilp(cdr(cdr(arguments)))) {
+    return ERROR_ARGUMENTS;
+  }
+  Atom lhs = car(arguments);
+  Atom rhs = car(cdr(arguments));
+  if (lhs.type != ATOM_TYPE_INTEGER || rhs.type != ATOM_TYPE_INTEGER) {
+    return ERROR_TYPE;
+  }
+  *result = make_int(lhs.value.integer + rhs.value.integer);
+  return ERROR_NONE;
+}
+
+int builtin_subtract(Atom arguments, Atom *result) {
+  if (nilp (arguments) || nilp(cdr(arguments)) || !nilp(cdr(cdr(arguments)))) {
+    return ERROR_ARGUMENTS;
+  }
+  Atom lhs = car(arguments);
+  Atom rhs = car(cdr(arguments));
+  if (lhs.type != ATOM_TYPE_INTEGER || rhs.type != ATOM_TYPE_INTEGER) {
+    return ERROR_TYPE;
+  }
+  *result = make_int(lhs.value.integer - rhs.value.integer);
+  return ERROR_NONE;
+}
+
+int builtin_multiply(Atom arguments, Atom *result) {
+  if (nilp (arguments) || nilp(cdr(arguments)) || !nilp(cdr(cdr(arguments)))) {
+    return ERROR_ARGUMENTS;
+  }
+  Atom lhs = car(arguments);
+  Atom rhs = car(cdr(arguments));
+  if (lhs.type != ATOM_TYPE_INTEGER || rhs.type != ATOM_TYPE_INTEGER) {
+    return ERROR_TYPE;
+  }
+  *result = make_int(lhs.value.integer * rhs.value.integer);
+  return ERROR_NONE;
+}
+
+int builtin_divide(Atom arguments, Atom *result) {
+  if (nilp (arguments) || nilp(cdr(arguments)) || !nilp(cdr(cdr(arguments)))) {
+    return ERROR_ARGUMENTS;
+  }
+  Atom lhs = car(arguments);
+  Atom rhs = car(cdr(arguments));
+  if (lhs.type != ATOM_TYPE_INTEGER || rhs.type != ATOM_TYPE_INTEGER) {
+    return ERROR_TYPE;
+  }
+  if (rhs.value.integer == 0) {
+    return ERROR_ARGUMENTS;
+  }
+  *result = make_int(lhs.value.integer / rhs.value.integer);
+  return ERROR_NONE;
+}
+
+//================================================================ END builtins
+
 static const char *repl_prompt = "lite|> ";
 static char user_input[MAX_INPUT_BUFSZ];
 
@@ -83,6 +178,13 @@ char* readline() {
 
 void enter_repl() {
   Atom environment = env_create(nil);
+  env_set(environment, make_sym("CAR"), make_builtin(builtin_car));
+  env_set(environment, make_sym("CDR"), make_builtin(builtin_cdr));
+  env_set(environment, make_sym("CONS"), make_builtin(builtin_cons));
+  env_set(environment, make_sym("+"), make_builtin(builtin_add));
+  env_set(environment, make_sym("-"), make_builtin(builtin_subtract));
+  env_set(environment, make_sym("*"), make_builtin(builtin_multiply));
+  env_set(environment, make_sym("/"), make_builtin(builtin_divide));
   while (1) {
     //==== READ ====
     // Get current input as heap-allocated C string.
