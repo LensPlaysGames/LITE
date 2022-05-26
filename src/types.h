@@ -1,31 +1,52 @@
 #ifndef LITE_TYPES_H
 #define LITE_TYPES_H
 
+struct Atom;
+
+/// All C functions that are to be called from LISP will have this prototype.
+typedef int (*BuiltIn)(struct Atom arguments, struct Atom *result);
+
 typedef long long integer_t;
 typedef const char symbol_t;
-struct Atom {
+typedef struct Atom {
   enum {
     ATOM_TYPE_NIL,
     ATOM_TYPE_PAIR,
     ATOM_TYPE_SYMBOL,
     ATOM_TYPE_INTEGER,
+    ATOM_TYPE_BUILTIN,
   } type;
   union {
     struct Pair *pair;
     symbol_t *symbol;
     integer_t integer;
+    BuiltIn builtin;
   } value;
-};
+} Atom;
 struct Pair {
   struct Atom atom[2];
 };
-// This allows not including the 'struct' keyword.
-typedef struct Atom Atom;
 
 #define nilp(a) ((a).type == ATOM_TYPE_NIL)
 #define car(a) ((a).value.pair->atom[0])
 #define cdr(a) ((a).value.pair->atom[1])
 
 static const Atom nil = { ATOM_TYPE_NIL, 0 };
+
+/// Returns boolean-like value, 0 = false.
+int listp(Atom expr);
+
+Atom copy_list(Atom list);
+
+/// Returns a heap-allocated pair atom with car and cdr set.
+Atom cons(Atom car_atom, Atom cdr_atom);
+
+Atom make_int(integer_t value);
+Atom make_sym(symbol_t *value);
+
+Atom make_builtin(BuiltIn function);
+int apply(Atom function, Atom arguments, Atom *result);
+
+void print_atom(Atom atom);
 
 #endif /* #ifndef LITE_TYPES_H */

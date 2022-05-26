@@ -21,6 +21,7 @@ add_executable(
   LITE
   src/main.c
   src/repl.c
+  src/types.c
 )
 target_include_directories(
   LITE
