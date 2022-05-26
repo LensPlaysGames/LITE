@@ -53,10 +53,25 @@ Atom make_int(integer_t value) {
   return a;
 }
 
+static Atom symbol_table = { ATOM_TYPE_NIL };
+
 Atom make_sym(symbol_t *value) {
   Atom a;
+  Atom p;
+  // Attempt to find existing symbol in symbol table.
+  p = symbol_table;
+  while (!nilp(p)) {
+    a = car(p);
+    if (strcmp(a.value.symbol, value) == 0) {
+      return a;
+    }
+    p = cdr(p);
+  }
+  // Create a new symbol.
   a.type = ATOM_TYPE_SYMBOL;
   a.value.symbol = value;
+  // Add new symbol to symbol table.
+  symbol_table = cons(a, symbol_table);
   return a;
 }
 

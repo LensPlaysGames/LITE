@@ -9,10 +9,12 @@ static char user_input[MAX_INPUT_BUFSZ];
 /// Returns a heap-allocated C string containing
 /// a single line of input from the user.
 char* readline() {
+  char *line = NULL;
+  unsigned line_length = 0;
   fputs(repl_prompt, stdout);
   fgets(user_input, MAX_INPUT_BUFSZ, stdin);
-  unsigned line_length = strlen(user_input);
-  char *line = malloc(line_length + 1);
+  line_length = strlen(user_input);
+  line = malloc(line_length + 1);
   strcpy(line, user_input);
   line[line_length] = '\0';
   return line;
