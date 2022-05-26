@@ -19,8 +19,10 @@ project(LITE VERSION ${LITE_VERSION} LANGUAGES ${LITE_LANGUAGES})
 
 add_executable(
   LITE
+  src/environment.c
   src/main.c
   src/repl.c
+  src/parser.c
   src/types.c
 )
 target_include_directories(
