@@ -230,6 +230,58 @@ int builtin_numeq(Atom arguments, Atom *result) {
   return ERROR_NONE;
 }
 
+int builtin_numlt(Atom arguments, Atom *result) {
+  if (nilp (arguments) || nilp(cdr(arguments)) || !nilp(cdr(cdr(arguments)))) {
+    return ERROR_ARGUMENTS;
+  }
+  Atom lhs = car(arguments);
+  Atom rhs = car(cdr(arguments));
+  if (lhs.type != ATOM_TYPE_INTEGER || rhs.type != ATOM_TYPE_INTEGER) {
+    return ERROR_TYPE;
+  }
+  *result = lhs.value.integer < rhs.value.integer ? make_sym("T") : nil;
+  return ERROR_NONE;
+}
+
+int builtin_numlt_or_eq(Atom arguments, Atom *result) {
+  if (nilp (arguments) || nilp(cdr(arguments)) || !nilp(cdr(cdr(arguments)))) {
+    return ERROR_ARGUMENTS;
+  }
+  Atom lhs = car(arguments);
+  Atom rhs = car(cdr(arguments));
+  if (lhs.type != ATOM_TYPE_INTEGER || rhs.type != ATOM_TYPE_INTEGER) {
+    return ERROR_TYPE;
+  }
+  *result = lhs.value.integer <= rhs.value.integer ? make_sym("T") : nil;
+  return ERROR_NONE;
+}
+
+int builtin_numgt(Atom arguments, Atom *result) {
+  if (nilp (arguments) || nilp(cdr(arguments)) || !nilp(cdr(cdr(arguments)))) {
+    return ERROR_ARGUMENTS;
+  }
+  Atom lhs = car(arguments);
+  Atom rhs = car(cdr(arguments));
+  if (lhs.type != ATOM_TYPE_INTEGER || rhs.type != ATOM_TYPE_INTEGER) {
+    return ERROR_TYPE;
+  }
+  *result = lhs.value.integer > rhs.value.integer ? make_sym("T") : nil;
+  return ERROR_NONE;
+}
+
+int builtin_numgt_or_eq(Atom arguments, Atom *result) {
+  if (nilp (arguments) || nilp(cdr(arguments)) || !nilp(cdr(cdr(arguments)))) {
+    return ERROR_ARGUMENTS;
+  }
+  Atom lhs = car(arguments);
+  Atom rhs = car(cdr(arguments));
+  if (lhs.type != ATOM_TYPE_INTEGER || rhs.type != ATOM_TYPE_INTEGER) {
+    return ERROR_TYPE;
+  }
+  *result = lhs.value.integer >= rhs.value.integer ? make_sym("T") : nil;
+  return ERROR_NONE;
+}
+
 //================================================================ END builtins
 
 static const char *repl_prompt = "lite|> ";
@@ -260,6 +312,10 @@ void enter_repl() {
   env_set(environment, make_sym("*"),    make_builtin(builtin_multiply));
   env_set(environment, make_sym("/"),    make_builtin(builtin_divide));
   env_set(environment, make_sym("="),    make_builtin(builtin_numeq));
+  env_set(environment, make_sym("<"),    make_builtin(builtin_numlt));
+  env_set(environment, make_sym("<="),   make_builtin(builtin_numlt_or_eq));
+  env_set(environment, make_sym(">"),    make_builtin(builtin_numgt));
+  env_set(environment, make_sym(">="),   make_builtin(builtin_numgt_or_eq));
   while (1) {
     putchar('\n');
     //==== READ ====
