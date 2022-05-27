@@ -52,6 +52,24 @@ Atom make_builtin(BuiltIn function) {
   return a;
 }
 
+int make_closure(Atom environment, Atom arguments, Atom body, Atom *result) {
+  Atom arguments_it;
+  if (!listp(arguments) || !listp(body)) {
+    return ERROR_SYNTAX;
+  }
+  // Ensure all arguments are valid symbols.
+  arguments_it = arguments;
+  while (!nilp(arguments_it)) {
+    if (car(arguments_it).type != ATOM_TYPE_SYMBOL) {
+      return ERROR_TYPE;
+    }
+    arguments_it = cdr(arguments_it);
+  }
+  *result = cons(environment, cons(arguments, body));
+  result->type = ATOM_TYPE_CLOSURE;
+  return ERROR_NONE;
+}
+
 int listp(Atom expr) {
   while (!nilp(expr)) {
     if (expr.type != ATOM_TYPE_PAIR) {
@@ -77,13 +95,6 @@ Atom copy_list(Atom list) {
     list = cdr(list);
   }
   return newlist;
-}
-
-int apply(Atom function, Atom arguments, Atom *result) {
-  if (function.type == ATOM_TYPE_BUILTIN) {
-    return (*function.value.builtin)(arguments, result);
-  }
-  return ERROR_TYPE;
 }
 
 void print_atom(Atom atom) {
@@ -116,6 +127,9 @@ void print_atom(Atom atom) {
     break;
   case ATOM_TYPE_BUILTIN:
     printf("#<BUILTIN>:%p", atom.value.builtin);
+    break;
+  case ATOM_TYPE_CLOSURE:
+    printf("#<CLOSURE>:%p", atom.value.builtin);
     break;
   }
 }

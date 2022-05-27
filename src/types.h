@@ -15,6 +15,7 @@ typedef struct Atom {
     ATOM_TYPE_SYMBOL,
     ATOM_TYPE_INTEGER,
     ATOM_TYPE_BUILTIN,
+    ATOM_TYPE_CLOSURE,
   } type;
   union {
     struct Pair *pair;
@@ -43,9 +44,8 @@ Atom cons(Atom car_atom, Atom cdr_atom);
 
 Atom make_int(integer_t value);
 Atom make_sym(symbol_t *value);
-
 Atom make_builtin(BuiltIn function);
-int apply(Atom function, Atom arguments, Atom *result);
+int make_closure(Atom environment, Atom arguments, Atom body, Atom *result);
 
 void print_atom(Atom atom);
 
