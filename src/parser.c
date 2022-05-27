@@ -101,8 +101,7 @@ int parse_list(const char *beg, const char **end, Atom *result) {
 /// Eat the next LISP object from source.
 int parse_expr(const char *source, const char **end, Atom *result) {
   const char *token;
-  enum Error err = ERROR_NONE;
-  err = lex(source, &token, end);
+  enum Error err = lex(source, &token, end);
   if (err) { return err; }
   if (token[0] == '(') {
     return parse_list(*end, end, result);

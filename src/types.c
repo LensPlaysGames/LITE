@@ -1,6 +1,5 @@
 #include <types.h>
 
-#include <ctype.h>
 #include <error.h>
 #include <stdio.h>
 #include <stdlib.h>

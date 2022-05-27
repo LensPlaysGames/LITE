@@ -1,5 +1,6 @@
 #include <repl.h>
 
+#include <ctype.h>
 #include <environment.h>
 #include <error.h>
 #include <parser.h>
@@ -210,6 +211,19 @@ int builtin_divide(Atom arguments, Atom *result) {
   return ERROR_NONE;
 }
 
+int builtin_numeq(Atom arguments, Atom *result) {
+  if (nilp (arguments) || nilp(cdr(arguments)) || !nilp(cdr(cdr(arguments)))) {
+    return ERROR_ARGUMENTS;
+  }
+  Atom lhs = car(arguments);
+  Atom rhs = car(cdr(arguments));
+  if (lhs.type != ATOM_TYPE_INTEGER || rhs.type != ATOM_TYPE_INTEGER) {
+    return ERROR_TYPE;
+  }
+  *result = lhs.value.integer == rhs.value.integer ? make_sym("T") : nil;
+  return ERROR_NONE;
+}
+
 //================================================================ END builtins
 
 static const char *repl_prompt = "lite|> ";
@@ -231,14 +245,17 @@ char* readline() {
 
 void enter_repl() {
   Atom environment = env_create(nil);
-  env_set(environment, make_sym("CAR"), make_builtin(builtin_car));
-  env_set(environment, make_sym("CDR"), make_builtin(builtin_cdr));
+  env_set(environment, make_sym("T"),    make_sym("T"));
+  env_set(environment, make_sym("CAR"),  make_builtin(builtin_car));
+  env_set(environment, make_sym("CDR"),  make_builtin(builtin_cdr));
   env_set(environment, make_sym("CONS"), make_builtin(builtin_cons));
-  env_set(environment, make_sym("+"), make_builtin(builtin_add));
-  env_set(environment, make_sym("-"), make_builtin(builtin_subtract));
-  env_set(environment, make_sym("*"), make_builtin(builtin_multiply));
-  env_set(environment, make_sym("/"), make_builtin(builtin_divide));
+  env_set(environment, make_sym("+"),    make_builtin(builtin_add));
+  env_set(environment, make_sym("-"),    make_builtin(builtin_subtract));
+  env_set(environment, make_sym("*"),    make_builtin(builtin_multiply));
+  env_set(environment, make_sym("/"),    make_builtin(builtin_divide));
+  env_set(environment, make_sym("="),    make_builtin(builtin_numeq));
   while (1) {
+    putchar('\n');
     //==== READ ====
     // Get current input as heap-allocated C string.
     char *input = readline();
