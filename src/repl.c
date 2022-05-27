@@ -282,6 +282,19 @@ int builtin_numgt_or_eq(Atom arguments, Atom *result) {
   return ERROR_NONE;
 }
 
+int builtin_apply(Atom arguments, Atom *result) {
+  Atom function;
+  if (nilp(arguments) || nilp(cdr(arguments)) || !nilp(cdr(cdr(arguments)))) {
+    return ERROR_ARGUMENTS;
+  }
+  function = car(arguments);
+  arguments = car(cdr(arguments));
+  if (!listp(arguments)) {
+    return ERROR_SYNTAX;
+  }
+  return apply(function, arguments, result);
+}
+
 //================================================================ END builtins
 
 static const char *repl_prompt = "lite|> ";
@@ -303,19 +316,20 @@ char* readline() {
 
 void enter_repl() {
   Atom environment = env_create(nil);
-  env_set(environment, make_sym("T"),    make_sym("T"));
-  env_set(environment, make_sym("CAR"),  make_builtin(builtin_car));
-  env_set(environment, make_sym("CDR"),  make_builtin(builtin_cdr));
-  env_set(environment, make_sym("CONS"), make_builtin(builtin_cons));
-  env_set(environment, make_sym("+"),    make_builtin(builtin_add));
-  env_set(environment, make_sym("-"),    make_builtin(builtin_subtract));
-  env_set(environment, make_sym("*"),    make_builtin(builtin_multiply));
-  env_set(environment, make_sym("/"),    make_builtin(builtin_divide));
-  env_set(environment, make_sym("="),    make_builtin(builtin_numeq));
-  env_set(environment, make_sym("<"),    make_builtin(builtin_numlt));
-  env_set(environment, make_sym("<="),   make_builtin(builtin_numlt_or_eq));
-  env_set(environment, make_sym(">"),    make_builtin(builtin_numgt));
-  env_set(environment, make_sym(">="),   make_builtin(builtin_numgt_or_eq));
+  env_set(environment, make_sym("T"),     make_sym("T"));
+  env_set(environment, make_sym("CAR"),   make_builtin(builtin_car));
+  env_set(environment, make_sym("CDR"),   make_builtin(builtin_cdr));
+  env_set(environment, make_sym("CONS"),  make_builtin(builtin_cons));
+  env_set(environment, make_sym("+"),     make_builtin(builtin_add));
+  env_set(environment, make_sym("-"),     make_builtin(builtin_subtract));
+  env_set(environment, make_sym("*"),     make_builtin(builtin_multiply));
+  env_set(environment, make_sym("/"),     make_builtin(builtin_divide));
+  env_set(environment, make_sym("="),     make_builtin(builtin_numeq));
+  env_set(environment, make_sym("<"),     make_builtin(builtin_numlt));
+  env_set(environment, make_sym("<="),    make_builtin(builtin_numlt_or_eq));
+  env_set(environment, make_sym(">"),     make_builtin(builtin_numgt));
+  env_set(environment, make_sym(">="),    make_builtin(builtin_numgt_or_eq));
+  env_set(environment, make_sym("APPLY"), make_builtin(builtin_apply));
   while (1) {
     putchar('\n');
     //==== READ ====
