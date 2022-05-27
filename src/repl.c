@@ -97,6 +97,12 @@ int apply(Atom function, Atom arguments, Atom *result) {
   Atom body = cdr(cdr(function));
   // Bind arguments into local environment.
   while (!nilp(argument_names)) {
+    // Handle variadic arguments.
+    if (argument_names.type == ATOM_TYPE_SYMBOL) {
+      env_set(environment, argument_names, arguments);
+      arguments = nil;
+      break;
+    }
     if (nilp(arguments)) {
       return ERROR_ARGUMENTS;
     }

@@ -53,15 +53,21 @@ Atom make_builtin(BuiltIn function) {
 
 int make_closure(Atom environment, Atom arguments, Atom body, Atom *result) {
   Atom arguments_it;
-  if (!listp(arguments) || !listp(body)) {
+  if (!listp(body)) {
     return ERROR_SYNTAX;
   }
   // Ensure all arguments are valid symbols.
   arguments_it = arguments;
   while (!nilp(arguments_it)) {
-    if (car(arguments_it).type != ATOM_TYPE_SYMBOL) {
-      return ERROR_TYPE;
+    // Handle variadic arguments.
+    if (arguments_it.type == ATOM_TYPE_SYMBOL) {
+      break;
     }
+    else if (arguments_it.type != ATOM_TYPE_PAIR
+             || car(arguments_it).type != ATOM_TYPE_SYMBOL)
+      {
+        return ERROR_TYPE;
+      }
     arguments_it = cdr(arguments_it);
   }
   *result = cons(environment, cons(arguments, body));

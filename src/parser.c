@@ -10,7 +10,7 @@
 int lex(const char *source, const char **beg, const char **end) {
   const char *ws = " \t\n";
   const char *delimiter = "() \t\n";
-  const char *prefix = "() \t\n";
+  const char *prefix = "\'() \t\n";
   // Eat all preceding whitespace.
   source += strspn(source, ws);
   if (source[0] == '\0') {
@@ -108,6 +108,9 @@ int parse_expr(const char *source, const char **end, Atom *result) {
   }
   else if (token[0] == ')') {
     return ERROR_SYNTAX;
+  } else if (token[0] == '\'') {
+    *result = cons(make_sym("QUOTE"), cons(nil, nil));
+    return parse_expr(*end, end, &car(cdr(*result)));
   } else {
     return parse_simple(token, *end, result);
   }
