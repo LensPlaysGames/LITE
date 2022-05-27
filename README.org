@@ -2,6 +2,7 @@
 #+author: Rylan Lens Kellogg
 #+description: LITE is a lisp interpreter and text editor built in C.
 #+created: <2022-05-26 Thu>
+#+options: toc:nil
 
 * LITE
 
@@ -14,3 +15,105 @@ listed here are a few that are especially significant.
 
 The goal of LITE is to create a modern, cross-platform tool
 for text editing and general scripting that is *easy to port*.
+
+Initially, development followed [[https://www.lwh.jp/lisp/][this LISP interpreter tutorial]].
+If you are wanting to do this for yourself, and make your own LISP (interpreter),
+there are many tutorials out there: pick one that makes sense to you.
+
+** Usage
+
+Currently, it's just a REPL. Enter by running the built executable.
+
+** Building
+
+[[https://cmake.org/][CMake]] is used as the cross-platform build system.
+
+First, generate a local build tree:
+#+begin_src sh
+  cmake -G <GENERATOR> -S . -B bld -DCMAKE_BUILD_TYPE=Release
+#+end_src
+
+Replace =<GENERATOR>= with your choice of build system,
+being GNU Make, Ninja, or otherwise. Don't include the angled brackets.
+
+Once the build tree is generated, invoke it to generate an executable.
+#+begin_src sh
+  cmake --build bld
+#+end_src
+
+The ~bin~ subdirectory should now be populated with the LITE executable.
+
+* LITE LISP
+LITE LISP is the language that LITE interprets.
+
+** Variables
+
+Variables are stored globally, and are stored in the /symbol table/.
+The symbol table is like a key-value dictionary, where the keys are
+some string, and the values are LISP objects.
+
+To create a new variable, use the ~DEFINE~ operator.
+#+begin_src lisp
+  (define new-variable 42)
+#+end_src
+
+~new-variable~ is now a symbol defined in the symbol table.
+It has an integer value of =42=.
+You can see this by evaluating the new symbol.
+
+#+begin_src lisp
+  new-variable
+#+end_src
+
+The output will be =42=, as the symbol is /evaluated/.
+Evaluating a symbol means it is replaced with it's
+corresponding value from the symbol table.
+
+Sometimes, it is useful to *not* evaluate a variable.
+This can be done using the ~QUOTE~ operator.
+#+begin_src lisp
+  (quote new-variable)
+#+end_src
+
+As this is a very common necessity in LISP, there is a special
+short-hand for it: a preceding single-quote.
+This short-hand means the following to be equivalent to the QUOTE just above.
+#+begin_src lisp
+  'new-variable
+#+end_src
+
+
+** Lambda
+
+If you are not familiar, a lambda is just a function with no name.
+
+Currently, lambdas have the following syntax:
+: (lambda (ARGUMENT ...) BODY-EXPRESSION)
+
+There is also support for variadic arguments using an /improper list/.
+Improper lists have not a ~nil~ terminator at the end, but a value.
+
+The syntax for an improper list is as follows:
+: (1 2 3 . 4)
+
+In the context of a lambda, here is how to define
+a function with a varying number of arguments.
+#+begin_src lisp
+  (lambda (argument . the-rest) BODY-EXPRESSION)
+#+end_src
+
+After all fixed arguments are given, the rest are
+converted to a list and passed to the function.
+
+As a real-world example, here is a factorial implementation in LITE LISP:
+#+begin_src lisp
+  (define fact (lambda (x) (if (= x 0) 1 (* x (fact (- x 1))))))
+#+end_src
+
+
+** Misc
+
+Currently, functions are stored in the symbol table with the following syntax:
+: (ENVIRONMENT (ARGUMENT ...) BODY-EXPRESSION)
+
+I think I'd like to squeeze docstrings in there.

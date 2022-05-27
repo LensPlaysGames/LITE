@@ -22,6 +22,9 @@
 /linux/
 
 
+# Docs
+**/*.html
+
 # Backups, temporary files, etc.
 **/*.tmp*
 **/*.temp*
