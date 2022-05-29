@@ -22,7 +22,8 @@ there are many tutorials out there: pick one that makes sense to you.
 
 ** Usage
 
-Currently, it's just a REPL. Enter by running the built executable.
+Currently, it's just a REPL.
+Enter it by running the built executable from a terminal.
 
 ** Building
 
@@ -35,6 +36,8 @@ First, generate a local build tree:
 
 Replace =<GENERATOR>= with your choice of build system,
 being GNU Make, Ninja, or otherwise. Don't include the angled brackets.
+To see a list of available generators, invoke CMake
+with just the ~-G~ option, no other arguments.
 
 Once the build tree is generated, invoke it to generate an executable.
 #+begin_src sh
