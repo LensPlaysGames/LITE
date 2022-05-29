@@ -11,6 +11,7 @@ Atom* sym_table() { return &symbol_table; }
 Atom cons(Atom car_atom, Atom cdr_atom) {
   Atom newpair;
   newpair.type = ATOM_TYPE_PAIR;
+  // TODO: These are never freed, as there is no garbage collection.
   newpair.value.pair = malloc(sizeof(struct Pair));
   car(newpair) = car_atom;
   cdr(newpair) = cdr_atom;
@@ -27,7 +28,7 @@ Atom make_int(integer_t value) {
 Atom make_sym(symbol_t *value) {
   Atom a;
   Atom symbol_table_it;
-  // TODO: uppercase symbol.
+  // TODO: uppercase value symbol in search.
   // Attempt to find existing symbol in symbol table.
   symbol_table_it = symbol_table;
   while (!nilp(symbol_table_it)) {

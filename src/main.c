@@ -3,13 +3,74 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <environment.h>
+#include <evaluation.h>
 #include <error.h>
+#include <parser.h>
 #include <repl.h>
+#include <types.h>
+
+//================================================================ BEG file_io
+// TODO: Make load_file a builtin, call with apply.
+
+size_t file_size(FILE *file) {
+  if (!file) {
+    return 0;
+  }
+  fseek(file, 0, SEEK_END);
+  size_t length = ftell(file);
+  fseek(file, 0, SEEK_SET);
+  return length;
+}
+
+/// Returns a heap-allocated buffer containing the
+/// contents of the file found at the given path.
+char *file_contents(const char* path) {
+  char *buffer = NULL;
+  FILE *file = fopen(path, "r");
+  if (!file) {
+    return NULL;
+  }
+  size_t size = file_size(file);
+  if (size == 0) {
+    return NULL;
+  }
+  buffer = malloc(size + 1);
+  if (!buffer) {
+    return NULL;
+  }
+  fread(buffer, 1, size, file);
+  buffer[size] = 0;
+  fclose(file);
+  return buffer;
+}
+
+int load_file(Atom environment, const char* path) {
+  char *input = file_contents(path);
+  if (!input) {
+    return ERROR_ARGUMENTS;
+  }
+  const char* source = input;
+  Atom expr;
+  while (parse_expr(source, &source, &expr)) {
+    Atom result;
+    enum Error err = evaluate_expr(expr, environment, &result);
+    if (err) { return err; }
+    print_atom(result);
+    putchar('\n');
+  }
+  free(input);
+  return ERROR_NONE;
+}
+
+//================================================================ END file_io
 
 int main(int argc, char **argv) {
   printf("LITE will guide the way through the darkness.\n");
   (void)argc;
   (void)argv;
-  enter_repl();
+  Atom environment = default_environment();
+  load_file(environment, "../lisp/std.lt");
+  enter_repl(environment);
   return 0;
 }
