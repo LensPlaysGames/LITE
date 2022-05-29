@@ -19,6 +19,7 @@ project(LITE VERSION ${LITE_VERSION} LANGUAGES ${LITE_LANGUAGES})
 
 add_executable(
   LITE
+  src/error.c
   src/environment.c
   src/main.c
   src/repl.c
