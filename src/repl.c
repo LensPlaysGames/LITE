@@ -34,7 +34,7 @@ int evaluate_expr(Atom expr, Atom environment, Atom *result) {
         }
         *result = car(arguments);
         return ERROR_NONE;
-      } else if (memcmp(operator.value.symbol, "DEFINE", 6) == 0) {
+      } else if (strcmp(operator.value.symbol, "DEFINE") == 0) {
         Atom symbol;
         Atom value;
         // Ensure two arguments.
@@ -49,7 +49,7 @@ int evaluate_expr(Atom expr, Atom environment, Atom *result) {
         if (err) { return err; }
         *result = symbol;
         return env_set(environment, symbol, value);
-      } else if (memcmp(operator.value.symbol, "LAMBDA", 6) == 0) {
+      } else if (strcmp(operator.value.symbol, "LAMBDA") == 0) {
         if (nilp(arguments) || nilp(cdr(arguments))) {
           return ERROR_ARGUMENTS;
         }
@@ -336,10 +336,11 @@ void enter_repl() {
     // Get current input as heap-allocated C string.
     char *input = readline();
     const char *source = input;
-    // If any input starts with "quit", exit REPL.
-    if (memcmp(source, "quit", 4) == 0) {
-      break;
-    }
+    if (strlen(source) >= 4
+        && memcmp(source, "quit", 4) == 0)
+      {
+        break;
+      }
     enum Error err;
     Atom expr;
     err = parse_expr(source, &source, &expr);
