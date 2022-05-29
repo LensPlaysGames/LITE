@@ -29,14 +29,17 @@ char *file_contents(const char* path) {
   char *buffer = NULL;
   FILE *file = fopen(path, "r");
   if (!file) {
+    printf("Couldn't open file at %s\n", path);
     return NULL;
   }
   size_t size = file_size(file);
   if (size == 0) {
+    printf("File has zero size at %s\n", path);
     return NULL;
   }
   buffer = malloc(size + 1);
   if (!buffer) {
+    printf("Could not allocate buffer for file at %s\n", path);
     return NULL;
   }
   fread(buffer, 1, size, file);
@@ -52,7 +55,7 @@ int load_file(Atom environment, const char* path) {
   }
   const char* source = input;
   Atom expr;
-  while (parse_expr(source, &source, &expr)) {
+  while (parse_expr(source, &source, &expr) == ERROR_NONE) {
     Atom result;
     enum Error err = evaluate_expr(expr, environment, &result);
     if (err) { return err; }
@@ -67,10 +70,13 @@ int load_file(Atom environment, const char* path) {
 
 int main(int argc, char **argv) {
   printf("LITE will guide the way through the darkness.\n");
-  (void)argc;
-  (void)argv;
   Atom environment = default_environment();
-  load_file(environment, "../lisp/std.lt");
+  // Treat every given argument as a file to load, for now.
+  if (argc > 1) {
+    for (size_t i = 1; i < argc; ++i) {
+      load_file(environment, argv[i]);
+    }
+  }
   enter_repl(environment);
   return 0;
 }

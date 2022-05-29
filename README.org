@@ -25,6 +25,9 @@ there are many tutorials out there: pick one that makes sense to you.
 Currently, it's just a REPL.
 Enter it by running the built executable from a terminal.
 
+Any arguments given are treated as source files,
+and are loaded into the environment before entring the REPL.
+
 ** Building
 
 [[https://cmake.org/][CMake]] is used as the cross-platform build system.
