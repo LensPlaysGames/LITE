@@ -4,3 +4,31 @@
           (* x -1)
           x)
       ))
+
+;; LIST FOLDING FUNCTIONS
+;; https://en.wikipedia.org/wiki/Fold_(higher-order_function)
+
+;; foldl -- Fold List Left
+;; Apply SOME-FUNCTION to each element within SOME-LIST in reverse order,
+;; as well as place INITIAL-VALUE at the beginning of SOME-LIST (end of reversed list).
+(define foldl
+    (lambda (some-function initial-value some-list)
+      (if some-list
+          (foldl some-function
+                 (some-function initial-value (car some-list))
+                 (cdr some-list))
+          initial-value)
+      ))
+
+;; foldr -- Fold List Right
+;; Applies SOME-FUNCTION to each element within SOME-LIST,
+;; as well as places INITIAL-VALUE at the end of SOME-LIST.
+(define foldr
+    (lambda (some-function initial-value some-list)
+      (if some-list
+          (some-function (car some-list)
+                         (foldr some-function
+                                initial-value
+                                (cdr some-list)))
+          initial-value)
+      ))

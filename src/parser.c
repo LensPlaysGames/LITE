@@ -17,12 +17,18 @@ int lex(const char *source, const char **beg, const char **end) {
     *beg = NULL;
     *end = NULL;
     return ERROR_SYNTAX;
-  } else if (source[0] == ';') {
-    source = strchr(source, '\n');
-    if (source == NULL) {
-      *beg = NULL;
-      *end = NULL;
-      return ERROR_NONE;
+  } else {
+    while (source[0] == ';') {
+      // Eat line following comment delimiter.
+      source = strchr(source, '\n');
+      // Nothing in source left except comment(s).
+      if (source == NULL) {
+        *beg = NULL;
+        *end = NULL;
+        return ERROR_NONE;
+      }
+      // Eat preceding whitespace before delimiter check.
+      source += strspn(source, ws);
     }
   }
   *beg = source;
