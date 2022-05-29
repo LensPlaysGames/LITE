@@ -22,8 +22,7 @@ there are many tutorials out there: pick one that makes sense to you.
 
 ** Usage
 
-Currently, it's just a REPL.
-Enter it by running the built executable from a terminal.
+Enter the REPL by running the built executable from a terminal.
 
 Any arguments given are treated as source files,
 and are loaded into the environment before entring the REPL.
@@ -123,3 +122,7 @@ Currently, functions are stored in the symbol table with the following syntax:
 : (ENVIRONMENT (ARGUMENT ...) BODY-EXPRESSION)
 
 I think I'd like to squeeze docstrings in there.
+
+*** Comments
+
+Comments are delimited with the ';' character, per line.

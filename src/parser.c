@@ -17,6 +17,13 @@ int lex(const char *source, const char **beg, const char **end) {
     *beg = NULL;
     *end = NULL;
     return ERROR_SYNTAX;
+  } else if (source[0] == ';') {
+    source = strchr(source, '\n');
+    if (source == NULL) {
+      *beg = NULL;
+      *end = NULL;
+      return ERROR_NONE;
+    }
   }
   *beg = source;
   if (strchr(prefix, source[0]) != NULL) {
