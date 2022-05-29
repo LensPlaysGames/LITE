@@ -54,6 +54,16 @@ int evaluate_expr(Atom expr, Atom environment, Atom *result) {
           return ERROR_ARGUMENTS;
         }
         return make_closure(environment, car(arguments), cdr(arguments), result);
+      } else if (strlen(operator.value.symbol) >= 3
+                 && toupper(operator.value.symbol[0]) == 'S'
+                 && toupper(operator.value.symbol[1]) == 'Y'
+                 && toupper(operator.value.symbol[2]) == 'M')
+        {
+          if (!nilp(arguments)) {
+            return ERROR_ARGUMENTS;
+          }
+          *result = *sym_table();
+          return ERROR_NONE;
       } else if (strlen(operator.value.symbol) >= 2
                  && toupper(operator.value.symbol[0]) == 'I'
                  && toupper(operator.value.symbol[1]) == 'F')

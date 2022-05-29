@@ -47,6 +47,8 @@ Atom make_sym(symbol_t *value);
 Atom make_builtin(BuiltIn function);
 int make_closure(Atom environment, Atom arguments, Atom body, Atom *result);
 
+Atom* sym_table();
+
 void print_atom(Atom atom);
 
 #endif /* #ifndef LITE_TYPES_H */
