@@ -172,3 +172,46 @@ int builtin_apply(Atom arguments, Atom *result) {
   }
   return apply(function, arguments, result);
 }
+
+int builtin_pairp(Atom arguments, Atom *result) {
+  if (nilp(arguments) || !nilp(cdr(arguments))) {
+    return ERROR_ARGUMENTS;
+  }
+  *result = car(arguments).type == ATOM_TYPE_PAIR ? make_sym("T") : nil;
+  return ERROR_NONE;
+}
+
+int builtin_eq(Atom arguments, Atom *result) {
+  if (nilp(arguments) || nilp(cdr(arguments)) || !nilp(cdr(cdr(arguments)))) {
+    return ERROR_ARGUMENTS;
+  }
+  Atom a = car(arguments);
+  Atom b = car(cdr(arguments));
+  int equal = 0;
+  if (a.type == b.type) {
+    switch (a.type) {
+    case ATOM_TYPE_NIL:
+      equal = 1;
+      break;
+    case ATOM_TYPE_PAIR:
+    case ATOM_TYPE_CLOSURE:
+    case ATOM_TYPE_MACRO:
+      equal = (a.value.pair == b.value.pair);
+      break;
+    case ATOM_TYPE_SYMBOL:
+      equal = (a.value.symbol == b.value.symbol);
+      break;
+    case ATOM_TYPE_INTEGER:
+      equal = (a.value.integer == b.value.integer);
+      break;
+    case ATOM_TYPE_BUILTIN:
+      equal = (a.value.builtin == b.value.builtin);
+      break;
+    default:
+      equal = 0;
+      break;
+    }
+  }
+  *result = equal ? make_sym("T") : nil;
+  return ERROR_NONE;
+}

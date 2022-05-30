@@ -17,5 +17,7 @@ int builtin_numlt_or_eq (Atom arguments, Atom *result);
 int builtin_numgt       (Atom arguments, Atom *result);
 int builtin_numgt_or_eq (Atom arguments, Atom *result);
 int builtin_apply       (Atom arguments, Atom *result);
+int builtin_pairp       (Atom arguments, Atom *result);
+int builtin_eq          (Atom arguments, Atom *result);
 
 #endif /* LITE_BUILTINS_H */
