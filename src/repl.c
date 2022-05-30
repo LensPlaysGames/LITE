@@ -49,8 +49,9 @@ void enter_repl(Atom environment) {
     Atom expr;
     err = parse_expr(source, &source, &expr);
     if (err) {
+      printf("Error during parsing!\n");
       print_error(err);
-      return;
+      continue;
     }
     //==== EVAL ====
     Atom result;
@@ -62,7 +63,12 @@ void enter_repl(Atom environment) {
       putchar('\n');
       break;
     default:
+      printf("Error during evaluation!\n");
       print_error(err);
+      printf("Faulting Expression: ");
+      print_atom(expr);
+      putchar('\n');
+      break;
     }
     //==== LOOP ====
     // Free heap-allocated memory.

@@ -87,14 +87,26 @@ int evaluate_expr(Atom expr, Atom environment, Atom *result) {
       Atom expansion;
       operator.type = ATOM_TYPE_CLOSURE;
       err = apply(operator, arguments, &expansion);
-      if (err) { return err; }
+      if (err) {
+        printf("Error when evaluating macro operator!\n"
+               "Operator: ");
+        print_atom(operator);
+        putchar('\n');
+        return err;
+      }
       return evaluate_expr(expansion, environment, result);
     }
     arguments = copy_list(arguments);
     arguments_it = arguments;
     while (!nilp(arguments_it)) {
       err = evaluate_expr(car(arguments_it), environment, &car(arguments_it));
-      if (err) { return err; }
+      if (err) {
+        printf("Error when evaluating argument!\n"
+               "Argument: ");
+        print_atom(arguments_it);
+        putchar('\n');
+        return err;
+      }
       arguments_it = cdr(arguments_it);
     }
     return apply(operator, arguments, result);
