@@ -51,28 +51,48 @@ The ~bin~ subdirectory should now be populated with the LITE executable.
 * LITE LISP
 LITE LISP is the language that LITE interprets.
 
+** Types
+
+Everything in LISP is an object called an ~Atom~.
+An Atom has a type, and a value.
+
+Here are the different types an Atom may have in LITE LISP:
+- Nil -- This is the definition of false, nothing, etc.
+- Pair -- A recursive pair, containing a left-hand Atom and a right-hand Atom.
+
+  A pair has special terminology for the two sides; the left is
+  referred to as ~car~, while the right is referred to as ~cdr~.
+
+  A list is a pair with a value on the left,
+  and another pair, or nil, on the right.
+
+- Symbol -- A string that may be bound in the environment.
+- Integer -- An integer number.
+- BuiltIn -- A function implemented in the source code that is called from LISP.
+- Closure -- A function that is able to be called from LISP.
+- Macro -- A function whose body returns an expression that is then evaluated.
+
 ** Variables
 
-Variables are stored globally, and are stored in the /symbol table/.
-The symbol table is like a key-value dictionary, where the keys are
-some string, and the values are LISP objects.
+Variables are stored globally, and are stored in the /environment/.
+The environment is like a key-value dictionary, where the keys are
+some symbol (a string), and the values are LISP objects (an 'Atom').
 
 To create a new variable, use the ~DEFINE~ operator.
 #+begin_src lisp
   (define new-variable 42)
 #+end_src
 
-~new-variable~ is now a symbol defined in the symbol table.
+~new-variable~ is now a symbol bound in the environment.
 It has an integer value of =42=.
-You can see this by evaluating the new symbol.
 
+You can see the value a symbol has by evaluating it.
 #+begin_src lisp
   new-variable
 #+end_src
-
-The output will be =42=, as the symbol is /evaluated/.
-Evaluating a symbol means it is replaced with it's
-corresponding value from the symbol table.
+The output will be =42=, as the symbol was evaluated.
+Evaluating a symbol means it is replaced with
+the corresponding value from the environment.
 
 Sometimes, it is useful to *not* evaluate a variable.
 This can be done using the ~QUOTE~ operator.
@@ -80,13 +100,12 @@ This can be done using the ~QUOTE~ operator.
   (quote new-variable)
 #+end_src
 
-As this is a very common necessity in LISP, there is a special
-short-hand for it: a preceding single-quote.
-This short-hand means the following to be equivalent to the QUOTE just above.
+As this is a very common necessity in LISP, there is
+a special short-hand for it: a preceding single-quote.
+This short-hand means the following to be equivalent to the ~QUOTE~ just above.
 #+begin_src lisp
   'new-variable
 #+end_src
-
 
 ** Lambda
 
@@ -98,7 +117,7 @@ Currently, lambdas have the following syntax:
 #+end_src
 
 There is also support for variadic arguments using an /improper list/.
-Improper lists have not a ~nil~ terminator at the end, but a value.
+Improper lists have not ~NIL~ at the end, but a value.
 
 The syntax for an improper list is as follows:
 : (1 2 3 . 4)
@@ -115,6 +134,16 @@ converted to a list and passed to the function.
 As a real-world example, here is a factorial implementation in LITE LISP:
 #+begin_src lisp
   (define fact (lambda (x) (if (= x 0) 1 (* x (fact (- x 1))))))
+#+end_src
+
+** Comments
+
+Comments are delimited with the ';' character, per line.
+
+#+begin_src lisp
+  ;; This is a comment
+  ;; It begins with a ';', and ends upon encountering a newline.
+  (define length 42069) ; They work at the end of lines, as well.
 #+end_src
 
 ** Macros
@@ -134,16 +163,6 @@ be evaluated, and the return value will be the ~X~ symbol.
 
 This system is very powerful, as it allows the interpreted LISP
 commands being run to be built up in the LISP environment itself.
-
-** Comments
-
-Comments are delimited with the ';' character, per line.
-
-#+begin_src lisp
-  ;; This is a comment
-  ;; It begins with a ';', and ends upon encountering a newline.
-  (define length 42069) ; They work at the end of lines, as well.
-#+end_src
 
 ** Misc
 
