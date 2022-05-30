@@ -1,3 +1,7 @@
+;; Include this file in LITE by passing the path to this file as a command-line argument.
+
+;; Absolute Value
+;; Return X's distance from zero (always positive).
 (define abs
     (lambda (x)
       (if (< x 0)
@@ -8,7 +12,7 @@
 ;; LIST FOLDING FUNCTIONS
 ;; https://en.wikipedia.org/wiki/Fold_(higher-order_function)
 
-;; foldl -- Fold List Left
+;; Fold List Left
 ;; Apply SOME-FUNCTION to each element within SOME-LIST in reverse order,
 ;; as well as place INITIAL-VALUE at the beginning of SOME-LIST (end of reversed list).
 (define foldl
@@ -20,7 +24,7 @@
           initial-value)
       ))
 
-;; foldr -- Fold List Right
+;; Fold List Right
 ;; Applies SOME-FUNCTION to each element within SOME-LIST,
 ;; as well as places INITIAL-VALUE at the end of SOME-LIST.
 (define foldr
@@ -31,4 +35,27 @@
                                 initial-value
                                 (cdr some-list)))
           initial-value)
+      ))
+
+;; LIST UTILITY FUNCTIONS
+
+;; Create a new list from ITEMS.
+;; Any amount of arguments may be passed.
+(define list
+    (lambda items
+      (foldr cons nil items)
+      ))
+
+;; Create a new list from ITEMS in reverse order.
+;; Any amount of arguments may be passed.
+(define list-reverse
+    (lambda items
+      (foldl (lambda (a b) (cons b a)) nil items)
+      ))
+
+;; Reverse LIST.
+;; Any amount of arguments may be passed.
+(define reverse-list
+    (lambda (list)
+      (foldl (lambda (a b) (cons b a)) nil list)
       ))
