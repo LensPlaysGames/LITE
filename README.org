@@ -93,7 +93,9 @@ This short-hand means the following to be equivalent to the QUOTE just above.
 If you are not familiar, a lambda is just a function with no name.
 
 Currently, lambdas have the following syntax:
-: (lambda (ARGUMENT ...) BODY-EXPRESSION)
+#+begin_src lisp
+  (lambda (ARGUMENT ...) BODY-EXPRESSION)
+#+end_src
 
 There is also support for variadic arguments using an /improper list/.
 Improper lists have not a ~nil~ terminator at the end, but a value.
@@ -115,6 +117,33 @@ As a real-world example, here is a factorial implementation in LITE LISP:
   (define fact (lambda (x) (if (= x 0) 1 (* x (fact (- x 1))))))
 #+end_src
 
+** Macros
+
+A macro may be created with the ~MACRO~ operator.
+A macro is like a lambda, except it will return the result of evaluating
+it's return value, rather than it's return value being the result.
+
+A very simple example:
+#+begin_src lisp
+  (macro my-quote (x) (cons 'quote (cons x nil)))
+#+end_src
+
+As you can see, this builds the Atom: ~(QUOTE . (X . NIL))~
+(which is equivalent visually to ~(QUOTE X)~). This will then
+be evaluated, and the return value will be the ~X~ symbol.
+
+This system is very powerful, as it allows the interpreted LISP
+commands being run to be built up in the LISP environment itself.
+
+** Comments
+
+Comments are delimited with the ';' character, per line.
+
+#+begin_src lisp
+  ;; This is a comment
+  ;; It begins with a ';', and ends upon encountering a newline.
+  (define length 42069) ; They work at the end of lines, as well.
+#+end_src
 
 ** Misc
 
@@ -122,7 +151,3 @@ Currently, functions are stored in the symbol table with the following syntax:
 : (ENVIRONMENT (ARGUMENT ...) BODY-EXPRESSION)
 
 I think I'd like to squeeze docstrings in there.
-
-*** Comments
-
-Comments are delimited with the ';' character, per line.

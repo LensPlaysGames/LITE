@@ -138,5 +138,8 @@ void print_atom(Atom atom) {
   case ATOM_TYPE_CLOSURE:
     printf("#<CLOSURE>:%p", atom.value.builtin);
     break;
+  case ATOM_TYPE_MACRO:
+    printf("#<MACRO>:%p", atom.value.builtin);
+    break;
   }
 }

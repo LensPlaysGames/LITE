@@ -47,19 +47,26 @@ int evaluate_expr(Atom expr, Atom environment, Atom *result) {
           return ERROR_ARGUMENTS;
         }
         return make_closure(environment, car(arguments), cdr(arguments), result);
-      } else if (strlen(operator.value.symbol) >= 3
-                 && toupper(operator.value.symbol[0]) == 'S'
-                 && toupper(operator.value.symbol[1]) == 'Y'
-                 && toupper(operator.value.symbol[2]) == 'M')
-        {
-          if (!nilp(arguments)) {
+      } else if (strcmp(operator.value.symbol, "MACRO") == 0) {
+        Atom name;
+        Atom macro;
+        if (nilp(arguments) || nilp(cdr(arguments))
+            || nilp (cdr(cdr(arguments))) || !nilp(cdr(cdr(cdr(arguments)))))
+          {
             return ERROR_ARGUMENTS;
           }
-          *result = *sym_table();
-          return ERROR_NONE;
-        } else if (strlen(operator.value.symbol) >= 2
-                   && toupper(operator.value.symbol[0]) == 'I'
-                   && toupper(operator.value.symbol[1]) == 'F')
+        name = car(arguments);
+        if (name.type != ATOM_TYPE_SYMBOL) {
+          return ERROR_TYPE;
+        }
+        err = make_closure(environment, car(cdr(arguments)), cdr(cdr(arguments)), &macro);
+        if (err) { return err; }
+        macro.type = ATOM_TYPE_MACRO;
+        *result = name;
+        return env_set(environment, name, macro);
+      } else if (strlen(operator.value.symbol) >= 2
+                 && toupper(operator.value.symbol[0]) == 'I'
+                 && toupper(operator.value.symbol[1]) == 'F')
         {
           if (nilp(arguments) || nilp(cdr(arguments))
               || nilp(cdr(cdr(arguments))) || !nilp(cdr(cdr(cdr(arguments)))))
@@ -76,6 +83,13 @@ int evaluate_expr(Atom expr, Atom environment, Atom *result) {
     }
     err = evaluate_expr(operator, environment, &operator);
     if (err) { return err; }
+    if (operator.type == ATOM_TYPE_MACRO) {
+      Atom expansion;
+      operator.type = ATOM_TYPE_CLOSURE;
+      err = apply(operator, arguments, &expansion);
+      if (err) { return err; }
+      return evaluate_expr(expansion, environment, result);
+    }
     arguments = copy_list(arguments);
     arguments_it = arguments;
     while (!nilp(arguments_it)) {
