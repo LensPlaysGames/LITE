@@ -143,3 +143,29 @@ void print_atom(Atom atom) {
     break;
   }
 }
+
+void pretty_print_atom(Atom atom) {
+  switch (atom.type) {
+  case ATOM_TYPE_PAIR:
+    putchar('(');
+    print_atom(car(atom));
+
+    atom = cdr(atom);
+    while (!nilp(atom)) {
+      if (atom.type == ATOM_TYPE_PAIR) {
+        printf("\n ");
+        print_atom(car(atom));
+        atom = cdr(atom);
+      } else {
+        printf(" . ");
+        print_atom(atom);
+        break;
+      }
+    }
+    putchar(')');
+    break;
+  default:
+    print_atom(atom);
+    break;
+  }
+}

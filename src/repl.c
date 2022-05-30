@@ -27,6 +27,14 @@ char* readline() {
 
 void enter_repl(Atom environment) {
   while (1) {
+#ifndef NDEBUG
+    printf("Environment:\n");
+    pretty_print_atom(environment);
+    putchar('\n');
+    printf("Symbol Table:\n");
+    print_atom(*sym_table());
+    putchar('\n');
+#endif /* #ifndef NDEBUG */
     putchar('\n');
     //==== READ ====
     // Get current input as heap-allocated C string.

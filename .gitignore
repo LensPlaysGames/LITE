@@ -6,20 +6,15 @@
 
 # Generated build stuff
 /bin/
-/bld/
-/build/
+/bld*
+/build*
+/dbg*
+/debug*
 /tst/
 /test/
 /testing/
-/win/
-/winja/
-/winbld/
-/winbuild/
-/windows/
-/lin/
-/linbld/
-/linbuild/
-/linux/
+/win*
+/lin*
 
 
 # Docs

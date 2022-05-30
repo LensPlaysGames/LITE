@@ -51,5 +51,7 @@ int make_closure(Atom environment, Atom arguments, Atom body, Atom *result);
 Atom* sym_table();
 
 void print_atom(Atom atom);
+/// Print lists' CDR on newline.
+void pretty_print_atom(Atom atom);
 
 #endif /* #ifndef LITE_TYPES_H */
