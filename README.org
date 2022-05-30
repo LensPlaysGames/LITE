@@ -166,7 +166,7 @@ commands being run to be built up in the LISP environment itself.
 
 ** Misc
 
-Currently, functions are stored in the symbol table with the following syntax:
+Currently, functions are stored in the environment with the following syntax:
 : (ENVIRONMENT (ARGUMENT ...) BODY-EXPRESSION)
 
-I think I'd like to squeeze docstrings in there.
+I think I'd like to squeeze docstrings in there, somewhere. But first: strings.

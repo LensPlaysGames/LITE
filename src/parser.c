@@ -10,30 +10,31 @@
 int lex(const char *source, const char **beg, const char **end) {
   const char *ws = " \t\n";
   const char *delimiter = "() \t\n";
-  const char *prefix = "\'() \t\n";
+  const char *prefix = "()\'`";
   // Eat all preceding whitespace.
   source += strspn(source, ws);
   if (source[0] == '\0') {
     *beg = NULL;
     *end = NULL;
     return ERROR_SYNTAX;
-  } else {
-    while (source[0] == ';') {
-      // Eat line following comment delimiter.
-      source = strchr(source, '\n');
-      // Nothing in source left except comment(s).
-      if (source == NULL) {
-        *beg = NULL;
-        *end = NULL;
-        return ERROR_NONE;
-      }
-      // Eat preceding whitespace before delimiter check.
-      source += strspn(source, ws);
+  }
+  while (source[0] == ';') {
+    // Eat line following comment delimiter.
+    source = strchr(source, '\n');
+    // Nothing in source left except comment(s).
+    if (source == NULL) {
+      *beg = NULL;
+      *end = NULL;
+      return ERROR_NONE;
     }
+    // Eat preceding whitespace before delimiter check.
+    source += strspn(source, ws);
   }
   *beg = source;
   if (strchr(prefix, source[0]) != NULL) {
     *end = source + 1;
+  } else if (source[0] == ',') {
+    *end = source + (source[1] == '@' ? 2 : 1);
   } else {
     *end = source + strcspn(source, delimiter);
   }
@@ -123,6 +124,13 @@ int parse_expr(const char *source, const char **end, Atom *result) {
     return ERROR_SYNTAX;
   } else if (token[0] == '\'') {
     *result = cons(make_sym("QUOTE"), cons(nil, nil));
+    return parse_expr(*end, end, &car(cdr(*result)));
+  } else if (token[0] == '`') {
+    *result = cons(make_sym("QUASIQUOTE"), cons(nil, nil));
+    return parse_expr(*end, end, &car(cdr(*result)));
+  } else if (token[0] == ',') {
+    const char *symbol = token[1] == '@' ? "UNQUOTE-SPLICING" : "UNQUOTE";
+    *result = cons(make_sym(symbol), cons(nil, nil));
     return parse_expr(*end, end, &car(cdr(*result)));
   } else {
     return parse_simple(token, *end, result);

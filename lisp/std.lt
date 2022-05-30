@@ -1,5 +1,9 @@
 ;; Include this file in LITE by passing the path to this file as a command-line argument.
 
+;; More easily access nested pair elements.
+(macro caar (x) (car (car x)))
+(macro cadr (x) (car (cdr x)))
+
 ;; Absolute Value
 ;; Return X's distance from zero (always positive).
 (define abs
@@ -59,3 +63,40 @@
     (lambda (list)
       (foldl (lambda (a b) (cons b a)) nil list)
       ))
+
+;; Append list B to list A.
+(macro append (a b) (foldr cons b a))
+
+;; MAPPING
+
+(define unary-map
+    (lambda (some-function some-list)
+      (foldr (lambda (x rest) (cons (some-function x) rest))
+             nil
+             some-list)))
+
+(define map
+    (lambda (some-function . arg-lists)
+      (if (car arg-lists)
+          (cons (apply some-function (unary-map car arg-lists))
+                (apply map (cons some-function (unary-map cdr arg-lists))))
+          nil)))
+
+
+;; QUASIQUOTATION
+
+;; FIXME: This doesn't seem to work, basically at all.
+;; I don't know why, and I'm not sure how to fix it yet.
+(macro quasiquote (x)
+       (if (pairp x)
+           (if (eq? (car x) 'unquote)
+               (cadr x)
+               ;; TODO: caar causes big problems for some reason.
+               (if (eq? (caar x) 'unquote-splicing)
+                   (list 'append
+                         (cadr (car x))
+                         (list 'quasiquote (cdr x)))
+                   (list 'cons
+                         (list 'quasiquote (car x))
+                         (list 'quasiquote (cdr x)))))
+           (list 'quote x)))
