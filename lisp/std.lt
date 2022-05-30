@@ -65,7 +65,9 @@
       ))
 
 ;; Append list B to list A.
-(macro append (a b) (foldr cons b a))
+(define append
+    (lambda (a b)
+      (foldr cons b a)))
 
 ;; MAPPING
 
@@ -85,15 +87,18 @@
 
 ;; QUASIQUOTATION
 
-;; This is annoying and doesn't work basically at all.
 (macro quasiquote (x)
-       (if (pairp x)
+       (if (pair? x)
            (if (eq? (car x) 'unquote)
                (cadr x)
-               (if (eq? (car x) 'unquote-splicing)
-                   (list 'append
-                         (cadr (car x))
-                         (list 'quasiquote (cdr x)))
+               (if (pair? (car x))
+                   (if (eq? (caar x) 'unquote-splicing)
+                       (list 'append
+                             (cadr (car x))
+                             (list 'quasiquote (cdr x)))
+                       (list 'cons
+                             (list 'quasiquote (car x))
+                             (list 'quasiquote (cdr x))))
                    (list 'cons
                          (list 'quasiquote (car x))
                          (list 'quasiquote (cdr x)))))

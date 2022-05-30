@@ -28,13 +28,12 @@ int evaluate_expr(Atom expr, Atom environment, Atom *result) {
         *result = car(arguments);
         return ERROR_NONE;
       } else if (strcmp(operator.value.symbol, "DEFINE") == 0) {
-        Atom symbol;
-        Atom value;
         // Ensure two arguments.
         if (nilp(arguments) || nilp(cdr(arguments)) || !nilp(cdr(cdr(arguments)))) {
           return ERROR_ARGUMENTS;
         }
-        symbol = car(arguments);
+        Atom value;
+        Atom symbol = car(arguments);
         if (symbol.type != ATOM_TYPE_SYMBOL) {
           return ERROR_TYPE;
         }
@@ -48,17 +47,16 @@ int evaluate_expr(Atom expr, Atom environment, Atom *result) {
         }
         return make_closure(environment, car(arguments), cdr(arguments), result);
       } else if (strcmp(operator.value.symbol, "MACRO") == 0) {
-        Atom name;
-        Atom macro;
         if (nilp(arguments) || nilp(cdr(arguments))
             || nilp (cdr(cdr(arguments))) || !nilp(cdr(cdr(cdr(arguments)))))
           {
             return ERROR_ARGUMENTS;
           }
-        name = car(arguments);
+        Atom name = car(arguments);
         if (name.type != ATOM_TYPE_SYMBOL) {
           return ERROR_TYPE;
         }
+        Atom macro;
         err = make_closure(environment, car(cdr(arguments)), cdr(cdr(arguments)), &macro);
         if (err) { return err; }
         macro.type = ATOM_TYPE_MACRO;
@@ -81,8 +79,10 @@ int evaluate_expr(Atom expr, Atom environment, Atom *result) {
           return evaluate_expr(value, environment, result);
         }
     }
+    // Evaluate operator.
     err = evaluate_expr(operator, environment, &operator);
     if (err) { return err; }
+    // Handle macros.
     if (operator.type == ATOM_TYPE_MACRO) {
       Atom expansion;
       operator.type = ATOM_TYPE_CLOSURE;
@@ -94,8 +94,16 @@ int evaluate_expr(Atom expr, Atom environment, Atom *result) {
         putchar('\n');
         return err;
       }
+      // TODO: Use LISP environment value instead of C pre. directive.
+#ifdef DEBUG_MACRO
+      // It's really helpful to be able to see
+      // recursive macros expansion at each step.
+      print_atom(expansion);
+      putchar('\n');
+#endif /* #ifdef DEBUG_MACRO */
       return evaluate_expr(expansion, environment, result);
     }
+    // Evaluate arguments
     arguments = copy_list(arguments);
     arguments_it = arguments;
     while (!nilp(arguments_it)) {
