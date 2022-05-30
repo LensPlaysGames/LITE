@@ -1,8 +1,8 @@
 ;; Include this file in LITE by passing the path to this file as a command-line argument.
 
 ;; More easily access nested pair elements.
-(macro caar (x) (car (car x)))
-(macro cadr (x) (car (cdr x)))
+(define caar (lambda (x) (car (car x))))
+(define cadr (lambda (x) (car (cdr x))))
 
 ;; Absolute Value
 ;; Return X's distance from zero (always positive).
@@ -85,14 +85,12 @@
 
 ;; QUASIQUOTATION
 
-;; FIXME: This doesn't seem to work, basically at all.
-;; I don't know why, and I'm not sure how to fix it yet.
+;; This is annoying and doesn't work basically at all.
 (macro quasiquote (x)
        (if (pairp x)
            (if (eq? (car x) 'unquote)
                (cadr x)
-               ;; TODO: caar causes big problems for some reason.
-               (if (eq? (caar x) 'unquote-splicing)
+               (if (eq? (car x) 'unquote-splicing)
                    (list 'append
                          (cadr (car x))
                          (list 'quasiquote (cdr x)))
@@ -100,3 +98,7 @@
                          (list 'quasiquote (car x))
                          (list 'quasiquote (cdr x)))))
            (list 'quote x)))
+
+(macro let (defs . body)
+       `((lambda ,(map car defs) ,@body)
+         ,@(map cadr defs)))
