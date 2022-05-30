@@ -95,6 +95,14 @@ int builtin_divide(Atom arguments, Atom *result) {
   return ERROR_NONE;
 }
 
+int builtin_not(Atom arguments, Atom *result) {
+  if (nilp (arguments) || !nilp(cdr(arguments))) {
+    return ERROR_ARGUMENTS;
+  }
+  *result = nilp(car(arguments)) ? make_sym("T") : nil;
+  return ERROR_NONE;
+}
+
 int builtin_numeq(Atom arguments, Atom *result) {
   if (nilp (arguments) || nilp(cdr(arguments)) || !nilp(cdr(cdr(arguments)))) {
     return ERROR_ARGUMENTS;
@@ -105,6 +113,19 @@ int builtin_numeq(Atom arguments, Atom *result) {
     return ERROR_TYPE;
   }
   *result = lhs.value.integer == rhs.value.integer ? make_sym("T") : nil;
+  return ERROR_NONE;
+}
+
+int builtin_numnoteq(Atom arguments, Atom *result) {
+  if (nilp (arguments) || nilp(cdr(arguments)) || !nilp(cdr(cdr(arguments)))) {
+    return ERROR_ARGUMENTS;
+  }
+  Atom lhs = car(arguments);
+  Atom rhs = car(cdr(arguments));
+  if (lhs.type != ATOM_TYPE_INTEGER || rhs.type != ATOM_TYPE_INTEGER) {
+    return ERROR_TYPE;
+  }
+  *result = lhs.value.integer != rhs.value.integer ? make_sym("T") : nil;
   return ERROR_NONE;
 }
 

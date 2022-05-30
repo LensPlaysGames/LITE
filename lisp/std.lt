@@ -107,3 +107,17 @@
 (macro let (defs . body)
        `((lambda ,(map car defs) ,@body)
          ,@(map cadr defs)))
+
+;; ARITHMETIC & LOGIC
+
+;; Redefine '+' operator to handle any amount of integer arguments.
+(define +
+    (let ((old+ +))
+      (lambda ints (foldl old+ 0 ints))
+      ))
+
+;; Redefine '*' operator to handle any amount of integer arguments.
+(define *
+    (let ((old* *))
+      (lambda ints (foldl old* 1 ints))
+      ))

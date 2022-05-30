@@ -43,6 +43,7 @@ int env_get(Atom environment, Atom symbol, Atom *result) {
 Atom default_environment() {
   Atom environment = env_create(nil);
   env_set(environment, make_sym("T"),     make_sym("T"));
+  env_set(environment, make_sym("!"),     make_builtin(builtin_not));
   env_set(environment, make_sym("CAR"),   make_builtin(builtin_car));
   env_set(environment, make_sym("CDR"),   make_builtin(builtin_cdr));
   env_set(environment, make_sym("CONS"),  make_builtin(builtin_cons));
@@ -51,6 +52,7 @@ Atom default_environment() {
   env_set(environment, make_sym("*"),     make_builtin(builtin_multiply));
   env_set(environment, make_sym("/"),     make_builtin(builtin_divide));
   env_set(environment, make_sym("="),     make_builtin(builtin_numeq));
+  env_set(environment, make_sym("!="),    make_builtin(builtin_numnoteq));
   env_set(environment, make_sym("<"),     make_builtin(builtin_numlt));
   env_set(environment, make_sym("<="),    make_builtin(builtin_numlt_or_eq));
   env_set(environment, make_sym(">"),     make_builtin(builtin_numgt));
@@ -58,5 +60,7 @@ Atom default_environment() {
   env_set(environment, make_sym("APPLY"), make_builtin(builtin_apply));
   env_set(environment, make_sym("PAIR?"), make_builtin(builtin_pairp));
   env_set(environment, make_sym("EQ?"),   make_builtin(builtin_eq));
+  env_set(environment, make_sym("DEBUG/ENVIRONMENT"), nil);
+  env_set(environment, make_sym("DEBUG/MACRO"), nil);
   return environment;
 }

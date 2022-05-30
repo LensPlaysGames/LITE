@@ -62,6 +62,13 @@ int evaluate_expr(Atom expr, Atom environment, Atom *result) {
         macro.type = ATOM_TYPE_MACRO;
         *result = name;
         return env_set(environment, name, macro);
+      } else if (strcmp(operator.value.symbol, "ENV") == 0) {
+        // Ensure no arguments.
+        if (!nilp(arguments)) {
+          return ERROR_ARGUMENTS;
+        }
+        *result = environment;
+        return ERROR_NONE;
       } else if (strlen(operator.value.symbol) >= 2
                  && toupper(operator.value.symbol[0]) == 'I'
                  && toupper(operator.value.symbol[1]) == 'F')
@@ -95,12 +102,15 @@ int evaluate_expr(Atom expr, Atom environment, Atom *result) {
         return err;
       }
       // TODO: Use LISP environment value instead of C pre. directive.
-#ifdef DEBUG_MACRO
-      // It's really helpful to be able to see
-      // recursive macros expansion at each step.
-      print_atom(expansion);
-      putchar('\n');
-#endif /* #ifdef DEBUG_MACRO */
+      Atom debug_macro;
+      env_get(environment, make_sym("DEBUG/MACRO"), &debug_macro);
+      if (!nilp(debug_macro)) {
+        // It's really helpful to be able to see
+        // recursive macros expansion at each step.
+        printf("Expansion: ");
+        print_atom(expansion);
+        printf("\n\n");
+      }
       return evaluate_expr(expansion, environment, result);
     }
     // Evaluate arguments

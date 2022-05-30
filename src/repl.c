@@ -1,6 +1,7 @@
 #include <repl.h>
 
 #include <error.h>
+#include <environment.h>
 #include <evaluation.h>
 #include <parser.h>
 #include <stdio.h>
@@ -27,16 +28,18 @@ char* readline() {
 
 void enter_repl(Atom environment) {
   while (1) {
-#ifndef NDEBUG
-    printf("Environment:\n");
-    pretty_print_atom(environment);
-    putchar('\n');
-    printf("Symbol Table:\n");
-    print_atom(*sym_table());
-    putchar('\n');
-#endif /* #ifndef NDEBUG */
-    putchar('\n');
+    Atom debug_environment;
+    env_get(environment, make_sym("DEBUG/ENVIRONMENT"), &debug_environment);
+    if (!nilp(debug_environment)) {
+      printf("Environment:\n");
+      pretty_print_atom(environment);
+      putchar('\n');
+      printf("Symbol Table:\n");
+      print_atom(*sym_table());
+      putchar('\n');
+    }
     //==== READ ====
+    putchar('\n');
     // Get current input as heap-allocated C string.
     char *input = readline();
     const char *source = input;

@@ -4,7 +4,7 @@
 #+created: <2022-05-26 Thu>
 #+options: toc:nil
 
-* LITE
+** LITE
 
 LITE may mean anything that abbreviates the letters;
 listed here are a few that are especially significant.
@@ -20,14 +20,14 @@ Initially, development followed [[https://www.lwh.jp/lisp/][this LISP interprete
 If you are wanting to do this for yourself, and make your own LISP (interpreter),
 there are many tutorials out there: pick one that makes sense to you.
 
-** Usage
+*** Usage
 
 Enter the REPL by running the built executable from a terminal.
 
 Any arguments given are treated as source files,
 and are loaded into the environment before entring the REPL.
 
-** Building
+*** Building
 
 [[https://cmake.org/][CMake]] is used as the cross-platform build system.
 
@@ -48,10 +48,10 @@ Once the build tree is generated, invoke it to generate an executable.
 
 The ~bin~ subdirectory should now be populated with the LITE executable.
 
-* LITE LISP
+** LITE LISP
 LITE LISP is the language that LITE interprets.
 
-** Types
+*** Types
 
 Everything in LISP is an object called an ~Atom~.
 An Atom has a type, and a value.
@@ -69,10 +69,10 @@ Here are the different types an Atom may have in LITE LISP:
 - Symbol -- A string that may be bound in the environment.
 - Integer -- An integer number.
 - BuiltIn -- A function implemented in the source code that is called from LISP.
-- Closure -- A function that is able to be called from LISP.
+- Closure -- A function that is able to be called from LISP; a lambda.
 - Macro -- A function whose body returns an expression that is then evaluated.
 
-** Variables
+*** Variables
 
 Variables are stored globally, and are stored in the /environment/.
 The environment is like a key-value dictionary, where the keys are
@@ -107,7 +107,7 @@ This short-hand means the following to be equivalent to the ~QUOTE~ just above.
   'new-variable
 #+end_src
 
-** Lambda
+*** Lambda
 
 If you are not familiar, a lambda is just a function with no name.
 
@@ -136,17 +136,7 @@ As a real-world example, here is a factorial implementation in LITE LISP:
   (define fact (lambda (x) (if (= x 0) 1 (* x (fact (- x 1))))))
 #+end_src
 
-** Comments
-
-Comments are delimited with the ';' character, per line.
-
-#+begin_src lisp
-  ;; This is a comment
-  ;; It begins with a ';', and ends upon encountering a newline.
-  (define length 42069) ; They work at the end of lines, as well.
-#+end_src
-
-** Macros
+*** Macros
 
 A macro may be created with the ~MACRO~ operator.
 A macro is like a lambda, except it will return the result of evaluating
@@ -164,9 +154,31 @@ be evaluated, and the return value will be the ~X~ symbol.
 This system is very powerful, as it allows the interpreted LISP
 commands being run to be built up in the LISP environment itself.
 
-** Misc
+When the environment variable `DEBUG/MACRO` is non-nil,
+extra output concerning macros is produced.
 
-Currently, functions are stored in the environment with the following syntax:
-: (ENVIRONMENT (ARGUMENT ...) BODY-EXPRESSION)
+*** Comments
 
-I think I'd like to squeeze docstrings in there, somewhere. But first: strings.
+Comments are delimited with the ';' character, per line.
+
+#+begin_src lisp
+  ;; This is a comment
+  ;; It begins with a ';', and ends upon encountering a newline.
+  (define length 42069) ; They work at the end of lines, as well.
+#+end_src
+
+*** Misc
+
+- Environment
+
+  Get the current environment by using the `ENV` operator.
+
+  Alternatively, visualize the environment using by
+  setting `DEBUG/ENVIRONMENT` to any non-nil value.
+
+- Function environment syntax
+
+  Currently, functions are stored in the environment with the following syntax:
+  : (ENVIRONMENT (ARGUMENT ...) BODY-EXPRESSION)
+
+  I think I'd like to squeeze docstrings in there, somewhere. But first: strings.
