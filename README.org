@@ -22,10 +22,17 @@ there are many tutorials out there: pick one that makes sense to you.
 
 *** Usage
 
-Enter the REPL by running the built executable from a terminal.
+Enter the REPL by running the executable from a terminal.
 
-Any arguments given are treated as source files,
-and are loaded into the environment before entring the REPL.
+Any arguments given are treated as source files, and
+are loaded into the environment before entring the REPL.
+
+It is recommended to include the standard LITE LISP
+library at ~std.lt~ in the ~lisp~ subdirectory.
+: bin/LITE lisp/std.lt
+
+Or on Windows:
+: .\bin\LITE.exe .\lisp\std.lt
 
 *** Building
 
@@ -37,7 +44,7 @@ First, generate a local build tree:
 #+end_src
 
 Replace =<GENERATOR>= with your choice of build system,
-being GNU Make, Ninja, or otherwise. Don't include the angled brackets.
+being Unix Makefiles, Ninja, or otherwise. Don't include the angled brackets.
 To see a list of available generators, invoke CMake
 with just the ~-G~ option, no other arguments.
 
@@ -142,17 +149,36 @@ A macro may be created with the ~MACRO~ operator.
 A macro is like a lambda, except it will return the result of evaluating
 it's return value, rather than it's return value being the result.
 
-A very simple example:
+This allows for commands and arguments to built programatically in LISP.
+
+In order to ease the making of macros, there is /quasiquotation/.
+It is similar to quote, but it is possible to unquote specific
+pieces so as to evaluate them before calling the built expression.
+
+While it is possible to call the quasiquotation operators
+manually, there are short-hand special forms.
+- '`'  -- QUASIQUOTE
+- ','  -- UNQUOTE
+- ',@' -- UNQUOTE-SPLICING
+
+These special forms allow macro definitions to
+look more like the expressions they produce.
+
+A simple example that mimics the ~QUOTE~ operator:
 #+begin_src lisp
-  (macro my-quote (x) (cons 'quote (cons x nil)))
+  (macro my-quote (x) `(quote ,x))
 #+end_src
 
-As you can see, this builds the Atom: ~(QUOTE . (X . NIL))~
-(which is equivalent visually to ~(QUOTE X)~). This will then
-be evaluated, and the return value will be the ~X~ symbol.
+The QUASIQUOTE special-form at the beginning will cause
+the QUOTE symbol to pass through without being evaluated.
+The UNQUOTE special-form before the ~X~ symbol will
+cause it to be evaluated.
 
-This system is very powerful, as it allows the interpreted LISP
-commands being run to be built up in the LISP environment itself.
+For example, calling ~(my-quote a)~ will expand to ~(QUOTE A)~,
+which will result in the symbol ~A~ being returned.
+The quasiquotation prevents QUOTE from being evaluated,
+but UNQUOTE causes the given expression to be evaluated
+(in this case, the argument variable ~x~ evaluates to ~42~).
 
 When the environment variable `DEBUG/MACRO` is non-nil,
 extra output concerning macros is produced.
