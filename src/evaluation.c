@@ -69,6 +69,13 @@ int evaluate_expr(Atom expr, Atom environment, Atom *result) {
         }
         *result = environment;
         return ERROR_NONE;
+      } else if (strcmp(operator.value.symbol, "SYM") == 0) {
+        // Ensure no arguments.
+        if (!nilp(arguments)) {
+          return ERROR_ARGUMENTS;
+        }
+        *result = *sym_table();
+        return ERROR_NONE;
       } else if (strlen(operator.value.symbol) >= 2
                  && toupper(operator.value.symbol[0]) == 'I'
                  && toupper(operator.value.symbol[1]) == 'F')

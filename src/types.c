@@ -6,7 +6,7 @@
 #include <string.h>
 
 static Atom symbol_table = { ATOM_TYPE_NIL };
-Atom* sym_table() { return &symbol_table; }
+Atom *sym_table() { return &symbol_table; }
 
 Atom cons(Atom car_atom, Atom cdr_atom) {
   Atom newpair;
