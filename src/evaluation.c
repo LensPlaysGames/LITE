@@ -42,13 +42,18 @@ int evaluate_expr(Atom expr, Atom environment, Atom *result) {
         *result = symbol;
         return env_set(environment, symbol, value);
       } else if (strcmp(operator.value.symbol, "LAMBDA") == 0) {
+        // ARGUMENTS: LAMBDA_ARGS [DOCSTRING] BODY
         if (nilp(arguments) || nilp(cdr(arguments))) {
           return ERROR_ARGUMENTS;
         }
-        return make_closure(environment, car(arguments), cdr(arguments), result);
+        return make_closure(environment
+                            , car(arguments)
+                            , cdr(arguments)
+                            , result);
       } else if (strcmp(operator.value.symbol, "MACRO") == 0) {
         if (nilp(arguments) || nilp(cdr(arguments))
-            || nilp (cdr(cdr(arguments))) || !nilp(cdr(cdr(cdr(arguments)))))
+            || nilp (cdr(cdr(arguments))) || nilp(cdr(cdr(cdr(arguments))))
+            || !nilp(cdr(cdr(cdr(cdr(arguments))))))
           {
             return ERROR_ARGUMENTS;
           }
@@ -57,7 +62,11 @@ int evaluate_expr(Atom expr, Atom environment, Atom *result) {
           return ERROR_TYPE;
         }
         Atom macro;
-        err = make_closure(environment, car(cdr(arguments)), cdr(cdr(arguments)), &macro);
+        // Arguments: MACRO_NAME ARGUMENTS [DOCSTRING] BODY
+        err = make_closure(environment
+                           , car(cdr(arguments))
+                           , cdr(cdr(arguments))
+                           , &macro);
         if (err) { return err; }
         macro.type = ATOM_TYPE_MACRO;
         *result = name;
@@ -69,6 +78,24 @@ int evaluate_expr(Atom expr, Atom environment, Atom *result) {
         }
         *result = environment;
         return ERROR_NONE;
+      } else if (strcmp(operator.value.symbol, "DOCSTRING") == 0) {
+        if (nilp(arguments) || !nilp(cdr(arguments))) {
+          return ERROR_ARGUMENTS;
+        }
+        Atom closure = car(arguments);
+        if (closure.type == ATOM_TYPE_SYMBOL) {
+          Atom symbol = closure;
+          err = env_get(environment, symbol, &closure);
+          if (err) { return err; }
+        }
+        if (closure.type == ATOM_TYPE_CLOSURE
+            || closure.type == ATOM_TYPE_MACRO)
+          {
+            // Layout: FUNCTION ARGUMENTS DOCSTRING . BODY
+            *result = car(cdr(cdr(closure)));
+            return ERROR_NONE;
+          }
+        return ERROR_TYPE;
       } else if (strcmp(operator.value.symbol, "SYM") == 0) {
         // Ensure no arguments.
         if (!nilp(arguments)) {
@@ -146,9 +173,10 @@ int apply(Atom function, Atom arguments, Atom *result) {
     return ERROR_TYPE;
   }
   // Handle closure.
+  // Layout: FUNCTION ARGUMENTS [DOCSTRING] . BODY
   Atom environment = env_create(car(function));
   Atom argument_names = car(cdr(function));
-  Atom body = cdr(cdr(function));
+  Atom body = cdr(cdr(cdr(function)));
   // Bind arguments into local environment.
   while (!nilp(argument_names)) {
     // Handle variadic arguments.

@@ -1,13 +1,23 @@
 ;; Include this file in LITE by passing the path to this file as a command-line argument.
 
 ;; More easily access nested pair elements.
-(define caar (lambda (x) (car (car x))))
-(define cadr (lambda (x) (car (cdr x))))
+(define caar
+    (lambda (x)
+      "Get the left side of the left side of the given pair."
+      (car (car x))
+      ))
+(define cadr
+    (lambda (x)
+      "Get the left side of the right side of the given pair.
 
-;; Absolute Value
-;; Return X's distance from zero (always positive).
+Most often used to get the next element in a list."
+      (car (cdr x))
+      ))
+
 (define abs
     (lambda (x)
+      "Return X's distance from zero, which is always positive,
+also known as the absolute value."
       (if (< x 0)
           (* x -1)
           x)
@@ -17,10 +27,10 @@
 ;; https://en.wikipedia.org/wiki/Fold_(higher-order_function)
 
 ;; Fold List Left
-;; Apply SOME-FUNCTION to each element within SOME-LIST in reverse order,
-;; as well as place INITIAL-VALUE at the beginning of SOME-LIST (end of reversed list).
 (define foldl
     (lambda (some-function initial-value some-list)
+      "Apply SOME-FUNCTION to each element within SOME-LIST in reverse order,
+as well as place INITIAL-VALUE at the beginning of SOME-LIST (end of reversed list)."
       (if some-list
           (foldl some-function
                  (some-function initial-value (car some-list))
@@ -29,10 +39,10 @@
       ))
 
 ;; Fold List Right
-;; Applies SOME-FUNCTION to each element within SOME-LIST,
-;; as well as places INITIAL-VALUE at the end of SOME-LIST.
 (define foldr
     (lambda (some-function initial-value some-list)
+      "Applies SOME-FUNCTION to each element within SOME-LIST,
+as well as places INITIAL-VALUE at the end of SOME-LIST."
       (if some-list
           (some-function (car some-list)
                          (foldr some-function
@@ -43,30 +53,28 @@
 
 ;; LIST UTILITY FUNCTIONS
 
-;; Create a new list from ITEMS.
-;; Any amount of arguments may be passed.
 (define list
     (lambda items
+      "Create a list from any amount of given ITEMS."
       (foldr cons nil items)
       ))
 
-;; Create a new list from ITEMS in reverse order.
-;; Any amount of arguments may be passed.
 (define list-reverse
     (lambda items
+      "Create a list from any amount of given ITEMS in reverse order."
       (foldl (lambda (a b) (cons b a)) nil items)
       ))
 
-;; Reverse LIST.
-;; Any amount of arguments may be passed.
 (define reverse-list
     (lambda (list)
+      "Reverse a given LIST."
       (foldl (lambda (a b) (cons b a)) nil list)
       ))
 
 ;; Append list B to list A.
 (define append
     (lambda (a b)
+      "Append list A to list B"
       (foldr cons b a)))
 
 ;; MAPPING
@@ -88,6 +96,7 @@
 ;; QUASIQUOTATION
 
 (macro quasiquote (x)
+       "Quote the given expression, but parse 'UNQUOTE' and 'UNQUOTE-SPLICING'."
        (if (pairp x)
            (if (eq (car x) 'unquote)
                (cadr x)
@@ -105,7 +114,8 @@
            (list 'quote x)))
 
 (macro let (defs . body)
-       `((lambda ,(map car defs) ,@body)
+       "Bind the given symbols definitions while evaluating body."
+       `((lambda ,(map car defs) "" ,@body)
          ,@(map cadr defs)))
 
 ;; ARITHMETIC & LOGIC

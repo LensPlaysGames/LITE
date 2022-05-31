@@ -46,11 +46,18 @@ Atom make_sym(symbol_t *value) {
   return a;
 }
 
+Atom make_string(symbol_t *contents) {
+  Atom string;
+  string.type = ATOM_TYPE_STRING;
+  string.value.symbol = contents;
+  return string;
+}
+
 Atom make_builtin(BuiltIn function) {
-  Atom a;
-  a.type = ATOM_TYPE_BUILTIN;
-  a.value.builtin = function;
-  return a;
+  Atom builtin;
+  builtin.type = ATOM_TYPE_BUILTIN;
+  builtin.value.builtin = function;
+  return builtin;
 }
 
 int make_closure(Atom environment, Atom arguments, Atom body, Atom *result) {
@@ -64,15 +71,20 @@ int make_closure(Atom environment, Atom arguments, Atom body, Atom *result) {
     // Handle variadic arguments.
     if (arguments_it.type == ATOM_TYPE_SYMBOL) {
       break;
-    }
-    else if (arguments_it.type != ATOM_TYPE_PAIR
-             || car(arguments_it).type != ATOM_TYPE_SYMBOL)
+    } else if (arguments_it.type != ATOM_TYPE_PAIR
+               || car(arguments_it).type != ATOM_TYPE_SYMBOL)
       {
         return ERROR_TYPE;
       }
     arguments_it = cdr(arguments_it);
   }
-  *result = cons(environment, cons(arguments, body));
+  // Skip docstring, if present.
+  Atom docstring = nil;
+  if (!nilp(body) && car(body).type == ATOM_TYPE_STRING) {
+    docstring = car(body);
+    body = cdr(body);
+  }
+  *result = cons(environment, cons(arguments, cons(docstring, body)));
   result->type = ATOM_TYPE_CLOSURE;
   return ERROR_NONE;
 }

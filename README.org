@@ -120,7 +120,13 @@ If you are not familiar, a lambda is just a function with no name.
 
 Currently, lambdas have the following syntax:
 #+begin_src lisp
-  (lambda (ARGUMENT ...) BODY-EXPRESSION)
+  (lambda (ARGUMENT ...) [DOCSTRING] BODY-EXPRESSION)
+#+end_src
+
+A docstring is optional, but highly encouraged for named functions.
+The docstring may be accessed using the `DOCSTRING` operator, like so:
+#+begin_src lisp
+  (docstring caar)
 #+end_src
 
 There is also support for variadic arguments using an /improper list/.
@@ -148,6 +154,7 @@ As a real-world example, here is a factorial implementation in LITE LISP:
 A macro may be created with the ~MACRO~ operator.
 A macro is like a lambda, except it will return the result of evaluating
 it's return value, rather than it's return value being the result.
+Macros accept a docstring, just like lambdas.
 
 This allows for commands and arguments to built programatically in LISP.
 
@@ -166,7 +173,7 @@ look more like the expressions they produce.
 
 A simple example that mimics the ~QUOTE~ operator:
 #+begin_src lisp
-  (macro my-quote (x) `(quote ,x))
+  (macro my-quote (x) "Mimics the 'QUOTE' operator." `(quote ,x))
 #+end_src
 
 The QUASIQUOTE special-form at the beginning will cause
