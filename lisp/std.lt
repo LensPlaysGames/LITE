@@ -88,11 +88,11 @@
 ;; QUASIQUOTATION
 
 (macro quasiquote (x)
-       (if (pair? x)
-           (if (eq? (car x) 'unquote)
+       (if (pairp x)
+           (if (eq (car x) 'unquote)
                (cadr x)
-               (if (pair? (car x))
-                   (if (eq? (caar x) 'unquote-splicing)
+               (if (pairp (car x))
+                   (if (eq (caar x) 'unquote-splicing)
                        (list 'append
                              (cadr (car x))
                              (list 'quasiquote (cdr x)))

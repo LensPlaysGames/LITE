@@ -58,8 +58,8 @@ Atom default_environment() {
   env_set(environment, make_sym(">"),     make_builtin(builtin_numgt));
   env_set(environment, make_sym(">="),    make_builtin(builtin_numgt_or_eq));
   env_set(environment, make_sym("APPLY"), make_builtin(builtin_apply));
-  env_set(environment, make_sym("PAIR?"), make_builtin(builtin_pairp));
-  env_set(environment, make_sym("EQ?"),   make_builtin(builtin_eq));
+  env_set(environment, make_sym("PAIRP"), make_builtin(builtin_pairp));
+  env_set(environment, make_sym("EQ"),    make_builtin(builtin_eq));
   env_set(environment, make_sym("DEBUG/ENVIRONMENT"), nil);
   env_set(environment, make_sym("DEBUG/MACRO"), nil);
   return environment;
