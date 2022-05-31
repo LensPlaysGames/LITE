@@ -9,7 +9,7 @@
 /// Given a SOURCE, get the next token, and point to it with BEG and END.
 int lex(const char *source, const char **beg, const char **end) {
   const char *ws = " \t\n";
-  const char *delimiter = "() \t\n";
+  const char *delimiter = "()\" \t\n";
   const char *prefix = "()\'`";
   // TODO: Move whitespace + comment skip to helper function.
   // Eat all preceding whitespace.
@@ -115,6 +115,37 @@ int parse_list(const char *beg, const char **end, Atom *result) {
   }
 }
 
+int parse_string(const char *beg, const char **end, Atom *result) {
+  Atom string;
+  string.type = ATOM_TYPE_STRING;
+  *result = nil;
+  *end = beg;
+  if (beg[0] != '"') {
+    return ERROR_SYNTAX;
+  }
+  // Find end double quote.
+  // Opening quote is eaten here.
+  const char *p = beg + 1;
+  while (*p && *p != '"') {
+    p++;
+  }
+  if (!*p) {
+    return ERROR_SYNTAX;
+  }
+  // Closing quote is eaten here.
+  *end = p + 1;
+  size_t string_length = *end - beg - 2;
+  char *name = malloc(string_length + 1);
+  if (!name) {
+    return ERROR_MEMORY;
+  }
+  memcpy(name, beg + 1, string_length);
+  name[string_length] = '\0';
+  string.value.symbol = name;
+  *result = string;
+  return ERROR_NONE;
+}
+
 /// Eat the next LISP object from source.
 int parse_expr(const char *source, const char **end, Atom *result) {
   const char *token;
@@ -124,6 +155,8 @@ int parse_expr(const char *source, const char **end, Atom *result) {
     return parse_list(*end, end, result);
   } else if (token[0] == ')') {
     return ERROR_SYNTAX;
+  } else if (token[0] == '"') {
+    return parse_string(*end, end, result);
   } else if (token[0] == '\'') {
     *result = cons(make_sym("QUOTE"), cons(nil, nil));
     return parse_expr(*end, end, &car(cdr(*result)));

@@ -17,6 +17,7 @@ typedef struct Atom {
     ATOM_TYPE_BUILTIN,
     ATOM_TYPE_CLOSURE,
     ATOM_TYPE_MACRO,
+    ATOM_TYPE_STRING,
   } type;
   union {
     struct Pair *pair;
