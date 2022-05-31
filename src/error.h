@@ -10,6 +10,7 @@ enum Error {
   ERROR_NOT_BOUND,
   ERROR_ARGUMENTS,
   ERROR_TYPE,
+  ERROR_MEMORY,
 };
 
 void print_error(enum Error e);

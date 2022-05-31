@@ -11,6 +11,7 @@ int lex(const char *source, const char **beg, const char **end) {
   const char *ws = " \t\n";
   const char *delimiter = "() \t\n";
   const char *prefix = "()\'`";
+  // TODO: Move whitespace + comment skip to helper function.
   // Eat all preceding whitespace.
   source += strspn(source, ws);
   if (source[0] == '\0') {
@@ -54,6 +55,9 @@ int parse_simple(const char *beg, const char *end, Atom *result) {
   }
   // NIL or SYMBOL
   buffer = malloc(end - beg + 1);
+  if (!buffer) {
+    return ERROR_MEMORY;
+  }
   p = buffer;
   while (beg != end) {
     // A comma?!?!?!
@@ -70,8 +74,7 @@ int parse_simple(const char *beg, const char *end, Atom *result) {
 }
 
 int parse_list(const char *beg, const char **end, Atom *result) {
-  Atom p;
-  p = nil;
+  Atom list = nil;
   *result = nil;
   *end = beg;
   for (;;) {
@@ -86,12 +89,12 @@ int parse_list(const char *beg, const char **end, Atom *result) {
     }
     // Improper list.
     if (token[0] == '.' && *end - token == 1) {
-      if (nilp(p)) {
+      if (nilp(list)) {
         return ERROR_SYNTAX;
       }
       err = parse_expr(*end, end, &item);
       if (err) { return err; }
-      cdr(p) = item;
+      cdr(list) = item;
       // Closing ')'
       err = lex(*end, &token, end);
       if (!err && token[0] != ')') {
@@ -101,13 +104,13 @@ int parse_list(const char *beg, const char **end, Atom *result) {
     }
     err = parse_expr(token, end, &item);
     if (err) { return err; }
-    if (nilp(p)) {
+    if (nilp(list)) {
       // First item in list.
       *result = cons(item, nil);
-      p = *result;
+      list = *result;
     } else {
-      cdr(p) = cons(item, nil);
-      p = cdr(p);
+      cdr(list) = cons(item, nil);
+      list = cdr(list);
     }
   }
 }
@@ -119,8 +122,7 @@ int parse_expr(const char *source, const char **end, Atom *result) {
   if (err) { return err; }
   if (token[0] == '(') {
     return parse_list(*end, end, result);
-  }
-  else if (token[0] == ')') {
+  } else if (token[0] == ')') {
     return ERROR_SYNTAX;
   } else if (token[0] == '\'') {
     *result = cons(make_sym("QUOTE"), cons(nil, nil));

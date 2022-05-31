@@ -23,6 +23,9 @@ void print_error(enum Error e) {
   case ERROR_NOT_BOUND:
     puts("Symbol not bound.");
     break;
+  case ERROR_MEMORY:
+    puts("Could not allocate memory.");
+    break;
   default:
     puts("Unrecognized error.");
     break;
