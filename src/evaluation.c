@@ -163,12 +163,9 @@ int evaluate_expr(Atom expr, Atom environment, Atom *result) {
         putchar('\n');
         return err;
       }
-      // TODO: Use LISP environment value instead of C pre. directive.
-      Atom debug_macro;
-      env_get(environment, make_sym("DEBUG/MACRO"), &debug_macro);
-      if (!nilp(debug_macro)) {
+      if (env_non_nil(environment, make_sym("DEBUG/MACRO"))) {
         // It's really helpful to be able to see
-        // recursive macros expansion at each step.
+        // recursive macro's expansion at each step.
         printf("Expansion: ");
         print_atom(expansion);
         printf("\n\n");

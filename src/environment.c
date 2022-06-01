@@ -40,6 +40,15 @@ int env_get(Atom environment, Atom symbol, Atom *result) {
   return env_get(parent, symbol, result);
 }
 
+int env_non_nil(Atom environment, Atom symbol) {
+  Atom bind = nil;
+  enum Error err = env_get(environment, symbol, &bind);
+  if (err) {
+    return 0;
+  }
+  return !nilp(bind);
+}
+
 Atom default_environment() {
   Atom environment = env_create(nil);
   env_set(environment, make_sym("T"),     make_sym("T"));
@@ -61,6 +70,7 @@ Atom default_environment() {
   env_set(environment, make_sym("PAIRP"), make_builtin(builtin_pairp       , builtin_pairp_docstring));
   env_set(environment, make_sym("EQ"),    make_builtin(builtin_eq          , builtin_eq_docstring));
   env_set(environment, make_sym("PRINT"), make_builtin(builtin_print       , builtin_print_docstring));
+  // TODO: Add docstrings to debug flags.
   env_set(environment, make_sym("DEBUG/ENVIRONMENT"), nil);
   env_set(environment, make_sym("DEBUG/MACRO"), nil);
   return environment;

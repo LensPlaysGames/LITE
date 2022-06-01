@@ -28,9 +28,7 @@ char* readline() {
 
 void enter_repl(Atom environment) {
   while (1) {
-    Atom debug_environment;
-    env_get(environment, make_sym("DEBUG/ENVIRONMENT"), &debug_environment);
-    if (!nilp(debug_environment)) {
+    if (env_non_nil(environment, make_sym("DEBUG/ENVIRONMENT"))) {
       printf("Environment:\n");
       pretty_print_atom(environment);
       putchar('\n');
