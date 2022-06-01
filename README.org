@@ -61,7 +61,7 @@ LITE LISP is the language that LITE interprets.
 *** Types
 
 Everything in LISP is an object called an ~Atom~.
-An Atom has a type, and a value.
+An Atom has a type, a value, and a docstring.
 
 Here are the different types an Atom may have in LITE LISP:
 - Nil -- This is the definition of false, nothing, etc.
@@ -78,6 +78,9 @@ Here are the different types an Atom may have in LITE LISP:
 - BuiltIn -- A function implemented in the source code that is called from LISP.
 - Closure -- A function that is able to be called from LISP; a lambda.
 - Macro -- A function whose body returns an expression that is then evaluated.
+- String -- A sequence of bytes, usually denoting human readable text.
+
+More about docstrings in the section about variables.
 
 *** Variables
 
@@ -114,19 +117,26 @@ This short-hand means the following to be equivalent to the ~QUOTE~ just above.
   'new-variable
 #+end_src
 
+When defining any variable, it is possible to define
+a docstring for it by specifying it as a third argument:
+#+begin_src lisp
+  (define new-variable 42 "The meaning of life, the universe, and everything.")
+#+end_src
+
+The docstring may be accessed using the `DOCSTRING` operator, like so:
+#+begin_src lisp
+  (docstring new-variable)
+#+end_src
+
+This allows for everything in LITE LISP to self-document it's use.
+
 *** Lambda
 
 If you are not familiar, a lambda is just a function with no name.
 
 Currently, lambdas have the following syntax:
 #+begin_src lisp
-  (lambda (ARGUMENT ...) [DOCSTRING] BODY-EXPRESSION)
-#+end_src
-
-A docstring is optional, but highly encouraged for named functions.
-The docstring may be accessed using the `DOCSTRING` operator, like so:
-#+begin_src lisp
-  (docstring caar)
+  (lambda (ARGUMENT ...) BODY-EXPRESSION)
 #+end_src
 
 There is also support for variadic arguments using an /improper list/.
@@ -138,7 +148,7 @@ The syntax for an improper list is as follows:
 In the context of a lambda, here is how to define
 a function with a varying number of arguments.
 #+begin_src lisp
-  (lambda (argument . the-rest) BODY-EXPRESSION)
+  (lambda (argument1 argument2 . the-rest) BODY-EXPRESSION)
 #+end_src
 
 After all fixed arguments are given, the rest are
@@ -149,14 +159,26 @@ As a real-world example, here is a factorial implementation in LITE LISP:
   (define fact (lambda (x) (if (= x 0) 1 (* x (fact (- x 1))))))
 #+end_src
 
+The standard library includes a macro to ease the definition of a function: `DEFUN`.
+This macro requires a docstring, so as to encourage best practices.
+Here is the factorial example seen just above defined using it.
+#+begin_src lisp
+  (defun fact (x) "Get the factorial of integer X." (if (= x 0) 1 (* x (fact (- x 1)))))
+#+end_src
+
+
 *** Macros
 
 A macro may be created with the ~MACRO~ operator.
 A macro is like a lambda, except it will return the result of evaluating
 it's return value, rather than it's return value being the result.
-Macros accept a docstring, just like lambdas.
+This allows for commands and arguments to be built programatically in LISP.
 
-This allows for commands and arguments to built programatically in LISP.
+Macros require a docstring, so as to ensure each one is well-documented.
+The docstring may be accessed using the `DOCSTRING` operator, like so:
+#+begin_src lisp
+  (docstring quasiquote)
+#+end_src
 
 In order to ease the making of macros, there is /quasiquotation/.
 It is similar to quote, but it is possible to unquote specific
@@ -209,9 +231,14 @@ Comments are delimited with the ';' character, per line.
   Alternatively, visualize the environment using by
   setting `DEBUG/ENVIRONMENT` to any non-nil value.
 
-- Function environment syntax
+- Symbol Table
 
-  Currently, functions are stored in the environment with the following syntax:
+  Get the current symbol table with the `SYM` operator.
+
+  Alternatively, visualize the environment using by
+  setting `DEBUG/ENVIRONMENT` to any non-nil value.
+
+- Closure environment syntax
+
+  Currently, closures are stored in the environment with the following syntax:
   : (ENVIRONMENT (ARGUMENT ...) BODY-EXPRESSION)
-
-  I think I'd like to squeeze docstrings in there, somewhere. But first: strings.

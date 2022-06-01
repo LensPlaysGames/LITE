@@ -12,14 +12,6 @@
 
 Most often used to get the next element in a list.")
 
-(define abs
-    (lambda (x)
-      (if (< x 0)
-          (* x -1)
-          x))
-  "Return X's distance from zero, which is always positive,
-also known as the absolute value.")
-
 ;; LIST FOLDING FUNCTIONS
 ;; https://en.wikipedia.org/wiki/Fold_(higher-order_function)
 
@@ -104,6 +96,12 @@ as well as places INITIAL-VALUE at the end of SOME-LIST.")
                          (list 'quasiquote (cdr x)))))
            (list 'quote x)))
 
+;; HELPER MACROS
+
+(macro defun (name args docstring . body)
+       "Define a named lambda function with a given docstring."
+       `(define ,name (lambda ,args ,@body) ,docstring))
+
 (macro let (defs . body)
        "Bind the given symbols definitions while evaluating body."
        `((lambda ,(map car defs) ,@body)
@@ -122,3 +120,11 @@ as well as places INITIAL-VALUE at the end of SOME-LIST.")
     (let ((old* *))
       (lambda ints (foldl old* 1 ints)))
   "Return the product of any amount of integer arguments.")
+
+(define abs
+    (lambda (x)
+      (if (< x 0)
+          (* x -1)
+          x))
+  "Return X's distance from zero, which is always positive,
+also known as the absolute value.")

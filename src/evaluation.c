@@ -105,6 +105,13 @@ int evaluate_expr(Atom expr, Atom environment, Atom *result) {
         }
         *result = environment;
         return ERROR_NONE;
+      } else if (strcmp(operator.value.symbol, "SYM") == 0) {
+        // Ensure no arguments.
+        if (!nilp(arguments)) {
+          return ERROR_ARGUMENTS;
+        }
+        *result = *sym_table();
+        return ERROR_NONE;
       } else if (strcmp(operator.value.symbol, "DOCSTRING") == 0) {
         if (nilp(arguments) || !nilp(cdr(arguments))) {
           return ERROR_ARGUMENTS;
@@ -123,13 +130,6 @@ int evaluate_expr(Atom expr, Atom environment, Atom *result) {
           if (err) { return err; }
         }
         *result = atom.docstring == NULL ? nil : make_string(atom.docstring);
-        return ERROR_NONE;
-      } else if (strcmp(operator.value.symbol, "SYM") == 0) {
-        // Ensure no arguments.
-        if (!nilp(arguments)) {
-          return ERROR_ARGUMENTS;
-        }
-        *result = *sym_table();
         return ERROR_NONE;
       } else if (strlen(operator.value.symbol) >= 2
                  && toupper(operator.value.symbol[0]) == 'I'
