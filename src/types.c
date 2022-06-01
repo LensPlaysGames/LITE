@@ -78,7 +78,7 @@ int make_closure(Atom environment, Atom arguments, Atom body, Atom *result) {
       }
     arguments_it = cdr(arguments_it);
   }
-  // Skip docstring, if present.
+  // Get docstring, if present.
   Atom docstring = nil;
   if (!nilp(body) && car(body).type == ATOM_TYPE_STRING) {
     docstring = car(body);
@@ -167,7 +167,6 @@ void pretty_print_atom(Atom atom) {
   case ATOM_TYPE_PAIR:
     putchar('(');
     print_atom(car(atom));
-
     atom = cdr(atom);
     while (!nilp(atom)) {
       if (atom.type == ATOM_TYPE_PAIR) {

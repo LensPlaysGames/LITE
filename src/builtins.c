@@ -236,3 +236,13 @@ int builtin_eq(Atom arguments, Atom *result) {
   *result = equal ? make_sym("T") : nil;
   return ERROR_NONE;
 }
+
+int builtin_print(Atom arguments, Atom *result) {
+  if (nilp(arguments) || !nilp(cdr(arguments))) {
+    return ERROR_ARGUMENTS;
+  }
+  pretty_print_atom(car(arguments));
+  putchar('\n');
+  *result = nil;
+  return ERROR_NONE;
+}
