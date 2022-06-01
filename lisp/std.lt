@@ -3,25 +3,22 @@
 ;; More easily access nested pair elements.
 (define caar
     (lambda (x)
-      "Get the left side of the left side of the given pair."
-      (car (car x))
-      ))
+      (car (car x)))
+  "Get the left side of the left side of the given pair.")
 (define cadr
     (lambda (x)
-      "Get the left side of the right side of the given pair.
+      (car (cdr x)))
+  "Get the left side of the right side of the given pair.
 
-Most often used to get the next element in a list."
-      (car (cdr x))
-      ))
+Most often used to get the next element in a list.")
 
 (define abs
     (lambda (x)
-      "Return X's distance from zero, which is always positive,
-also known as the absolute value."
       (if (< x 0)
           (* x -1)
-          x)
-      ))
+          x))
+  "Return X's distance from zero, which is always positive,
+also known as the absolute value.")
 
 ;; LIST FOLDING FUNCTIONS
 ;; https://en.wikipedia.org/wiki/Fold_(higher-order_function)
@@ -29,53 +26,48 @@ also known as the absolute value."
 ;; Fold List Left
 (define foldl
     (lambda (some-function initial-value some-list)
-      "Apply SOME-FUNCTION to each element within SOME-LIST in reverse order,
-as well as place INITIAL-VALUE at the beginning of SOME-LIST (end of reversed list)."
       (if some-list
           (foldl some-function
                  (some-function initial-value (car some-list))
                  (cdr some-list))
-          initial-value)
-      ))
+          initial-value))
+  "Apply SOME-FUNCTION to each element within SOME-LIST in reverse order,
+as well as place INITIAL-VALUE at the beginning of SOME-LIST.")
 
 ;; Fold List Right
 (define foldr
     (lambda (some-function initial-value some-list)
-      "Applies SOME-FUNCTION to each element within SOME-LIST,
-as well as places INITIAL-VALUE at the end of SOME-LIST."
       (if some-list
           (some-function (car some-list)
                          (foldr some-function
                                 initial-value
                                 (cdr some-list)))
-          initial-value)
-      ))
+          initial-value))
+  "Applies SOME-FUNCTION to each element within SOME-LIST,
+as well as places INITIAL-VALUE at the end of SOME-LIST.")
 
 ;; LIST UTILITY FUNCTIONS
 
 (define list
     (lambda items
-      "Create a list from any amount of given ITEMS."
-      (foldr cons nil items)
-      ))
+      (foldr cons nil items))
+  "Create a list from any amount of given ITEMS.")
 
 (define list-reverse
     (lambda items
-      "Create a list from any amount of given ITEMS in reverse order."
-      (foldl (lambda (a b) (cons b a)) nil items)
-      ))
+      (foldl (lambda (a b) (cons b a)) nil items))
+  "Create a list from any amount of given ITEMS in reverse order.")
 
 (define reverse-list
     (lambda (list)
-      "Reverse a given LIST."
-      (foldl (lambda (a b) (cons b a)) nil list)
-      ))
+      (foldl (lambda (a b) (cons b a)) nil list))
+  "Reverse a given LIST.")
 
 ;; Append list B to list A.
 (define append
     (lambda (a b)
-      "Append list A to list B"
-      (foldr cons b a)))
+      (foldr cons b a))
+  "Append list A to list B")
 
 ;; MAPPING
 
@@ -91,7 +83,6 @@ as well as places INITIAL-VALUE at the end of SOME-LIST."
           (cons (apply some-function (unary-map car arg-lists))
                 (apply map (cons some-function (unary-map cdr arg-lists))))
           nil)))
-
 
 ;; QUASIQUOTATION
 
@@ -115,7 +106,7 @@ as well as places INITIAL-VALUE at the end of SOME-LIST."
 
 (macro let (defs . body)
        "Bind the given symbols definitions while evaluating body."
-       `((lambda ,(map car defs) "" ,@body)
+       `((lambda ,(map car defs) ,@body)
          ,@(map cadr defs)))
 
 ;; ARITHMETIC & LOGIC
@@ -123,11 +114,11 @@ as well as places INITIAL-VALUE at the end of SOME-LIST."
 ;; Redefine '+' operator to handle any amount of integer arguments.
 (define +
     (let ((old+ +))
-      (lambda ints (foldl old+ 0 ints))
-      ))
+      (lambda ints (foldl old+ 0 ints)))
+  "Return the sum of any amount of integer arguments.")
 
 ;; Redefine '*' operator to handle any amount of integer arguments.
 (define *
     (let ((old* *))
-      (lambda ints (foldl old* 1 ints))
-      ))
+      (lambda ints (foldl old* 1 ints)))
+  "Return the product of any amount of integer arguments.")

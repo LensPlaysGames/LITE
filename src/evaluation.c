@@ -55,11 +55,13 @@ int evaluate_expr(Atom expr, Atom environment, Atom *result) {
         err = evaluate_expr(car(cdr(arguments)), environment, &value);
         if (err) { return err; }
         *result = symbol;
+        // TODO: Construct a base-level docstring for all closures/macros/builtins
+        // containing function signature; concatenate to it when a docstring is given.
         value.docstring = docstring;
         return env_set(environment, symbol, value);
       } else if (strcmp(operator.value.symbol, "LAMBDA") == 0) {
-        // ARGUMENTS: LAMBDA_ARGS [DOCSTRING] BODY
-        if (nilp(arguments) || nilp(cdr(arguments))) {
+        // ARGUMENTS: LAMBDA_ARGS BODY
+        if (nilp(arguments) || nilp(cdr(arguments)) || !nilp(cdr(cdr(arguments)))) {
           return ERROR_ARGUMENTS;
         }
         return make_closure(environment
@@ -67,24 +69,33 @@ int evaluate_expr(Atom expr, Atom environment, Atom *result) {
                             , cdr(arguments)
                             , result);
       } else if (strcmp(operator.value.symbol, "MACRO") == 0) {
+        // Arguments: MACRO_NAME ARGUMENTS DOCSTRING BODY
         if (nilp(arguments) || nilp(cdr(arguments))
             || nilp (cdr(cdr(arguments))) || nilp(cdr(cdr(cdr(arguments))))
             || !nilp(cdr(cdr(cdr(cdr(arguments))))))
           {
+            // Hopefully this helps.
+            printf("MACRO DEFINITION: (MACRO MACRO-NAME (ARGUMENT ...) \"DOCSTRING\" BODY)\n");
             return ERROR_ARGUMENTS;
           }
         Atom name = car(arguments);
         if (name.type != ATOM_TYPE_SYMBOL) {
+          printf("MACRO DEFINITION: Invalid macro name (not a symbol).");
+          return ERROR_TYPE;
+        }
+        Atom docstring = car(cdr(cdr(arguments)));
+        if (docstring.type != ATOM_TYPE_STRING) {
+          printf("MACRO DEFINITION: Invalid docstring (not a string).");
           return ERROR_TYPE;
         }
         Atom macro;
-        // Arguments: MACRO_NAME ARGUMENTS [DOCSTRING] BODY
         err = make_closure(environment
                            , car(cdr(arguments))
-                           , cdr(cdr(arguments))
+                           , cdr(cdr(cdr(arguments)))
                            , &macro);
         if (err) { return err; }
         macro.type = ATOM_TYPE_MACRO;
+        macro.docstring = docstring.value.symbol;
         *result = name;
         return env_set(environment, name, macro);
       } else if (strcmp(operator.value.symbol, "ENV") == 0) {
