@@ -9,62 +9,105 @@
 static Atom symbol_table = { ATOM_TYPE_NIL };
 Atom *sym_table() { return &symbol_table; }
 
-struct Allocation {
-  struct Allocation *next;
-  struct Pair pair;
-  char mark;
-};
-typedef struct Allocation Allocation;
+ConsAllocation *global_pair_allocations = NULL;
+GenericAllocation *generic_allocations = NULL;
 
-Allocation *global_allocations = NULL;
-
-void gcol_mark(Atom root) {
-  if (!(root.type == ATOM_TYPE_PAIR
-        || root.type == ATOM_TYPE_CLOSURE
-        || root.type == ATOM_TYPE_MACRO))
-    {
-      return;
-    }
-  Allocation *alloc = (Allocation *)((char *)root.value.pair - offsetof(Allocation, pair));
-  if (alloc->mark) {
-    return;
+int gcol_generic_allocation(Atom *ref, void *payload) {
+  if (!ref || ref->type == ATOM_TYPE_NIL) {
+    return ERROR_ARGUMENTS;
   }
-  alloc->mark = 1;
-  gcol_mark(car(root));
-  gcol_mark(cdr(root));
+  if (!payload) {
+    return ERROR_MEMORY;
+  }
+  GenericAllocation *alloc = malloc(sizeof(GenericAllocation));
+  if (!alloc) {
+    printf("GARBAGE COLLECTION: Could not allocate memory for new generic allocation!");
+    return ERROR_MEMORY;
+  }
+  ref->allocation = alloc;
+  alloc->mark = 0;
+  alloc->payload = payload;
+  alloc->next = generic_allocations;
+  generic_allocations = alloc;
+  return ERROR_NONE;
 }
 
-void gcol() {
+void gcol_mark(Atom root) {
+  if (nilp(root)) {
+    return;
+  }
+  if (root.type == ATOM_TYPE_STRING) {
+    GenericAllocation *galloc = (GenericAllocation *)root.allocation;
+    if (galloc->mark) {
+      return;
+    }
+    galloc->mark = 1;
+    return;
+  } else if (root.type == ATOM_TYPE_PAIR
+             || root.type == ATOM_TYPE_CLOSURE
+             || root.type == ATOM_TYPE_MACRO)
+    {
+      ConsAllocation *alloc = (ConsAllocation *)
+        ((char *)root.value.pair - offsetof(ConsAllocation, pair));
+      if (!alloc || alloc->mark) {
+        return;
+      }
+      alloc->mark = 1;
+      gcol_mark(car(root));
+      if (!nilp(cdr(root))) {
+        gcol_mark(cdr(root));
+      }
+      return;
+    }
+}
+
+void gcol(Atom *environment) {
   gcol_mark(*sym_table());
-  Allocation **p = &global_allocations;
-  Allocation *a;
-  while (*p != NULL) {
-    a = *p;
-    if (!a->mark) {
-      *p = a->next;
-      free(a);
+  ConsAllocation **cp = &global_pair_allocations;
+  ConsAllocation *ca;
+  while (*cp != NULL) {
+    ca = *cp;
+    if (!ca->mark) {
+      *cp = ca->next;
+      free(ca);
     } else {
-      p = &a->next;
+      cp = &ca->next;
     }
   }
-  a = global_allocations;
-  while (a != NULL) {
-    a->mark = 0;
-    a = a->next;
+  ca = global_pair_allocations;
+  while (ca != NULL) {
+    ca->mark = 0;
+    ca = ca->next;
+  }
+  GenericAllocation **gp = &generic_allocations;
+  GenericAllocation *ga;
+  while (*gp != NULL) {
+    ga = *gp;
+    if (!ga->mark) {
+      *gp = ga->next;
+      free(ga->payload);
+      free(ga);
+    } else {
+      gp = &ga->next;
+    }
+  }
+  ga = generic_allocations;
+  while (ga != NULL) {
+    ga->mark = 0;
+    ga = ga->next;
   }
 }
 
 Atom cons(Atom car_atom, Atom cdr_atom) {
-  Allocation *alloc;
-  alloc = malloc(sizeof(Allocation));
+  ConsAllocation *alloc;
+  alloc = malloc(sizeof(ConsAllocation));
   if (!alloc) {
     printf("CONS: Could not allocate memory for new allocation!");
-    while(1);
     return nil;
   }
   alloc->mark = 0;
-  alloc->next = global_allocations;
-  global_allocations = alloc;
+  alloc->next = global_pair_allocations;
+  global_pair_allocations = alloc;
 
   Atom newpair;
   newpair.type = ATOM_TYPE_PAIR;
@@ -99,6 +142,16 @@ Atom make_sym(symbol_t *value) {
   // Create a new symbol.
   a.type = ATOM_TYPE_SYMBOL;
   a.value.symbol = strdup(value);
+  if (!a.value.symbol) {
+    printf("Could not allocate memory for new symbol.\n");
+    return nil;
+  }
+  //enum Error err = gcol_generic_allocation(&a, (void *)a.value.symbol);
+  //if(err) {
+  //  print_error(err);
+  //  printf("Could not allocate memory for generic allocation for new symbol.\n");
+  //  return nil;
+  //}
   // Add new symbol to symbol table.
   symbol_table = cons(a, symbol_table);
   a.docstring = NULL;

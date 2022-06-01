@@ -49,6 +49,11 @@ int env_non_nil(Atom environment, Atom symbol) {
   return !nilp(bind);
 }
 
+int boundp(Atom environment, Atom symbol) {
+  Atom bind = nil;
+  return !env_get(environment, symbol, &bind);
+}
+
 Atom default_environment() {
   Atom environment = env_create(nil);
   env_set(environment, make_sym("T"),     make_sym("T"));

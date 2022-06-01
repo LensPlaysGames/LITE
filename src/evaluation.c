@@ -165,15 +165,6 @@ int evaluate_return_value(Atom *stack, Atom *expr, Atom *environment, Atom *resu
   }
   arguments = list_get(*stack, 3);
   if (nilp(arguments)) {
-    //printf("\nExpression: ");
-    //print_atom(*expr);
-    //putchar('\n');
-    //printf("Operator: ");
-    //print_atom(operator);
-    //putchar('\n');
-    //printf("Arguments: ");
-    //print_atom(arguments);
-    //putchar('\n');
     // No arguments left to evaluate, apply operator.
     return evaluate_apply(stack, expr, environment, result);
   }
@@ -187,14 +178,23 @@ int evaluate_return_value(Atom *stack, Atom *expr, Atom *environment, Atom *resu
 int evaluate_expression(Atom expr, Atom environment, Atom *result) {
   enum Error err = ERROR_NONE;
   Atom stack = nil;
-  static gcol_count = 10000;
+  const static size_t gcol_count_default = 1000;
+  static size_t gcol_count = gcol_count_default;
   do {
     if (!--gcol_count) {
       gcol_mark(expr);
       gcol_mark(environment);
       gcol_mark(stack);
       gcol();
-      gcol_count = 10000;
+      size_t threshold;
+      Atom threshold_atom;
+      env_get(environment, make_sym("GARBAGE-COLLECTOR-ITERATIONS-THRESHOLD"), &threshold_atom);
+      if (nilp(threshold_atom) || !integerp(threshold_atom)) {
+        threshold = gcol_count_default;
+      } else {
+        threshold = threshold_atom.value.integer;
+      }
+      gcol_count = threshold;
     }
     if (expr.type == ATOM_TYPE_SYMBOL) {
       err = env_get(environment, expr, result);

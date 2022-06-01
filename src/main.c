@@ -11,8 +11,6 @@
 #include <types.h>
 
 //================================================================ BEG file_io
-// TODO: Make load_file a builtin, call with apply.
-
 size_t file_size(FILE *file) {
   if (!file) {
     return 0;

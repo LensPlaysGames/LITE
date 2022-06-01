@@ -135,9 +135,13 @@ int parse_string(const char *beg, const char **end, Atom *result) {
   // Closing quote is eaten here.
   *end = p + 1;
   size_t string_length = *end - beg - 2;
+  // Allocate memory for string contents.
   char *name = malloc(string_length + 1);
-  if (!name) {
-    return ERROR_MEMORY;
+  // Register string contents in garbage collector.
+  enum Error err = gcol_generic_allocation(&string, name);
+  if (err) {
+    free(name);
+    return err;
   }
   memcpy(name, beg + 1, string_length);
   name[string_length] = '\0';
