@@ -144,7 +144,7 @@ Atom copy_list(Atom list) {
 void print_atom(Atom atom) {
   switch (atom.type) {
   default:
-    printf("#<UNKNOWN>");
+    printf("#<UNKNOWN>:%d", atom.type);
     break;
   case ATOM_TYPE_NIL:
     printf("NIL");

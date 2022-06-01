@@ -56,7 +56,7 @@ void enter_repl(Atom environment) {
     }
     //==== EVAL ====
     Atom result;
-    err = evaluate_expr(expr, environment, &result);
+    err = evaluate_expression(expr, environment, &result);
     //==== PRINT ====
     switch (err) {
     case ERROR_NONE:

@@ -72,6 +72,7 @@ Atom default_environment() {
   env_set(environment, make_sym("PRINT"), make_builtin(builtin_print       , builtin_print_docstring));
   // TODO: Add docstrings to debug flags.
   env_set(environment, make_sym("DEBUG/ENVIRONMENT"), nil);
+  env_set(environment, make_sym("DEBUG/EVALUATE"), nil);
   env_set(environment, make_sym("DEBUG/MACRO"), nil);
   return environment;
 }

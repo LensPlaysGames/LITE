@@ -5,6 +5,6 @@ struct Atom;
 typedef struct Atom Atom;
 
 int apply(Atom function, Atom arguments, Atom *result);
-int evaluate_expr(Atom expr, Atom environment, Atom *result);
+int evaluate_expression(Atom expr, Atom environment, Atom *result);
 
 #endif /* LITE_EVALUATION_H */

@@ -57,7 +57,7 @@ int load_file(Atom environment, const char* path) {
   Atom expr;
   while (parse_expr(source, &source, &expr) == ERROR_NONE) {
     Atom result;
-    enum Error err = evaluate_expr(expr, environment, &result);
+    enum Error err = evaluate_expression(expr, environment, &result);
     if (err) { return err; }
     print_atom(result);
     putchar('\n');
