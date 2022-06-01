@@ -187,7 +187,15 @@ int evaluate_return_value(Atom *stack, Atom *expr, Atom *environment, Atom *resu
 int evaluate_expression(Atom expr, Atom environment, Atom *result) {
   enum Error err = ERROR_NONE;
   Atom stack = nil;
+  static gcol_count = 10000;
   do {
+    if (!--gcol_count) {
+      gcol_mark(expr);
+      gcol_mark(environment);
+      gcol_mark(stack);
+      gcol();
+      gcol_count = 10000;
+    }
     if (expr.type == ATOM_TYPE_SYMBOL) {
       err = env_get(environment, expr, result);
     } else if (expr.type != ATOM_TYPE_PAIR) {

@@ -1,6 +1,7 @@
 #include <types.h>
 
 #include <error.h>
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -8,11 +9,66 @@
 static Atom symbol_table = { ATOM_TYPE_NIL };
 Atom *sym_table() { return &symbol_table; }
 
+struct Allocation {
+  struct Allocation *next;
+  struct Pair pair;
+  char mark;
+};
+typedef struct Allocation Allocation;
+
+Allocation *global_allocations = NULL;
+
+void gcol_mark(Atom root) {
+  if (!(root.type == ATOM_TYPE_PAIR
+        || root.type == ATOM_TYPE_CLOSURE
+        || root.type == ATOM_TYPE_MACRO))
+    {
+      return;
+    }
+  Allocation *alloc = (Allocation *)((char *)root.value.pair - offsetof(Allocation, pair));
+  if (alloc->mark) {
+    return;
+  }
+  alloc->mark = 1;
+  gcol_mark(car(root));
+  gcol_mark(cdr(root));
+}
+
+void gcol() {
+  gcol_mark(*sym_table());
+  Allocation **p = &global_allocations;
+  Allocation *a;
+  while (*p != NULL) {
+    a = *p;
+    if (!a->mark) {
+      *p = a->next;
+      free(a);
+    } else {
+      p = &a->next;
+    }
+  }
+  a = global_allocations;
+  while (a != NULL) {
+    a->mark = 0;
+    a = a->next;
+  }
+}
+
 Atom cons(Atom car_atom, Atom cdr_atom) {
+  Allocation *alloc;
+  alloc = malloc(sizeof(Allocation));
+  if (!alloc) {
+    printf("CONS: Could not allocate memory for new allocation!");
+    while(1);
+    return nil;
+  }
+  alloc->mark = 0;
+  alloc->next = global_allocations;
+  global_allocations = alloc;
+
   Atom newpair;
   newpair.type = ATOM_TYPE_PAIR;
-  // TODO: These are never freed, as there is no garbage collection.
-  newpair.value.pair = malloc(sizeof(struct Pair));
+  newpair.value.pair = &alloc->pair;
   car(newpair) = car_atom;
   cdr(newpair) = cdr_atom;
   newpair.docstring = NULL;
