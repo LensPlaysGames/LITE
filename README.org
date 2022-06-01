@@ -123,7 +123,7 @@ a docstring for it by specifying it as a third argument:
   (define new-variable 42 "The meaning of life, the universe, and everything.")
 #+end_src
 
-The docstring may be accessed using the `DOCSTRING` operator, like so:
+The docstring may be accessed using the ~DOCSTRING~ operator, like so:
 #+begin_src lisp
   (docstring new-variable)
 #+end_src
@@ -159,7 +159,7 @@ As a real-world example, here is a factorial implementation in LITE LISP:
   (define fact (lambda (x) (if (= x 0) 1 (* x (fact (- x 1))))))
 #+end_src
 
-The standard library includes a macro to ease the definition of a function: `DEFUN`.
+The standard library includes a macro to ease the definition of a function: ~DEFUN~.
 This macro requires a docstring, so as to encourage best practices.
 Here is the factorial example seen just above defined using it.
 #+begin_src lisp
@@ -175,7 +175,7 @@ it's return value, rather than it's return value being the result.
 This allows for commands and arguments to be built programatically in LISP.
 
 Macros require a docstring, so as to ensure each one is well-documented.
-The docstring may be accessed using the `DOCSTRING` operator, like so:
+The docstring may be accessed using the ~DOCSTRING~ operator, like so:
 #+begin_src lisp
   (docstring quasiquote)
 #+end_src
@@ -209,9 +209,9 @@ The quasiquotation prevents QUOTE from being evaluated,
 but UNQUOTE causes the given expression to be evaluated
 (in this case, the argument variable ~x~ evaluates to ~42~).
 
-When including the standard library, `DEFMACRO` operates the same as `MACRO`.
+When including the standard library, ~DEFMACRO~ operates the same as ~MACRO~.
 
-When the environment variable `DEBUG/MACRO` is non-nil,
+When the environment variable ~DEBUG/MACRO~ is non-nil,
 extra output concerning macros is produced.
 
 *** Comments
@@ -228,17 +228,17 @@ Comments are delimited with the ';' character, per line.
 
 - Environment
 
-  Get the current environment by using the `ENV` operator.
+  Get the current environment by using the ~ENV~ operator.
 
   Alternatively, visualize the environment using by
-  setting `DEBUG/ENVIRONMENT` to any non-nil value.
+  setting ~DEBUG/ENVIRONMENT~ to any non-nil value.
 
 - Symbol Table
 
-  Get the current symbol table with the `SYM` operator.
+  Get the current symbol table with the ~SYM~ operator.
 
   Alternatively, visualize the environment using by
-  setting `DEBUG/ENVIRONMENT` to any non-nil value.
+  setting ~DEBUG/ENVIRONMENT~ to any non-nil value.
 
 - Closure environment syntax
 
