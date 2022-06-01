@@ -85,6 +85,8 @@ int make_closure(Atom environment, Atom arguments, Atom body, Atom *result) {
   }
   Atom closure = cons(environment, cons(arguments, body));
   closure.type = ATOM_TYPE_CLOSURE;
+  // TODO: Construct a base-level docstring for all closures;
+  // concatenate to it when a docstring is given.
   closure.docstring = NULL;
   // Get docstring, if present.
   if (!nilp(body) && car(body).type == ATOM_TYPE_STRING) {

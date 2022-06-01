@@ -48,7 +48,7 @@ Atom cons(Atom car_atom, Atom cdr_atom);
 Atom make_int(integer_t value);
 Atom make_sym(symbol_t *value);
 Atom make_string(symbol_t *value);
-Atom make_builtin(BuiltIn function);
+Atom make_builtin(BuiltIn function, symbol_t *docstring);
 int make_closure(Atom environment, Atom arguments, Atom body, Atom *result);
 
 Atom *sym_table();
