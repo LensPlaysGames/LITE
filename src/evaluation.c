@@ -82,20 +82,14 @@ int evaluate_expr(Atom expr, Atom environment, Atom *result) {
         if (nilp(arguments) || !nilp(cdr(arguments))) {
           return ERROR_ARGUMENTS;
         }
-        Atom closure = car(arguments);
-        if (closure.type == ATOM_TYPE_SYMBOL) {
-          Atom symbol = closure;
-          err = env_get(environment, symbol, &closure);
+        Atom symbol = car(arguments);
+        if (symbol.type == ATOM_TYPE_SYMBOL) {
+          Atom symbol_in = symbol;
+          err = env_get(environment, symbol_in, &symbol);
           if (err) { return err; }
         }
-        if (closure.type == ATOM_TYPE_CLOSURE
-            || closure.type == ATOM_TYPE_MACRO)
-          {
-            // Layout: FUNCTION ARGUMENTS DOCSTRING . BODY
-            *result = car(cdr(cdr(closure)));
-            return ERROR_NONE;
-          }
-        return ERROR_TYPE;
+        *result = symbol.docstring == NULL ? nil : make_string(symbol.docstring);
+        return ERROR_NONE;
       } else if (strcmp(operator.value.symbol, "SYM") == 0) {
         // Ensure no arguments.
         if (!nilp(arguments)) {
@@ -173,10 +167,10 @@ int apply(Atom function, Atom arguments, Atom *result) {
     return ERROR_TYPE;
   }
   // Handle closure.
-  // Layout: FUNCTION ARGUMENTS [DOCSTRING] . BODY
+  // Layout: FUNCTION ARGUMENTS . BODY
   Atom environment = env_create(car(function));
   Atom argument_names = car(cdr(function));
-  Atom body = cdr(cdr(cdr(function)));
+  Atom body = cdr(cdr(function));
   // Bind arguments into local environment.
   while (!nilp(argument_names)) {
     // Handle variadic arguments.

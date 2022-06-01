@@ -25,6 +25,7 @@ typedef struct Atom {
     integer_t integer;
     BuiltIn builtin;
   } value;
+  symbol_t *docstring;
 } Atom;
 struct Pair {
   struct Atom atom[2];

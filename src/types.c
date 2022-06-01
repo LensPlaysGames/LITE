@@ -15,6 +15,7 @@ Atom cons(Atom car_atom, Atom cdr_atom) {
   newpair.value.pair = malloc(sizeof(struct Pair));
   car(newpair) = car_atom;
   cdr(newpair) = cdr_atom;
+  newpair.docstring = NULL;
   return newpair;
 }
 
@@ -22,6 +23,7 @@ Atom make_int(integer_t value) {
   Atom a;
   a.type = ATOM_TYPE_INTEGER;
   a.value.integer = value;
+  a.docstring = NULL;
   return a;
 }
 
@@ -43,6 +45,7 @@ Atom make_sym(symbol_t *value) {
   a.value.symbol = strdup(value);
   // Add new symbol to symbol table.
   symbol_table = cons(a, symbol_table);
+  a.docstring = NULL;
   return a;
 }
 
@@ -50,13 +53,15 @@ Atom make_string(symbol_t *contents) {
   Atom string;
   string.type = ATOM_TYPE_STRING;
   string.value.symbol = contents;
+  string.docstring = NULL;
   return string;
 }
 
-Atom make_builtin(BuiltIn function) {
+Atom make_builtin(BuiltIn function, symbol_t *docstring) {
   Atom builtin;
   builtin.type = ATOM_TYPE_BUILTIN;
   builtin.value.builtin = function;
+  builtin.docstring = docstring;
   return builtin;
 }
 
@@ -78,14 +83,15 @@ int make_closure(Atom environment, Atom arguments, Atom body, Atom *result) {
       }
     arguments_it = cdr(arguments_it);
   }
+  Atom closure = cons(environment, cons(arguments, body));
+  closure.type = ATOM_TYPE_CLOSURE;
+  closure.docstring = NULL;
   // Get docstring, if present.
-  Atom docstring = nil;
   if (!nilp(body) && car(body).type == ATOM_TYPE_STRING) {
-    docstring = car(body);
+    closure.docstring = car(body).value.symbol;
     body = cdr(body);
   }
-  *result = cons(environment, cons(arguments, cons(docstring, body)));
-  result->type = ATOM_TYPE_CLOSURE;
+  *result = closure;
   return ERROR_NONE;
 }
 
