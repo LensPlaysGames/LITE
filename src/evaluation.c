@@ -28,9 +28,24 @@ int evaluate_expr(Atom expr, Atom environment, Atom *result) {
         *result = car(arguments);
         return ERROR_NONE;
       } else if (strcmp(operator.value.symbol, "DEFINE") == 0) {
-        // Ensure two arguments.
-        if (nilp(arguments) || nilp(cdr(arguments)) || !nilp(cdr(cdr(arguments)))) {
+        // Ensure at least two arguments.
+        if (nilp(arguments) || nilp(cdr(arguments))) {
+          printf("Not enough arguments\n");
           return ERROR_ARGUMENTS;
+        }
+        // Get docstring, if present.
+        symbol_t *docstring = NULL;
+        if (!nilp(cdr(cdr(arguments)))) {
+          // No more than three arguments.
+          if (!nilp(cdr(cdr(cdr(arguments))))) {
+            printf("Got too many arguments\n");
+            return ERROR_ARGUMENTS;
+          }
+          Atom doc = car(cdr(cdr(arguments)));
+          if (doc.type != ATOM_TYPE_STRING) {
+            return ERROR_TYPE;
+          }
+          docstring = doc.value.symbol;
         }
         Atom value;
         Atom symbol = car(arguments);
@@ -40,6 +55,7 @@ int evaluate_expr(Atom expr, Atom environment, Atom *result) {
         err = evaluate_expr(car(cdr(arguments)), environment, &value);
         if (err) { return err; }
         *result = symbol;
+        value.docstring = docstring;
         return env_set(environment, symbol, value);
       } else if (strcmp(operator.value.symbol, "LAMBDA") == 0) {
         // ARGUMENTS: LAMBDA_ARGS [DOCSTRING] BODY
@@ -82,13 +98,20 @@ int evaluate_expr(Atom expr, Atom environment, Atom *result) {
         if (nilp(arguments) || !nilp(cdr(arguments))) {
           return ERROR_ARGUMENTS;
         }
-        Atom symbol = car(arguments);
-        if (symbol.type == ATOM_TYPE_SYMBOL) {
-          Atom symbol_in = symbol;
-          err = env_get(environment, symbol_in, &symbol);
+        Atom atom = car(arguments);
+        if (atom.type == ATOM_TYPE_NIL
+            || atom.type == ATOM_TYPE_INTEGER
+            || atom.type == ATOM_TYPE_STRING
+            || atom.type == ATOM_TYPE_PAIR)
+          {
+            return ERROR_TYPE;
+          }
+        if (atom.type == ATOM_TYPE_SYMBOL) {
+          Atom symbol_in = atom;
+          err = env_get(environment, symbol_in, &atom);
           if (err) { return err; }
         }
-        *result = symbol.docstring == NULL ? nil : make_string(symbol.docstring);
+        *result = atom.docstring == NULL ? nil : make_string(atom.docstring);
         return ERROR_NONE;
       } else if (strcmp(operator.value.symbol, "SYM") == 0) {
         // Ensure no arguments.
