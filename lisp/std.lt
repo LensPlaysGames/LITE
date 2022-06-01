@@ -98,12 +98,18 @@ as well as places INITIAL-VALUE at the end of SOME-LIST.")
 
 ;; HELPER MACROS
 
+;; This enforces a docstring when defining a named lambda.
 (macro defun (name args docstring . body)
        "Define a named lambda function with a given docstring."
        `(define ,name (lambda ,args ,@body) ,docstring))
 
+;; This copies `MACRO` exactly, it's purely visual.
+(macro defmacro (macro-name args docstring . body)
+       "Define a macro."
+       `(macro ,macro-name ,args ,docstring ,@body))
+
 (macro let (defs . body)
-       "Bind the given symbols definitions while evaluating body."
+       "Bind the given symbols to the given values while evaluating body."
        `((lambda ,(map car defs) ,@body)
          ,@(map cadr defs)))
 

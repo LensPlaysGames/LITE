@@ -209,6 +209,8 @@ The quasiquotation prevents QUOTE from being evaluated,
 but UNQUOTE causes the given expression to be evaluated
 (in this case, the argument variable ~x~ evaluates to ~42~).
 
+When including the standard library, `DEFMACRO` operates the same as `MACRO`.
+
 When the environment variable `DEBUG/MACRO` is non-nil,
 extra output concerning macros is produced.
 
