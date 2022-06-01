@@ -40,6 +40,10 @@ static const Atom nil = { ATOM_TYPE_NIL, 0 };
 /// Returns boolean-like value, 0 = false.
 int listp(Atom expr);
 
+Atom list_get(Atom list, int k);
+void list_set(Atom list, int k, Atom value);
+void list_reverse(Atom *list);
+
 Atom copy_list(Atom list);
 
 /// Returns a heap-allocated pair atom with car and cdr set.

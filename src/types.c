@@ -99,6 +99,31 @@ int listp(Atom expr) {
   return 1;
 }
 
+Atom list_get(Atom list, int k) {
+  while (k--) {
+    list = cdr(list);
+  }
+  return car(list);
+}
+
+void list_set(Atom list, int k, Atom value) {
+  while (k--) {
+    list = cdr(list);
+  }
+  car(list) = value;
+}
+
+void list_reverse(Atom *list) {
+  Atom tail = nil;
+  while (!nilp(*list)) {
+    Atom p = cdr(*list);
+    cdr(*list) = tail;
+    tail = *list;
+    *list = p;
+  }
+  *list = tail;
+}
+
 Atom copy_list(Atom list) {
   Atom newlist;
   Atom it;
