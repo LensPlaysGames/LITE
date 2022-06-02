@@ -1,6 +1,7 @@
 #include <builtins.h>
 
 #include <error.h>
+#include <environment.h>
 #include <evaluation.h>
 #include <types.h>
 
@@ -221,7 +222,42 @@ int builtin_apply(Atom arguments, Atom *result) {
   if (!listp(arguments)) {
     return ERROR_SYNTAX;
   }
-  return apply(function, arguments, result);
+  if (function.type == ATOM_TYPE_BUILTIN) {
+    return (*function.value.builtin)(arguments, result);
+  } else if (function.type != ATOM_TYPE_CLOSURE) {
+    printf("APPLY: Given function is not a BuiltIn or a closure.\n");
+    return ERROR_TYPE;
+  }
+  // Handle closure.
+  // Layout: FUNCTION ARGUMENTS . BODY
+  Atom environment = env_create(car(function));
+  Atom argument_names = car(cdr(function));
+  Atom body = cdr(cdr(function));
+  // Bind arguments into local environment.
+  while (!nilp(argument_names)) {
+    // Handle variadic arguments.
+    if (argument_names.type == ATOM_TYPE_SYMBOL) {
+      env_set(environment, argument_names, arguments);
+      arguments = nil;
+      break;
+    }
+    if (nilp(arguments)) {
+      return ERROR_ARGUMENTS;
+    }
+    env_set(environment, car(argument_names), car(arguments));
+    argument_names = cdr(argument_names);
+    arguments = cdr(arguments);
+  }
+  if (!nilp(arguments)) {
+    return ERROR_ARGUMENTS;
+  }
+  // Evaluate body of closure.
+  while (!nilp(body)) {
+    Error err = evaluate_expression(car(body), environment, result);
+    if (err.type) { return err.type; }
+    body = cdr(body);
+  }
+  return ERROR_NONE;
 }
 
 symbol_t *builtin_pairp_docstring =
