@@ -1,13 +1,18 @@
 #include <error.h>
 
+#include <stddef.h>
 #include <stdio.h>
+#include <types.h>
 
-void print_error(enum Error e) {
-  if (e == ERROR_NONE) {
+
+Error ok = { ERROR_NONE, NULL, NULL, nil };
+
+void print_error(Error e) {
+  if (e.type == ERROR_NONE) {
     return;
   }
   printf("ERROR: ");
-  switch (e) {
+  switch (e.type) {
   case ERROR_TODO:
     puts("TODO: not yet implemented.");
     break;
@@ -29,6 +34,17 @@ void print_error(enum Error e) {
   default:
     puts("Unrecognized error.");
     break;
+  }
+  if (!nilp(e.ref)) {
+    printf("> ");
+    print_atom(e.ref);
+    putchar('\n');
+  }
+  if (e.message) {
+    printf(": %s\n", e.message);
+  }
+  if (e.suggestion) {
+    printf(":: %s\n", e.suggestion);
   }
   putchar('\n');
 }
