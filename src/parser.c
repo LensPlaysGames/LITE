@@ -7,17 +7,17 @@
 #include <string.h>
 
 /// Given a SOURCE, get the next token, and point to it with BEG and END.
-int lex(const char *source, const char **beg, const char **end) {
+Error lex(const char *source, const char **beg, const char **end) {
   const char *ws = " \t\n";
   const char *delimiter = "()\" \t\n";
   const char *prefix = "()\'`";
-  // TODO: Move whitespace + comment skip to helper function.
   // Eat all preceding whitespace.
   source += strspn(source, ws);
   if (source[0] == '\0') {
     *beg = NULL;
     *end = NULL;
-    return ERROR_SYNTAX;
+    MAKE_ERROR(err, ERROR_SYNTAX, nil, "Can not lex empty input.", NULL);
+    return err;
   }
   while (source[0] == ';') {
     // Eat line following comment delimiter.
@@ -26,7 +26,7 @@ int lex(const char *source, const char **beg, const char **end) {
     if (source == NULL) {
       *beg = NULL;
       *end = NULL;
-      return ERROR_NONE;
+      return ok;
     }
     // Eat preceding whitespace before delimiter check.
     source += strspn(source, ws);
@@ -39,10 +39,10 @@ int lex(const char *source, const char **beg, const char **end) {
   } else {
     *end = source + strcspn(source, delimiter);
   }
-  return ERROR_NONE;
+  return ok;
 }
 
-int parse_simple(const char *beg, const char *end, Atom *result) {
+Error parse_simple(const char *beg, const char *end, Atom *result) {
   char *buffer;
   char *p;
   // INTEGER
@@ -51,12 +51,15 @@ int parse_simple(const char *beg, const char *end, Atom *result) {
   if (p == end) {
     result->type = ATOM_TYPE_INTEGER;
     result->value.integer = value;
-    return ERROR_NONE;
+    return ok;
   }
   // NIL or SYMBOL
   buffer = malloc(end - beg + 1);
   if (!buffer) {
-    return ERROR_MEMORY;
+    MAKE_ERROR(err, ERROR_MEMORY, nil
+               , "Could not allocate buffer to read symbol."
+               , NULL);
+    return err;
   }
   p = buffer;
   while (beg != end) {
@@ -70,40 +73,46 @@ int parse_simple(const char *beg, const char *end, Atom *result) {
     *result = make_sym(buffer);
   }
   free(buffer);
-  return ERROR_NONE;
+  return ok;
 }
 
-int parse_list(const char *beg, const char **end, Atom *result) {
+Error parse_list(const char *beg, const char **end, Atom *result) {
   Atom list = nil;
   *result = nil;
   *end = beg;
+  Error err;
   for (;;) {
     const char *token;
     Atom item;
-    enum Error err;
-    err = lex(*end, &token, end);
-    if (err) { return err; }
+    Error err = lex(*end, &token, end);
+    if (err.type) { return err; }
     // End of list.
     if (token[0] == ')') {
-      return ERROR_NONE;
+      return ok;
     }
     // Improper list.
     if (token[0] == '.' && *end - token == 1) {
       if (nilp(list)) {
-        return ERROR_SYNTAX;
+        PREP_ERROR(err, ERROR_SYNTAX, nil
+                   , "There must be at least one object on the left side \
+of the `.` improper list operator."
+                   , NULL);
+        return err;
       }
       err = parse_expr(*end, end, &item);
-      if (err) { return err; }
+      if (err.type) { return err; }
       cdr(list) = item;
       // Closing ')'
       err = lex(*end, &token, end);
-      if (!err && token[0] != ')') {
-        err = ERROR_SYNTAX;
+      if (!err.type && token[0] != ')') {
+        PREP_ERROR(err, ERROR_SYNTAX, nil
+                   , "Expected a closing parenthesis following a list."
+                   , NULL);
       }
       return err;
     }
     err = parse_expr(token, end, &item);
-    if (err) { return err; }
+    if (err.type) { return err; }
     if (nilp(list)) {
       // First item in list.
       *result = cons(item, nil);
@@ -113,15 +122,20 @@ int parse_list(const char *beg, const char **end, Atom *result) {
       list = cdr(list);
     }
   }
+  return ok;
 }
 
-int parse_string(const char *beg, const char **end, Atom *result) {
+Error parse_string(const char *beg, const char **end, Atom *result) {
   Atom string;
   string.type = ATOM_TYPE_STRING;
   *result = nil;
   *end = beg;
+  Error err;
   if (beg[0] != '"') {
-    return ERROR_SYNTAX;
+    PREP_ERROR(err, ERROR_SYNTAX, nil
+               , "A string is expected to begin with a double quote."
+               , "This is likely an internal error. Consider making an issue on GitHub.")
+    return err;
   }
   // Find end double quote.
   // Opening quote is eaten here.
@@ -130,7 +144,10 @@ int parse_string(const char *beg, const char **end, Atom *result) {
     p++;
   }
   if (!*p) {
-    return ERROR_SYNTAX;
+    PREP_ERROR(err, ERROR_SYNTAX, nil
+               , "Expected a closing double quote."
+               , NULL)
+    return err;
   }
   // Closing quote is eaten here.
   *end = p + 1;
@@ -138,27 +155,33 @@ int parse_string(const char *beg, const char **end, Atom *result) {
   // Allocate memory for string contents.
   char *name = malloc(string_length + 1);
   // Register string contents in garbage collector.
-  enum Error err = gcol_generic_allocation(&string, name);
-  if (err) {
+  enum ErrorType gc_error = gcol_generic_allocation(&string, name);
+  if (gc_error) {
     free(name);
+    PREP_ERROR(err, gc_error, nil
+               , "Could not make generic allocation for new string."
+               , NULL);
     return err;
   }
   memcpy(name, beg + 1, string_length);
   name[string_length] = '\0';
   string.value.symbol = name;
   *result = string;
-  return ERROR_NONE;
+  return ok;
 }
 
 /// Eat the next LISP object from source.
-int parse_expr(const char *source, const char **end, Atom *result) {
+Error parse_expr(const char *source, const char **end, Atom *result) {
   const char *token;
-  enum Error err = lex(source, &token, end);
-  if (err) { return err; }
+  Error err;
+  err = lex(source, &token, end);
+  if (err.type) { return err; }
   if (token[0] == '(') {
     return parse_list(*end, end, result);
   } else if (token[0] == ')') {
-    return ERROR_SYNTAX;
+    PREP_ERROR(err, ERROR_SYNTAX, nil
+               , "Extraneous closing parenthesis.", NULL);
+    return err;
   } else if (token[0] == '"') {
     return parse_string(*end, end, result);
   } else if (token[0] == '\'') {

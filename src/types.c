@@ -146,7 +146,7 @@ Atom make_sym(symbol_t *value) {
     printf("Could not allocate memory for new symbol.\n");
     return nil;
   }
-  //enum Error err = gcol_generic_allocation(&a, (void *)a.value.symbol);
+  //enum ErrorType err = gcol_generic_allocation(&a, (void *)a.value.symbol);
   //if(err) {
   //  print_error(err);
   //  printf("Could not allocate memory for generic allocation for new symbol.\n");
@@ -174,10 +174,15 @@ Atom make_builtin(BuiltIn function, symbol_t *docstring) {
   return builtin;
 }
 
-int make_closure(Atom environment, Atom arguments, Atom body, Atom *result) {
+Error make_closure(Atom environment, Atom arguments, Atom body, Atom *result) {
+  Error err;
   Atom arguments_it;
   if (!listp(body)) {
-    return ERROR_SYNTAX;
+    PREP_ERROR(err, ERROR_SYNTAX
+               , body
+               , "Body of a closure must be a list!"
+               , NULL);
+    return err;
   }
   // Ensure all arguments are valid symbols.
   arguments_it = arguments;
@@ -188,14 +193,19 @@ int make_closure(Atom environment, Atom arguments, Atom body, Atom *result) {
     } else if (arguments_it.type != ATOM_TYPE_PAIR
                || car(arguments_it).type != ATOM_TYPE_SYMBOL)
       {
-        return ERROR_TYPE;
+        PREP_ERROR(err, ERROR_TYPE
+                   , arguments_it
+                   , "Closure argument definition must be either a pair or a symbol."
+                   , "Usage: (LAMBDA <argument> <body>...)"
+                   );
+        return err;
       }
     arguments_it = cdr(arguments_it);
   }
   Atom closure = cons(environment, cons(arguments, body));
   closure.type = ATOM_TYPE_CLOSURE;
   *result = closure;
-  return ERROR_NONE;
+  return ok;
 }
 
 int listp(Atom expr) {
@@ -305,7 +315,7 @@ void pretty_print_atom(Atom atom) {
     while (!nilp(atom)) {
       if (atom.type == ATOM_TYPE_PAIR) {
         printf("\n ");
-        print_atom(car(atom));
+        pretty_print_atom(car(atom));
         atom = cdr(atom);
       } else {
         printf(" . ");

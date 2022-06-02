@@ -8,42 +8,47 @@ Atom env_create(Atom parent) {
   return cons(parent, nil);
 }
 
-int env_set(Atom environment, Atom symbol, Atom value) {
+Error env_set(Atom environment, Atom symbol, Atom value) {
   Atom bindings = cdr(environment);
   while (!nilp(bindings)) {
     Atom bind = car(bindings);
     if (car(bind).value.symbol == symbol.value.symbol) {
       cdr(bind) = value;
-      return ERROR_NONE;
+      return ok;
     }
     bindings = cdr(bindings);
   }
   bindings = cons(symbol, value);
   cdr(environment) = cons(bindings, cdr(environment));
-  return ERROR_NONE;
+  return ok;
 }
 
-int env_get(Atom environment, Atom symbol, Atom *result) {
+Error env_get(Atom environment, Atom symbol, Atom *result) {
   Atom parent = car(environment);
   Atom bindings = cdr(environment);
   while (!nilp(bindings)) {
     Atom bind = car(bindings);
     if (car(bind).value.symbol == symbol.value.symbol) {
       *result = cdr(bind);
-      return ERROR_NONE;
+      return ok;
     }
     bindings = cdr(bindings);
   }
   if (nilp(parent)) {
-    return ERROR_NOT_BOUND;
+    MAKE_ERROR(err, ERROR_NOT_BOUND
+               , symbol
+               // FIXME: Which environment?
+               , "Symbol is not bound in environment."
+               , NULL);
+    return err;
   }
   return env_get(parent, symbol, result);
 }
 
 int env_non_nil(Atom environment, Atom symbol) {
   Atom bind = nil;
-  enum Error err = env_get(environment, symbol, &bind);
-  if (err) {
+  Error err = env_get(environment, symbol, &bind);
+  if (err.type) {
     return 0;
   }
   return !nilp(bind);
@@ -51,7 +56,7 @@ int env_non_nil(Atom environment, Atom symbol) {
 
 int boundp(Atom environment, Atom symbol) {
   Atom bind = nil;
-  return !env_get(environment, symbol, &bind);
+  return !(env_get(environment, symbol, &bind).type);
 }
 
 Atom default_environment() {

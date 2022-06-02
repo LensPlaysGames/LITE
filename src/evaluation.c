@@ -25,7 +25,7 @@ Atom make_frame(Atom parent, Atom environment, Atom tail) {
 }
 
 /// Set EXPR to next expression in body of STACK.
-int evaluate_next_expression(Atom *stack, Atom *expr, Atom *environment) {
+Error evaluate_next_expression(Atom *stack, Atom *expr, Atom *environment) {
   *environment = list_get(*stack, 1);
   Atom body = list_get(*stack, 5);
   *expr = car(body);
@@ -35,10 +35,10 @@ int evaluate_next_expression(Atom *stack, Atom *expr, Atom *environment) {
   } else {
     list_set(*stack, 5, body);
   }
-  return ERROR_NONE;
+  return ok;
 }
 
-int evaluate_bind_arguments(Atom *stack, Atom *expr, Atom *environment) {
+Error evaluate_bind_arguments(Atom *stack, Atom *expr, Atom *environment) {
   Atom operator;
   Atom arguments;
   Atom argument_names;
@@ -56,6 +56,7 @@ int evaluate_bind_arguments(Atom *stack, Atom *expr, Atom *environment) {
   list_set(*stack, 1, *environment);
   list_set(*stack, 5, body);
   // Bind arguments into local environment.
+  MAKE_ERROR(error_args, ERROR_ARGUMENTS, arguments, "Could not bind arguments.", NULL);
   while (!nilp(argument_names)) {
     // Handle variadic arguments.
     if (argument_names.type == ATOM_TYPE_SYMBOL) {
@@ -64,20 +65,20 @@ int evaluate_bind_arguments(Atom *stack, Atom *expr, Atom *environment) {
       break;
     }
     if (nilp(arguments)) {
-      return ERROR_ARGUMENTS;
+      return error_args;
     }
     env_set(*environment, car(argument_names), car(arguments));
     argument_names = cdr(argument_names);
     arguments = cdr(arguments);
   }
   if (!nilp(arguments)) {
-    return ERROR_ARGUMENTS;
+    return error_args;
   }
   list_set(*stack, 4, nil);
   return evaluate_next_expression(stack, expr, environment);
 }
 
-int evaluate_apply(Atom *stack, Atom *expr, Atom *environment, Atom *result) {
+Error evaluate_apply(Atom *stack, Atom *expr, Atom *environment, Atom *result) {
   Atom operator = list_get(*stack, 2);
   Atom arguments = list_get(*stack, 4);
   if (!nilp(arguments)) {
@@ -92,7 +93,8 @@ int evaluate_apply(Atom *stack, Atom *expr, Atom *environment, Atom *result) {
       operator = car(arguments);
       arguments = car(cdr(arguments));
       if (!listp(arguments)) {
-        return ERROR_SYNTAX;
+        MAKE_ERROR(err, ERROR_SYNTAX, arguments, "Arguments must be a list.", NULL);
+        return err;
       }
       list_set(*stack, 2, operator);
       list_set(*stack, 4, arguments);
@@ -101,20 +103,20 @@ int evaluate_apply(Atom *stack, Atom *expr, Atom *environment, Atom *result) {
   if (operator.type == ATOM_TYPE_BUILTIN) {
     *stack = car(*stack);
     *expr = cons(operator, arguments);
-    return ERROR_NONE;
+    return ok;
   }
   if (operator.type != ATOM_TYPE_CLOSURE) {
-    printf("APPLY: Expected operator type of #<BUILTIN> or #<CLOSURE>.\n");
-    printf("  Operator: ");
-    print_atom(operator);
-    putchar('\n');
-    return ERROR_TYPE;
+    MAKE_ERROR(err, ERROR_TYPE
+               , operator
+               , "APPLY: Expected operator type of #<BUILTIN> or #<CLOSURE>."
+               , NULL);
+    return err;
   }
   return evaluate_bind_arguments(stack, expr, environment);
 }
 
 /// EXPR is expected to be in form of '(OPERATOR . ARGUMENTS)'
-int evaluate_return_value(Atom *stack, Atom *expr, Atom *environment, Atom *result) {
+Error evaluate_return_value(Atom *stack, Atom *expr, Atom *environment, Atom *result) {
   *environment = list_get(*stack, 1);
   Atom operator = list_get(*stack, 2);
   Atom body = list_get(*stack, 5);
@@ -122,7 +124,6 @@ int evaluate_return_value(Atom *stack, Atom *expr, Atom *environment, Atom *resu
   if (!nilp(body)) {
     return evaluate_apply(stack, expr, environment, result);
   }
-  // FIXME: It seems like this is wrong.
   if (nilp(operator)) {
     // Operator has been evaluated.
     operator = *result;
@@ -139,16 +140,22 @@ int evaluate_return_value(Atom *stack, Atom *expr, Atom *environment, Atom *resu
     if (strcmp(operator.value.symbol, "DEFINE") == 0) {
       // Here is where env_set is called, since
       // arguments have now been evaluated.
-      Atom symbol = list_get(*stack, 4);
+      Atom arguments = list_get(*stack, 4);
+      Atom symbol = car(arguments);
+      Atom docstring = cdr(arguments);
+      if(!nilp(docstring)) {
+        // Docstrings are leaked, currently. Probably need a specific fix for this.
+        (*result).docstring = strdup(docstring.value.symbol);
+      }
       env_set(*environment, symbol, *result);
       *stack = car(*stack);
       *expr = cons(make_sym("QUOTE"), cons(symbol, nil));
-      return ERROR_NONE;
+      return ok;
     } else if (strcmp(operator.value.symbol, "IF") == 0) {
       arguments = list_get(*stack, 3);
       *expr = nilp(*result) ? car(cdr(arguments)) : car(arguments);
       *stack = car(*stack);
-      return ERROR_NONE;
+      return ok;
     } else {
       // Store argument
       arguments = list_get(*stack, 4);
@@ -157,7 +164,7 @@ int evaluate_return_value(Atom *stack, Atom *expr, Atom *environment, Atom *resu
   } else if (operator.type == ATOM_TYPE_MACRO) {
     *expr = *result;
     *stack = car(*stack);
-    return ERROR_NONE;
+    return ok;
   } else {
     // Store argument
     arguments = list_get(*stack, 4);
@@ -172,11 +179,11 @@ int evaluate_return_value(Atom *stack, Atom *expr, Atom *environment, Atom *resu
   *expr = car(arguments);
   // Eat next argument from pre-evaluated arguments list.
   list_set(*stack, 3, cdr(arguments));
-  return ERROR_NONE;
+  return ok;
 }
 
-int evaluate_expression(Atom expr, Atom environment, Atom *result) {
-  enum Error err = ERROR_NONE;
+Error evaluate_expression(Atom expr, Atom environment, Atom *result) {
+  MAKE_ERROR(err, ERROR_NONE, nil, NULL, NULL);
   Atom stack = nil;
   const static size_t gcol_count_default = 1000;
   static size_t gcol_count = gcol_count_default;
@@ -188,7 +195,8 @@ int evaluate_expression(Atom expr, Atom environment, Atom *result) {
       gcol();
       size_t threshold;
       Atom threshold_atom;
-      env_get(environment, make_sym("GARBAGE-COLLECTOR-ITERATIONS-THRESHOLD"), &threshold_atom);
+      err = env_get(environment, make_sym("GARBAGE-COLLECTOR-ITERATIONS-THRESHOLD"), &threshold_atom);
+      if (err.type) { print_error(err); }
       if (nilp(threshold_atom) || !integerp(threshold_atom)) {
         threshold = gcol_count_default;
       } else {
@@ -201,7 +209,7 @@ int evaluate_expression(Atom expr, Atom environment, Atom *result) {
     } else if (expr.type != ATOM_TYPE_PAIR) {
       *result = expr;
     } else if (!listp(expr)) {
-      err = ERROR_SYNTAX;
+      err.type = ERROR_SYNTAX;
     } else {
       Atom operator = car(expr);
       Atom arguments = cdr(expr);
@@ -219,54 +227,79 @@ int evaluate_expression(Atom expr, Atom environment, Atom *result) {
       if (operator.type == ATOM_TYPE_SYMBOL) {
         if (strcmp(operator.value.symbol, "QUOTE") == 0) {
           if (nilp(arguments) || !nilp(cdr(arguments))) {
-            return ERROR_ARGUMENTS;
+            PREP_ERROR(err, ERROR_ARGUMENTS
+                       , arguments
+                       , "QUOTE: Only a single argument may be passed."
+                       , NULL);
+            return err;
           }
           *result = car(arguments);
         } else if (strcmp(operator.value.symbol, "DEFINE") == 0) {
+          const char *usage_define = "Usage: (DEFINE <symbol> <value> [docstring])";
           // Ensure at least two arguments.
           if (nilp(arguments) || nilp(cdr(arguments))) {
-            printf("DEFINE: Not enough arguments\n");
-            return ERROR_ARGUMENTS;
+            PREP_ERROR(err, ERROR_ARGUMENTS
+                       , arguments
+                       , "DEFINE: Not enough arguments."
+                       , usage_define);
+            return err;
           }
           // Get docstring, if present.
+          Atom doc = nil;
           symbol_t *docstring = NULL;
           if (!nilp(cdr(cdr(arguments)))) {
             // No more than three arguments.
             if (!nilp(cdr(cdr(cdr(arguments))))) {
-              printf("DEFINE: Too many arguments\n");
-              return ERROR_ARGUMENTS;
+              PREP_ERROR(err, ERROR_ARGUMENTS
+                         , arguments
+                         , "DEFINE: Too many arguments."
+                         , usage_define);
+              return err;
             }
-            Atom doc = car(cdr(cdr(arguments)));
+            doc = car(cdr(cdr(arguments)));
             if (doc.type != ATOM_TYPE_STRING) {
-              printf("DEFINE: Invalid docstring.\n");
-              return ERROR_TYPE;
+              PREP_ERROR(err, ERROR_TYPE
+                         , doc
+                         , "DEFINE: Docstring must be a string!\n  Strings are text wrapped in double quotes."
+                         , usage_define)
+                return err;
             }
-            docstring = doc.value.symbol;
           }
-          Atom value;
           Atom symbol = car(arguments);
           if (symbol.type != ATOM_TYPE_SYMBOL) {
-            printf("DEFINE: Can not define what is not a symbol!\n");
-            return ERROR_TYPE;
+            PREP_ERROR(err, ERROR_TYPE
+                       , symbol
+                       , "DEFINE: The first argument must be a symbol."
+                       , usage_define);
+            return err;
           }
           // Create a new stack to evaluate definition of new symbol.
           stack = make_frame(stack, environment, nil);
           list_set(stack, 2, operator);
-          list_set(stack, 4, symbol);
+          list_set(stack, 4, cons(symbol, doc));
           expr = car(cdr(arguments));
           continue;
         } else if (strcmp(operator.value.symbol, "LAMBDA") == 0) {
-          // ARGUMENTS: LAMBDA_ARGS BODY
+          const char *usage_lambda = "Usage: (LAMBDA <argument> <body>...)";
           if (nilp(arguments) || nilp(cdr(arguments))) {
-            return ERROR_ARGUMENTS;
+            PREP_ERROR(err, ERROR_ARGUMENTS
+                       , arguments
+                       , "LAMBDA: Not enough arguments."
+                       , usage_lambda);
+            return err;
           }
           err = make_closure(environment, car(arguments), cdr(arguments), result);
         } else if (strcmp(operator.value.symbol, "IF") == 0) {
+          const char* usage_if = "Usage: (IF <condition> <then> <else>)";
           if (nilp(arguments) || nilp(cdr(arguments))
               || nilp(cdr(cdr(arguments)))
               || !nilp(cdr(cdr(cdr(arguments)))))
             {
-              return ERROR_ARGUMENTS;
+              PREP_ERROR(err, ERROR_ARGUMENTS
+                         , arguments
+                         , "IF: Incorrect number of arguments."
+                         , usage_if);
+              return err;
             }
           stack = make_frame(stack, environment, cdr(arguments));
           list_set(stack, 2, operator);
@@ -274,23 +307,32 @@ int evaluate_expression(Atom expr, Atom environment, Atom *result) {
           continue;
         } else if (strcmp(operator.value.symbol, "MACRO") == 0) {
           // Arguments: MACRO_NAME ARGUMENTS DOCSTRING BODY
+          const char* usage_macro = "Usage: (MACRO <symbol> <argument> <docstring> <body>...)";
           if (nilp(arguments) || nilp(cdr(arguments))
               || nilp (cdr(cdr(arguments))) || nilp(cdr(cdr(cdr(arguments))))
               || !nilp(cdr(cdr(cdr(cdr(arguments))))))
             {
-              // Hopefully this helps.
-              printf("MACRO DEFINITION: (MACRO MACRO-NAME (ARGUMENT ...) \"DOCSTRING\" BODY)\n");
-              return ERROR_ARGUMENTS;
+              PREP_ERROR(err, ERROR_ARGUMENTS
+                         , arguments
+                         , "MACRO: Incorrect number of arguments."
+                         , usage_macro);
+              return err;
             }
           Atom name = car(arguments);
           if (name.type != ATOM_TYPE_SYMBOL) {
-            printf("MACRO DEFINITION: Invalid macro name (not a symbol).");
-            return ERROR_TYPE;
+            PREP_ERROR(err, ERROR_TYPE
+                       , name
+                       , "MACRO: The first argument must be a symbol."
+                       , usage_macro);
+            return err;
           }
           Atom docstring = car(cdr(cdr(arguments)));
           if (docstring.type != ATOM_TYPE_STRING) {
-            printf("MACRO DEFINITION: Invalid docstring (not a string).");
-            return ERROR_TYPE;
+            PREP_ERROR(err, ERROR_TYPE
+                       , docstring
+                       , "MACRO: Docstring must be a string!\n  Strings are text wrapped in double quotes."
+                       , usage_macro);
+            return err;
           }
           Atom macro;
           err = make_closure(environment
@@ -298,15 +340,20 @@ int evaluate_expression(Atom expr, Atom environment, Atom *result) {
                              , cdr(cdr(cdr(arguments)))
                              , &macro);
           
-          if (!err) {
+          if (!err.type) {
             macro.type = ATOM_TYPE_MACRO;
-            macro.docstring = docstring.value.symbol;
+            macro.docstring = strdup(docstring.value.symbol);
             (void)env_set(environment, name, macro);
             *result = name;
           }
         } else if (strcmp(operator.value.symbol, "DOCSTRING") == 0) {
+          const char *usage_docstring = "(DOCSTRING <symbol>)";
           if (nilp(arguments) || !nilp(cdr(arguments))) {
-            return ERROR_ARGUMENTS;
+            PREP_ERROR(err, ERROR_ARGUMENTS
+                       , arguments
+                       , "DOCSTRING: A single argument is expected."
+                       , usage_docstring);
+            return err;
           }
           Atom atom = car(arguments);
           if (atom.type == ATOM_TYPE_NIL
@@ -314,38 +361,54 @@ int evaluate_expression(Atom expr, Atom environment, Atom *result) {
               || atom.type == ATOM_TYPE_STRING
               || atom.type == ATOM_TYPE_PAIR)
             {
-              return ERROR_TYPE;
+              PREP_ERROR(err, ERROR_ARGUMENTS
+                         , atom
+                         , "DOCSTRING: Argument has invalid type."
+                         , usage_docstring);
+              return err;
             }
           if (atom.type == ATOM_TYPE_SYMBOL) {
             Atom symbol_in = atom;
+            PREP_ERROR(err, ERROR_NONE, atom, "Error while evaluating symbol.", NULL);
             err = env_get(environment, symbol_in, &atom);
-            if (err) { return err; }
+            if (err.type) { return err; }
           }
           *result = atom.docstring == NULL ? nil : make_string(atom.docstring);
         } else if (strcmp(operator.value.symbol, "ENV") == 0) {
           // Ensure no arguments.
+          // TODO: It would be cool to take a symbol argument
+          // and return it's value in the environment.
+          // We could probably achieve this rather quickly
+          // by type checking then delegating to `env_get()`.
           if (!nilp(arguments)) {
-            return ERROR_ARGUMENTS;
+            PREP_ERROR(err, ERROR_ARGUMENTS
+                       , arguments
+                       , "ENV: Arguments are not accepted."
+                       , "Usage: (ENV)");
+            return err;
           }
           *result = environment;
         } else if (strcmp(operator.value.symbol, "SYM") == 0) {
           // Ensure no arguments.
           if (!nilp(arguments)) {
-            return ERROR_ARGUMENTS;
+            PREP_ERROR(err, ERROR_ARGUMENTS
+                       , arguments
+                       , "SYM: Arguments are not accepted."
+                       , ("Usage: (SYM)"));
+            return err;
           }
           *result = *sym_table();
         } else {
-          // Push
-          // Handle function application
+          // Evaluate operator before application.
           stack = make_frame(stack, environment, arguments);
           expr = operator;
           continue;
         }
       } else if (operator.type == ATOM_TYPE_BUILTIN) {
-        err = (*operator.value.builtin)(arguments, result);
+        PREP_ERROR(err, ERROR_NONE, operator, NULL, NULL);
+        err.type = (*operator.value.builtin)(arguments, result);
       } else {
-        // Push
-        // Handle function application
+        // Evaluate operator before application.
         stack = make_frame(stack, environment, arguments);
         expr = operator;
         continue;
@@ -354,9 +417,9 @@ int evaluate_expression(Atom expr, Atom environment, Atom *result) {
     if (nilp(stack)) {
       break;
     }
-    if (!err) {
+    if (!err.type) {
       err = evaluate_return_value(&stack, &expr, &environment, result);
     }
-  } while (!err);
+  } while (!err.type);
   return err;
 }

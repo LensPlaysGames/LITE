@@ -46,22 +46,26 @@ char *file_contents(const char* path) {
   return buffer;
 }
 
-int load_file(Atom environment, const char* path) {
+Error load_file(Atom environment, const char* path) {
   char *input = file_contents(path);
+  Error err;
   if (!input) {
-    return ERROR_ARGUMENTS;
+    PREP_ERROR(err, ERROR_ARGUMENTS, nil
+               , "Could not get contents of file."
+               , path)
+    return err;
   }
   const char* source = input;
   Atom expr;
-  while (parse_expr(source, &source, &expr) == ERROR_NONE) {
+  while (parse_expr(source, &source, &expr).type == ERROR_NONE) {
     Atom result;
-    enum Error err = evaluate_expression(expr, environment, &result);
-    if (err) { return err; }
+    err = evaluate_expression(expr, environment, &result);
+    if (err.type) { return err; }
     print_atom(result);
     putchar('\n');
   }
   free(input);
-  return ERROR_NONE;
+  return ok;
 }
 
 //================================================================ END file_io

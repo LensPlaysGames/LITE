@@ -1,12 +1,14 @@
 #ifndef LITE_ENVIRONMENT_H
 #define LITE_ENVIRONMENT_H
 
+#include <error.h>
+
 struct Atom;
 typedef struct Atom Atom;
 
 Atom env_create(Atom parent);
-int env_set(Atom environment, Atom symbol, Atom value);
-int env_get(Atom environment, Atom symbol, Atom *result);
+Error env_set(Atom environment, Atom symbol, Atom value);
+Error env_get(Atom environment, Atom symbol, Atom *result);
 
 // Return 0 if symbol is not bound in environment, otherwise return 1.
 int boundp(Atom environment, Atom symbol);

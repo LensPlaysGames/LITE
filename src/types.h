@@ -1,6 +1,8 @@
 #ifndef LITE_TYPES_H
 #define LITE_TYPES_H
 
+#include <stddef.h>
+
 struct Atom;
 
 /// All C functions that are to be called from LISP will have this prototype.
@@ -38,7 +40,7 @@ struct Pair {
 
 #define integerp(a) ((a).type == ATOM_TYPE_INTEGER)
 
-static const Atom nil = { ATOM_TYPE_NIL, 0 };
+static const Atom nil = { ATOM_TYPE_NIL, 0, NULL, NULL };
 
 struct ConsAllocation {
   struct ConsAllocation *next;
@@ -78,7 +80,8 @@ Atom make_int(integer_t value);
 Atom make_sym(symbol_t *value);
 Atom make_string(symbol_t *value);
 Atom make_builtin(BuiltIn function, symbol_t *docstring);
-int make_closure(Atom environment, Atom arguments, Atom body, Atom *result);
+typedef struct Error Error;
+Error make_closure(Atom environment, Atom arguments, Atom body, Atom *result);
 
 Atom *sym_table();
 
