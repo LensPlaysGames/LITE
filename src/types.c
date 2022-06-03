@@ -7,52 +7,20 @@
 #include <stdlib.h>
 #include <string.h>
 
-static Atom symbol_table = { ATOM_TYPE_NIL };
+static Atom symbol_table = { ATOM_TYPE_NIL, 0, NULL };
 Atom *sym_table() { return &symbol_table; }
 
 ConsAllocation *global_pair_allocations = NULL;
 size_t pair_allocations_count = 0;
 size_t pair_allocations_freed = 0;
 
-GenericAllocation *generic_allocations = NULL;
-size_t generic_allocations_count = 0;
-size_t generic_allocations_freed = 0;
-
-int gcol_generic_allocation(Atom *ref, void *payload) {
-  if (!ref || ref->type == ATOM_TYPE_NIL) {
-    return ERROR_ARGUMENTS;
-  }
-  if (!payload) {
-    return ERROR_MEMORY;
-  }
-  GenericAllocation *alloc = malloc(sizeof(GenericAllocation));
-  if (!alloc) {
-    printf("GARBAGE COLLECTION: Could not allocate memory for new generic allocation!");
-    return ERROR_MEMORY;
-  }
-  ref->allocation = alloc;
-  alloc->mark = 0;
-  alloc->payload = payload;
-  alloc->next = generic_allocations;
-  generic_allocations = alloc;
-  generic_allocations_count += 1;
-  return ERROR_NONE;
-}
-
 void gcol_mark(Atom root) {
   if (nilp(root)) {
     return;
   }
-  if (root.type == ATOM_TYPE_STRING) {
-    GenericAllocation *galloc = (GenericAllocation *)root.allocation;
-    if (galloc->mark) {
-      return;
-    }
-    galloc->mark = 1;
-    return;
-  } else if (root.type == ATOM_TYPE_PAIR
-             || root.type == ATOM_TYPE_CLOSURE
-             || root.type == ATOM_TYPE_MACRO)
+  if (root.type == ATOM_TYPE_PAIR
+      || root.type == ATOM_TYPE_CLOSURE
+      || root.type == ATOM_TYPE_MACRO)
     {
       ConsAllocation *alloc = (ConsAllocation *)
         ((char *)root.value.pair - offsetof(ConsAllocation, pair));
@@ -64,7 +32,6 @@ void gcol_mark(Atom root) {
       if (!nilp(cdr(root))) {
         gcol_mark(cdr(root));
       }
-      return;
     }
 }
 
@@ -78,6 +45,8 @@ void gcol() {
       *pair_allocations_it = pair_allocation->next;
       if (prev_pair_allocation) {
         prev_pair_allocation->next = pair_allocation->next;
+      } else {
+        global_pair_allocations = pair_allocation->next;
       }
       free(pair_allocation);
       pair_allocations_freed += 1;
@@ -91,26 +60,6 @@ void gcol() {
   while (pair_allocation != NULL) {
     pair_allocation->mark = 0;
     pair_allocation = pair_allocation->next;
-  }
-  // Sweep generic allocations (strings).
-  GenericAllocation **generic_allocations_it = &generic_allocations;
-  GenericAllocation *generic_allocation;
-  while (*generic_allocations_it != NULL) {
-    generic_allocation = *generic_allocations_it;
-    if (!generic_allocation->mark) {
-      *generic_allocations_it = generic_allocation->next;
-      free(generic_allocation->payload);
-      free(generic_allocation);
-      generic_allocations_freed += 1;
-    } else {
-      generic_allocations_it = &generic_allocation->next;
-    }
-  }
-  // Clear mark.
-  generic_allocation = generic_allocations;
-  while (generic_allocation != NULL) {
-    generic_allocation->mark = 0;
-    generic_allocation = generic_allocation->next;
   }
 }
 
@@ -172,14 +121,15 @@ Atom make_sym(symbol_t *value) {
   }
   // Create a new symbol.
   a.type = ATOM_TYPE_SYMBOL;
+  // FIXME: These symbols are leaked!
   a.value.symbol = strdup(value);
   if (!a.value.symbol) {
     printf("Could not allocate memory for new symbol.\n");
     return nil;
   }
+  a.docstring = NULL;
   // Add new symbol to symbol table.
   symbol_table = cons(a, symbol_table);
-  a.docstring = NULL;
   return a;
 }
 
@@ -239,6 +189,7 @@ Error make_closure(Atom environment, Atom arguments, Atom body, Atom *result) {
   }
   Atom closure = cons(environment, cons(arguments, body));
   closure.type = ATOM_TYPE_CLOSURE;
+  closure.docstring = NULL;
   *result = closure;
   return ok;
 }
@@ -279,13 +230,11 @@ void list_reverse(Atom *list) {
 }
 
 Atom copy_list(Atom list) {
-  Atom newlist;
-  Atom it;
   if (nilp(list)) {
     return nil;
   }
-  newlist = cons(car(list), nil);
-  it = newlist;
+  Atom newlist = cons(car(list), nil);
+  Atom it = newlist;
   list = cdr(list);
   while (!nilp(list)) {
     cdr(it) = cons(car(list), nil);
@@ -438,10 +387,8 @@ char *atom_string(Atom atom, char *buffer) {
     break;
   case ATOM_TYPE_CLOSURE:
     to_add = format_bufsz("#<CLOSURE>:%p", atom.value.builtin);
-    printf("to_add=%zu\n", to_add);
     buffer = realloc(buffer, length+to_add);
     if (!buffer) { return NULL; }
-    printf("buffer=%p\n", buffer);
     snprintf(buffer+length, to_add, "#<CLOSURE>:%p", atom.value.builtin);
     break;
   case ATOM_TYPE_MACRO:

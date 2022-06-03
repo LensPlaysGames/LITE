@@ -40,19 +40,16 @@ Error evaluate_next_expression(Atom *stack, Atom *expr, Atom *environment) {
 }
 
 Error evaluate_bind_arguments(Atom *stack, Atom *expr, Atom *environment) {
-  Atom operator;
-  Atom arguments;
-  Atom argument_names;
   Atom body = list_get(*stack, 5);
   // If there is an existing body, then simply evaluate the next expression within it.
   if (!nilp(body)) {
     return evaluate_next_expression(stack, expr, environment);
   }
   // Else, bind the arguments into the current stack frame.
-  operator = list_get(*stack, 2);
-  arguments = list_get(*stack, 4);
+  Atom operator = list_get(*stack, 2);
+  Atom arguments = list_get(*stack, 4);
   *environment = env_create(car(operator));
-  argument_names = car(cdr(operator));
+  Atom argument_names = car(cdr(operator));
   body = cdr(cdr(operator));
   list_set(*stack, 1, *environment);
   list_set(*stack, 5, body);
@@ -145,7 +142,7 @@ Error evaluate_return_value(Atom *stack, Atom *expr, Atom *environment, Atom *re
       Atom symbol = car(arguments);
       Atom docstring = cdr(arguments);
       if(!nilp(docstring)) {
-        // Docstrings are leaked, currently. Probably need a specific fix for this.
+        // FIXME: These docstrings are leaked.
         (*result).docstring = strdup(docstring.value.symbol);
       }
       env_set(*environment, symbol, *result);
@@ -195,8 +192,11 @@ Error evaluate_expression(Atom expr, Atom environment, Atom *result) {
       gcol_mark(stack);
       gcol_mark(*sym_table());
       gcol();
+      if (env_non_nil(environment, make_sym("DEBUG/MEMORY"))) {
+        printf("Garbage Collected\n");
+      }
       size_t threshold;
-      Atom threshold_atom;
+      Atom threshold_atom = nil;
       err = env_get(environment, make_sym("GARBAGE-COLLECTOR-ITERATIONS-THRESHOLD"), &threshold_atom);
       if (err.type) { print_error(err); }
       if (nilp(threshold_atom) || !integerp(threshold_atom)) {
@@ -341,9 +341,9 @@ Error evaluate_expression(Atom expr, Atom environment, Atom *result) {
                              , car(cdr(arguments))
                              , cdr(cdr(cdr(arguments)))
                              , &macro);
-          
           if (!err.type) {
             macro.type = ATOM_TYPE_MACRO;
+            // FIXME: These docstrings are leaked!
             macro.docstring = strdup(docstring.value.symbol);
             (void)env_set(environment, name, macro);
             *result = name;
@@ -375,30 +375,41 @@ Error evaluate_expression(Atom expr, Atom environment, Atom *result) {
             err = env_get(environment, symbol_in, &atom);
             if (err.type) { return err; }
           }
-          // TODO: If atom is of type closure, show closure signature (arguments)
-          if (atom.type == ATOM_TYPE_CLOSURE)
-            {
-              // Prepend docstring with closure signature.
-              char *signature = atom_string(car(cdr(atom)), NULL);
-              size_t siglen = strlen(signature);
-              if (signature && siglen != 0) {
-                if (atom.docstring) {
-                  size_t newlen = strlen(atom.docstring) + siglen + 9;
-                  char *newdoc = malloc(newlen);
-                  if (newdoc) {
-                    memcpy(newdoc, "ARGS: ", 6);
-                    strcat(newdoc, signature);
-                    strcat(newdoc, "\n\n");
-                    void *olddoc = (void *)atom.docstring;
-                    strcat(newdoc, atom.docstring);
-                    newdoc[newlen] = '\0';
-                    atom.docstring = newdoc;
-                    free(olddoc);
-                  }
+          // If atom is of type closure, show closure signature (arguments).
+          // FIXME: The docstring could be set to this value instead of
+          // creating this new string each time the docstring is fetched.
+          char *docstring;
+          if (atom.type == ATOM_TYPE_CLOSURE) {
+            // Prepend docstring with closure signature.
+            char *signature = atom_string(car(cdr(atom)), NULL);
+            size_t siglen = 0;
+            if (signature && (siglen = strlen(signature)) != 0) {
+              if (atom.docstring) {
+                size_t newlen = strlen(atom.docstring) + siglen + 10;
+                char *newdoc = (char *)malloc(newlen);
+                if (newdoc) {
+                  memcpy(newdoc, "ARGS: ", 6);
+                  strcat(newdoc, signature);
+                  free(signature);
+                  strcat(newdoc, "\n\n");
+                  strcat(newdoc, atom.docstring);
+                  newdoc[newlen] = '\0';
+                } else {
+                  // Could not allocate buffer for new docstring,
+                  // free allocated memory and use regular docstring.
+                  free(signature);
+                  newdoc = strdup(atom.docstring);
                 }
+                docstring = newdoc;
+              } else {
+                docstring = signature;
               }
             }
-          *result = atom.docstring == NULL ? nil : make_string(atom.docstring);
+          } else {
+            docstring = strdup(atom.docstring);
+          }
+          // FIXME: When docstring is not NULL, it is leaked.
+          *result = docstring == NULL ? nil : make_string(docstring);
         } else if (strcmp(operator.value.symbol, "ENV") == 0) {
           // Ensure no arguments.
           // TODO: It would be cool to take a symbol argument

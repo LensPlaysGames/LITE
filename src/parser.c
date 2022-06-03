@@ -51,6 +51,7 @@ Error parse_simple(const char *beg, const char *end, Atom *result) {
   if (p == end) {
     result->type = ATOM_TYPE_INTEGER;
     result->value.integer = value;
+    result->docstring = NULL;
     return ok;
   }
   // NIL or SYMBOL
@@ -63,8 +64,8 @@ Error parse_simple(const char *beg, const char *end, Atom *result) {
   }
   p = buffer;
   while (beg != end) {
-    // A comma?!?!?!
-    *p++ = toupper(*beg), ++beg;
+    *p++ = toupper(*beg);
+    ++beg;
   }
   *p = '\0';
   if (memcmp(buffer, "NIL", 3) == 0) {
@@ -152,17 +153,9 @@ Error parse_string(const char *beg, const char **end, Atom *result) {
   // Closing quote is eaten here.
   *end = p + 1;
   size_t string_length = *end - beg - 2;
+  string.docstring = NULL;
   // Allocate memory for string contents.
   char *contents = malloc(string_length + 1);
-  // Register string contents in garbage collector.
-  enum ErrorType gc_error = gcol_generic_allocation(&string, contents);
-  if (gc_error) {
-    free(contents);
-    PREP_ERROR(err, gc_error, nil
-               , "Could not make generic allocation for new string."
-               , NULL);
-    return err;
-  }
   memcpy(contents, beg + 1, string_length);
   contents[string_length] = '\0';
   string.value.symbol = contents;

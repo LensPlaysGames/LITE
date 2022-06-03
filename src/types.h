@@ -28,7 +28,6 @@ typedef struct Atom {
     BuiltIn builtin;
   } value;
   symbol_t *docstring;
-  void *allocation;
 } Atom;
 struct Pair {
   struct Atom atom[2];
@@ -40,7 +39,7 @@ struct Pair {
 
 #define integerp(a) ((a).type == ATOM_TYPE_INTEGER)
 
-static const Atom nil = { ATOM_TYPE_NIL, 0, NULL, NULL };
+static const Atom nil = { ATOM_TYPE_NIL, 0, NULL };
 
 struct ConsAllocation {
   struct ConsAllocation *next;
@@ -52,18 +51,6 @@ typedef struct ConsAllocation ConsAllocation;
 extern ConsAllocation *global_pair_allocations;
 extern size_t pair_allocations_count;
 extern size_t pair_allocations_freed;
-
-struct GenericAllocation {
-  struct GenericAllocation *next;
-  void *payload;
-  char mark;
-};
-typedef struct GenericAllocation GenericAllocation;
-extern GenericAllocation *generic_allocations;
-extern size_t generic_allocations_count;
-extern size_t generic_allocations_freed;
-
-int gcol_generic_allocation(Atom *ref, void *payload);
 
 void gcol_mark(Atom root);
 void gcol();

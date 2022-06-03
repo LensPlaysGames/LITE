@@ -87,12 +87,8 @@ int main(int argc, char **argv) {
   if (debug_memory) {
     printf("Cons Allocations Count: %zu\n"
            "Cons Allocations Freed: %zu\n"
-           "Generic Allocations Count: %zu\n"
-           "Generic Allocations Freed: %zu\n"
            , pair_allocations_count
-           , pair_allocations_freed
-           , generic_allocations_count
-           , generic_allocations_freed);
+           , pair_allocations_freed);
   }
   return 0;
 }
