@@ -370,7 +370,7 @@ Error evaluate_expression(Atom expr, Atom environment, Atom *result) {
             }
           if (atom.type == ATOM_TYPE_SYMBOL) {
             Atom symbol_in = atom;
-            PREP_ERROR(err, ERROR_NONE, atom, "Error while evaluating symbol.", NULL);
+            PREP_ERROR(err, ERROR_NONE, atom, "DOCSTRING: Error while evaluating symbol.", NULL);
             err = env_get(environment, symbol_in, &atom);
             if (err.type) { return err; }
           }

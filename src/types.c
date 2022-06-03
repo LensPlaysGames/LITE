@@ -134,11 +134,25 @@ Atom cons(Atom car_atom, Atom cdr_atom) {
   return newpair;
 }
 
+Atom nil_with_docstring(symbol_t *docstring) {
+  Atom doc = nil;
+  doc.docstring = docstring;
+  return doc;
+}
+
 Atom make_int(integer_t value) {
   Atom a;
   a.type = ATOM_TYPE_INTEGER;
   a.value.integer = value;
   a.docstring = NULL;
+  return a;
+}
+
+Atom make_int_with_docstring(integer_t value, symbol_t *docstring) {
+  Atom a;
+  a.type = ATOM_TYPE_INTEGER;
+  a.value.integer = value;
+  a.docstring = docstring;
   return a;
 }
 

@@ -80,9 +80,15 @@ Atom default_environment() {
   env_set(environment, make_sym("PAIRP"), make_builtin(builtin_pairp       , builtin_pairp_docstring));
   env_set(environment, make_sym("EQ"),    make_builtin(builtin_eq          , builtin_eq_docstring));
   env_set(environment, make_sym("PRINT"), make_builtin(builtin_print       , builtin_print_docstring));
-  // TODO: Add docstrings to debug flags.
-  env_set(environment, make_sym("DEBUG/ENVIRONMENT"), nil);
-  env_set(environment, make_sym("DEBUG/EVALUATE"), nil);
-  env_set(environment, make_sym("DEBUG/MACRO"), nil);
+  // FIXME: It's always best to keep docstrings out of here and where they belong.
+  env_set(environment, make_sym("GARBAGE-COLLECTOR-ITERATIONS-THRESHOLD")
+          , make_int_with_docstring(1000, "This number corresponds to the amount of evaluation \
+operations before running the garbage collector.\nSmaller numbers mean memory is freed more often."));
+  env_set(environment, make_sym("DEBUG/ENVIRONMENT"), nil_with_docstring("When non-nil, display debug \
+information concerning the current LISP evaluation environment, including the symbol table."));
+  env_set(environment, make_sym("DEBUG/EVALUATE"), nil_with_docstring("When non-nil, display debug \
+information concerning the evaluation of expressions."));
+  env_set(environment, make_sym("DEBUG/MACRO"), nil_with_docstring("When non-nil, display debug \
+information concerning macros, including what each expansion step looks like."));
   return environment;
 }

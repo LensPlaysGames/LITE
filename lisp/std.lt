@@ -96,6 +96,14 @@ as well as places INITIAL-VALUE at the end of SOME-LIST.")
                          (list 'quasiquote (cdr x)))))
            (list 'quote x)))
 
+;; Make UNQUOTE and UNQUOTE-SPLICING cause an error when used outside of quasiquote
+(macro unquote _
+       "Disallow UNQUOTE outside of QUASIQUOTE"
+       (print "UNQUOTE should not be used outside of QUASIQUOTE."))
+(macro unquote-splicing _
+       "Disallow UNQUOTE-SPLICING outside of QUASIQUOTE"
+       (print "UNQUOTE-SPLICING should not be used outside of QUASIQUOTE."))
+
 ;; HELPER MACROS
 
 ;; This enforces a docstring when defining a named lambda.

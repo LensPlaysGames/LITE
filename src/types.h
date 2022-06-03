@@ -80,7 +80,9 @@ void list_reverse(Atom *list);
 
 Atom copy_list(Atom list);
 
+Atom nil_with_docstring(symbol_t *docstring);
 Atom make_int(integer_t value);
+Atom make_int_with_docstring(integer_t value, symbol_t *docstring);
 Atom make_sym(symbol_t *value);
 Atom make_string(symbol_t *value);
 Atom make_builtin(BuiltIn function, symbol_t *docstring);
