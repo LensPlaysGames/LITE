@@ -358,17 +358,6 @@ Error evaluate_expression(Atom expr, Atom environment, Atom *result) {
             return err;
           }
           Atom atom = car(arguments);
-          if (atom.type == ATOM_TYPE_NIL
-              || atom.type == ATOM_TYPE_INTEGER
-              || atom.type == ATOM_TYPE_STRING
-              || atom.type == ATOM_TYPE_PAIR)
-            {
-              PREP_ERROR(err, ERROR_ARGUMENTS
-                         , atom
-                         , "DOCSTRING: Argument has invalid type."
-                         , usage_docstring);
-              return err;
-            }
           if (atom.type == ATOM_TYPE_SYMBOL) {
             Atom symbol_in = atom;
             PREP_ERROR(err, ERROR_NONE, atom, "DOCSTRING: Error while evaluating symbol.", NULL);
@@ -379,33 +368,35 @@ Error evaluate_expression(Atom expr, Atom environment, Atom *result) {
           // FIXME: The docstring could be set to this value instead of
           // creating this new string each time the docstring is fetched.
           char *docstring;
-          if (atom.type == ATOM_TYPE_CLOSURE) {
-            // Prepend docstring with closure signature.
-            char *signature = atom_string(car(cdr(atom)), NULL);
-            size_t siglen = 0;
-            if (signature && (siglen = strlen(signature)) != 0) {
-              if (atom.docstring) {
-                size_t newlen = strlen(atom.docstring) + siglen + 10;
-                char *newdoc = (char *)malloc(newlen);
-                if (newdoc) {
-                  memcpy(newdoc, "ARGS: ", 6);
-                  strcat(newdoc, signature);
-                  free(signature);
-                  strcat(newdoc, "\n\n");
-                  strcat(newdoc, atom.docstring);
-                  newdoc[newlen] = '\0';
+          if (atom.type == ATOM_TYPE_CLOSURE
+              || atom.type == ATOM_TYPE_MACRO)
+            {
+              // Prepend docstring with closure signature.
+              char *signature = atom_string(car(cdr(atom)), NULL);
+              size_t siglen = 0;
+              if (signature && (siglen = strlen(signature)) != 0) {
+                if (atom.docstring) {
+                  size_t newlen = strlen(atom.docstring) + siglen + 10;
+                  char *newdoc = (char *)malloc(newlen);
+                  if (newdoc) {
+                    memcpy(newdoc, "ARGS: ", 6);
+                    strcat(newdoc, signature);
+                    free(signature);
+                    strcat(newdoc, "\n\n");
+                    strcat(newdoc, atom.docstring);
+                    newdoc[newlen] = '\0';
+                  } else {
+                    // Could not allocate buffer for new docstring,
+                    // free allocated memory and use regular docstring.
+                    free(signature);
+                    newdoc = strdup(atom.docstring);
+                  }
+                  docstring = newdoc;
                 } else {
-                  // Could not allocate buffer for new docstring,
-                  // free allocated memory and use regular docstring.
-                  free(signature);
-                  newdoc = strdup(atom.docstring);
+                  docstring = signature;
                 }
-                docstring = newdoc;
-              } else {
-                docstring = signature;
               }
-            }
-          } else {
+            } else {
             docstring = strdup(atom.docstring);
           }
           // FIXME: When docstring is not NULL, it is leaked.
