@@ -10,7 +10,12 @@ static Atom symbol_table = { ATOM_TYPE_NIL };
 Atom *sym_table() { return &symbol_table; }
 
 ConsAllocation *global_pair_allocations = NULL;
+size_t pair_allocations_count = 0;
+size_t pair_allocations_freed = 0;
+
 GenericAllocation *generic_allocations = NULL;
+size_t generic_allocations_count = 0;
+size_t generic_allocations_freed = 0;
 
 int gcol_generic_allocation(Atom *ref, void *payload) {
   if (!ref || ref->type == ATOM_TYPE_NIL) {
@@ -29,6 +34,7 @@ int gcol_generic_allocation(Atom *ref, void *payload) {
   alloc->payload = payload;
   alloc->next = generic_allocations;
   generic_allocations = alloc;
+  generic_allocations_count += 1;
   return ERROR_NONE;
 }
 
@@ -61,40 +67,49 @@ void gcol_mark(Atom root) {
     }
 }
 
-void gcol(Atom *environment) {
-  gcol_mark(*sym_table());
-  ConsAllocation **cp = &global_pair_allocations;
-  ConsAllocation *ca;
-  while (*cp != NULL) {
-    ca = *cp;
-    if (!ca->mark) {
-      *cp = ca->next;
-      free(ca);
+void gcol() {
+  // Sweep cons allocations (pairs).
+  ConsAllocation **pair_allocations_it = &global_pair_allocations;
+  ConsAllocation *prev_pair_allocation = NULL;
+  ConsAllocation *pair_allocation;
+  while ((pair_allocation = *pair_allocations_it) != NULL) {
+    if (!pair_allocation->mark) {
+      *pair_allocations_it = pair_allocation->next;
+      if (prev_pair_allocation) {
+        prev_pair_allocation->next = pair_allocation->next;
+      }
+      free(pair_allocation);
+      pair_allocations_freed += 1;
     } else {
-      cp = &ca->next;
+      pair_allocations_it = &pair_allocation->next;
+      prev_pair_allocation = pair_allocation;
     }
   }
-  ca = global_pair_allocations;
-  while (ca != NULL) {
-    ca->mark = 0;
-    ca = ca->next;
+  // Clear mark.
+  pair_allocation = global_pair_allocations;
+  while (pair_allocation != NULL) {
+    pair_allocation->mark = 0;
+    pair_allocation = pair_allocation->next;
   }
-  GenericAllocation **gp = &generic_allocations;
-  GenericAllocation *ga;
-  while (*gp != NULL) {
-    ga = *gp;
-    if (!ga->mark) {
-      *gp = ga->next;
-      free(ga->payload);
-      free(ga);
+  // Sweep generic allocations (strings).
+  GenericAllocation **generic_allocations_it = &generic_allocations;
+  GenericAllocation *generic_allocation;
+  while (*generic_allocations_it != NULL) {
+    generic_allocation = *generic_allocations_it;
+    if (!generic_allocation->mark) {
+      *generic_allocations_it = generic_allocation->next;
+      free(generic_allocation->payload);
+      free(generic_allocation);
+      generic_allocations_freed += 1;
     } else {
-      gp = &ga->next;
+      generic_allocations_it = &generic_allocation->next;
     }
   }
-  ga = generic_allocations;
-  while (ga != NULL) {
-    ga->mark = 0;
-    ga = ga->next;
+  // Clear mark.
+  generic_allocation = generic_allocations;
+  while (generic_allocation != NULL) {
+    generic_allocation->mark = 0;
+    generic_allocation = generic_allocation->next;
   }
 }
 
@@ -108,6 +123,7 @@ Atom cons(Atom car_atom, Atom cdr_atom) {
   alloc->mark = 0;
   alloc->next = global_pair_allocations;
   global_pair_allocations = alloc;
+  pair_allocations_count += 1;
 
   Atom newpair;
   newpair.type = ATOM_TYPE_PAIR;
@@ -146,16 +162,20 @@ Atom make_sym(symbol_t *value) {
     printf("Could not allocate memory for new symbol.\n");
     return nil;
   }
-  //enum ErrorType err = gcol_generic_allocation(&a, (void *)a.value.symbol);
-  //if(err) {
-  //  print_error(err);
-  //  printf("Could not allocate memory for generic allocation for new symbol.\n");
-  //  return nil;
-  //}
   // Add new symbol to symbol table.
   symbol_table = cons(a, symbol_table);
   a.docstring = NULL;
   return a;
+}
+
+void free_symbol_table() {
+  if (!nilp(symbol_table)) {
+    Atom symbol_table_it = symbol_table;
+    while (!nilp(symbol_table_it)) {
+      free((void *)car(symbol_table_it).value.symbol);
+      symbol_table_it = cdr(symbol_table_it);
+    }
+  }
 }
 
 Atom make_string(symbol_t *contents) {

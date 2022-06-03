@@ -3,3 +3,4 @@
 (define debug/environment t)
 (define debug/evaluate t)
 (define debug/macro t)
+(define debug/memory t)

@@ -80,5 +80,19 @@ int main(int argc, char **argv) {
     }
   }
   enter_repl(environment);
+  // Garbage collection with no marking means free everything.
+  int debug_memory = env_non_nil(environment, make_sym("DEBUG/MEMORY"));
+  free_symbol_table();
+  gcol();
+  if (debug_memory) {
+    printf("Cons Allocations Count: %zu\n"
+           "Cons Allocations Freed: %zu\n"
+           "Generic Allocations Count: %zu\n"
+           "Generic Allocations Freed: %zu\n"
+           , pair_allocations_count
+           , pair_allocations_freed
+           , generic_allocations_count
+           , generic_allocations_freed);
+  }
   return 0;
 }

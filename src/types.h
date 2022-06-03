@@ -50,6 +50,8 @@ struct ConsAllocation {
 typedef struct ConsAllocation ConsAllocation;
 
 extern ConsAllocation *global_pair_allocations;
+extern size_t pair_allocations_count;
+extern size_t pair_allocations_freed;
 
 struct GenericAllocation {
   struct GenericAllocation *next;
@@ -58,6 +60,8 @@ struct GenericAllocation {
 };
 typedef struct GenericAllocation GenericAllocation;
 extern GenericAllocation *generic_allocations;
+extern size_t generic_allocations_count;
+extern size_t generic_allocations_freed;
 
 int gcol_generic_allocation(Atom *ref, void *payload);
 
@@ -84,6 +88,7 @@ typedef struct Error Error;
 Error make_closure(Atom environment, Atom arguments, Atom body, Atom *result);
 
 Atom *sym_table();
+void free_symbol_table();
 
 void print_atom(Atom atom);
 /// Print lists' CDR on newline.

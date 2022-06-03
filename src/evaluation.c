@@ -192,6 +192,7 @@ Error evaluate_expression(Atom expr, Atom environment, Atom *result) {
       gcol_mark(expr);
       gcol_mark(environment);
       gcol_mark(stack);
+      gcol_mark(*sym_table());
       gcol();
       size_t threshold;
       Atom threshold_atom;
