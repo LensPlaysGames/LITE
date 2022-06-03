@@ -3,6 +3,7 @@
 #include <ctype.h>
 #include <environment.h>
 #include <error.h>
+#include <stdlib.h>
 #include <string.h>
 #include <types.h>
 
@@ -374,6 +375,29 @@ Error evaluate_expression(Atom expr, Atom environment, Atom *result) {
             err = env_get(environment, symbol_in, &atom);
             if (err.type) { return err; }
           }
+          // TODO: If atom is of type closure, show closure signature (arguments)
+          if (atom.type == ATOM_TYPE_CLOSURE)
+            {
+              // Prepend docstring with closure signature.
+              char *signature = atom_string(car(cdr(atom)), NULL);
+              size_t siglen = strlen(signature);
+              if (signature && siglen != 0) {
+                if (atom.docstring) {
+                  size_t newlen = strlen(atom.docstring) + siglen + 9;
+                  char *newdoc = malloc(newlen);
+                  if (newdoc) {
+                    memcpy(newdoc, "ARGS: ", 6);
+                    strcat(newdoc, signature);
+                    strcat(newdoc, "\n\n");
+                    void *olddoc = (void *)atom.docstring;
+                    strcat(newdoc, atom.docstring);
+                    newdoc[newlen] = '\0';
+                    atom.docstring = newdoc;
+                    free(olddoc);
+                  }
+                }
+              }
+            }
           *result = atom.docstring == NULL ? nil : make_string(atom.docstring);
         } else if (strcmp(operator.value.symbol, "ENV") == 0) {
           // Ensure no arguments.

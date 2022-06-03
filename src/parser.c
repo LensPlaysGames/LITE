@@ -153,19 +153,19 @@ Error parse_string(const char *beg, const char **end, Atom *result) {
   *end = p + 1;
   size_t string_length = *end - beg - 2;
   // Allocate memory for string contents.
-  char *name = malloc(string_length + 1);
+  char *contents = malloc(string_length + 1);
   // Register string contents in garbage collector.
-  enum ErrorType gc_error = gcol_generic_allocation(&string, name);
+  enum ErrorType gc_error = gcol_generic_allocation(&string, contents);
   if (gc_error) {
-    free(name);
+    free(contents);
     PREP_ERROR(err, gc_error, nil
                , "Could not make generic allocation for new string."
                , NULL);
     return err;
   }
-  memcpy(name, beg + 1, string_length);
-  name[string_length] = '\0';
-  string.value.symbol = name;
+  memcpy(contents, beg + 1, string_length);
+  contents[string_length] = '\0';
+  string.value.symbol = contents;
   *result = string;
   return ok;
 }

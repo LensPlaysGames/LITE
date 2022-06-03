@@ -92,6 +92,8 @@ Error make_closure(Atom environment, Atom arguments, Atom body, Atom *result);
 Atom *sym_table();
 void free_symbol_table();
 
+char *atom_string(Atom atom, char *str);
+
 void print_atom(Atom atom);
 /// Print lists' CDR on newline.
 void pretty_print_atom(Atom atom);

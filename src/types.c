@@ -1,6 +1,7 @@
 #include <types.h>
 
 #include <error.h>
+#include <stdarg.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -363,4 +364,92 @@ void pretty_print_atom(Atom atom) {
     print_atom(atom);
     break;
   }
+}
+
+int format_bufsz(const char *format, ...) {
+  va_list args;
+  va_start(args, format);
+  int result = vsnprintf(NULL, 0, format, args);
+  va_end(args);
+  return result + 1;
+}
+
+char *atom_string(Atom atom, char *buffer) {
+  if (!buffer) {
+    buffer = malloc(8);
+    buffer[0] = '\0';
+  }
+  char *left;
+  char *right;
+  size_t leftlen;
+  size_t rightlen;
+  size_t length = strlen(buffer);
+  size_t to_add = 0;
+  switch (atom.type) {
+  case ATOM_TYPE_NIL:
+    to_add = 4;
+    buffer = realloc(buffer, length+to_add);
+    if (!buffer) { return NULL; }
+    memmove(buffer+length, "NIL", to_add);
+    break;
+  case ATOM_TYPE_SYMBOL:
+    to_add = format_bufsz("%s", atom.value.symbol);
+    buffer = realloc(buffer, length+to_add);
+    if (!buffer) { return NULL; }
+    snprintf(buffer+length, to_add, "%s", atom.value.symbol);
+    break;
+  case ATOM_TYPE_STRING:
+    to_add = format_bufsz("\"%s\"", atom.value.symbol);
+    buffer = realloc(buffer, length+to_add);
+    if (!buffer) { return NULL; }
+    snprintf(buffer+length, to_add, "\"%s\"", atom.value.symbol);
+    break;
+  case ATOM_TYPE_INTEGER:
+    // FIXME: Format only works when interger_t is long long int
+    to_add = format_bufsz("%lli", atom.value.integer);
+    buffer = realloc(buffer, length+to_add);
+    if (!buffer) { return NULL; }
+    snprintf(buffer+length, to_add, "%lli", atom.value.integer);
+    break;
+  case ATOM_TYPE_PAIR:
+    // TODO: Handle lists better.
+    // Currently, there's a lot of parens.
+    left = atom_string(car(atom), NULL);
+    leftlen = left == NULL ? 0 : strlen(left);
+    right = atom_string(cdr(atom), NULL);
+    rightlen = strlen(right);
+    // Finally, allocate new buffer of left+right length,
+    // and copy from left+right buffer into new buffer.
+    to_add = leftlen + rightlen + 3;
+    buffer = realloc(buffer, length+to_add);
+    if (!buffer) { return NULL; }
+    buffer[length] = '(';
+    memcpy(buffer+length+1, left, leftlen);
+    buffer[length+1+leftlen] = ' ';
+    memcpy(buffer+length+1+leftlen+1, right, rightlen);
+    buffer[length+to_add-1] = ')';
+    buffer[length+to_add] = '\0';
+    break;
+  case ATOM_TYPE_BUILTIN:
+    to_add = format_bufsz("#<BUILTIN>:%p", atom.value.builtin);
+    buffer = realloc(buffer, length+to_add);
+    if (!buffer) { return NULL; }
+    snprintf(buffer+length, to_add, "#<BUILTIN>:%p", atom.value.builtin);
+    break;
+  case ATOM_TYPE_CLOSURE:
+    to_add = format_bufsz("#<CLOSURE>:%p", atom.value.builtin);
+    printf("to_add=%zu\n", to_add);
+    buffer = realloc(buffer, length+to_add);
+    if (!buffer) { return NULL; }
+    printf("buffer=%p\n", buffer);
+    snprintf(buffer+length, to_add, "#<CLOSURE>:%p", atom.value.builtin);
+    break;
+  case ATOM_TYPE_MACRO:
+    to_add = format_bufsz("#<MACRO>:%p", atom.value.builtin);
+    buffer = realloc(buffer, length+to_add);
+    if (!buffer) { return NULL; }
+    snprintf(buffer+length, to_add, "#<MACRO>:%p", atom.value.builtin);
+    break;
+  }
+  return buffer;
 }
