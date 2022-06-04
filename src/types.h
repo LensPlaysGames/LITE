@@ -1,12 +1,16 @@
 #ifndef LITE_TYPES_H
 #define LITE_TYPES_H
 
+#include "types.h"
 #include <stddef.h>
 
 struct Atom;
-
 /// All C functions that are to be called from LISP will have this prototype.
 typedef int (*BuiltIn)(struct Atom arguments, struct Atom *result);
+
+typedef struct Error Error;
+
+struct GenericAllocation;
 
 typedef long long integer_t;
 typedef const char symbol_t;
@@ -28,6 +32,7 @@ typedef struct Atom {
     BuiltIn builtin;
   } value;
   symbol_t *docstring;
+  struct GenericAllocation *galloc;
 } Atom;
 struct Pair {
   struct Atom atom[2];
@@ -41,6 +46,8 @@ struct Pair {
 
 static const Atom nil = { ATOM_TYPE_NIL, 0, NULL };
 
+//================================================================ BEG garbage_collection
+
 struct ConsAllocation {
   struct ConsAllocation *next;
   struct Pair pair;
@@ -52,8 +59,32 @@ extern ConsAllocation *global_pair_allocations;
 extern size_t pair_allocations_count;
 extern size_t pair_allocations_freed;
 
+typedef struct GenericAllocation {
+  struct GenericAllocation *next;
+  void *payload;
+  char mark;
+  struct GenericAllocation *more;
+} GenericAllocation;
+
+extern GenericAllocation *generic_allocations;
+extern size_t generic_allocations_count;
+extern size_t generic_allocations_freed;
+
+/// payload is a malloc()-derived pointer,
+/// ref is the referring Atom that, when
+/// garbage collected, will free the payload.
+Error gcol_generic_allocation(Atom *ref, void *payload);
+
+/// Mark cons and generic allocations as needed,
+/// so as to not free them on the next gcol().
 void gcol_mark(Atom root);
+
+/// Garbage collect all unmarked allocations.
 void gcol();
+
+void print_gcol_data();
+
+//================================================================ END garbage_collection
 
 /// Returns a heap-allocated pair atom with car and cdr set.
 Atom cons(Atom car_atom, Atom cdr_atom);

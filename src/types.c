@@ -10,9 +10,44 @@
 static Atom symbol_table = { ATOM_TYPE_NIL, 0, NULL };
 Atom *sym_table() { return &symbol_table; }
 
+//================================================================ BEG garbage_collection
+
 ConsAllocation *global_pair_allocations = NULL;
 size_t pair_allocations_count = 0;
 size_t pair_allocations_freed = 0;
+
+GenericAllocation *generic_allocations = NULL;
+size_t generic_allocations_count = 0;
+size_t generic_allocations_freed = 0;
+
+Error gcol_generic_allocation(Atom *ref, void *payload) {
+  MAKE_ERROR(err, ERROR_NONE, nil, NULL, NULL);
+  if (!ref) {
+    PREP_ERROR(err, ERROR_ARGUMENTS, nil,
+               "GALLOC: Can not allocate when NULL referring Atom is passed."
+               , NULL);
+      return err;
+  }
+  if (!payload) {
+    PREP_ERROR(err, ERROR_ARGUMENTS, *ref
+               , "GALLOC: Can not allocate NULL payload."
+               , NULL);
+    return err;
+  }
+  GenericAllocation *galloc = malloc(sizeof(GenericAllocation));
+  if (!galloc) {
+    PREP_ERROR(err, ERROR_MEMORY, *ref
+               , "GALLOC: Could not allocate memory for generic allocation."
+               , NULL);
+    return err;
+  }
+  galloc->mark = 0;
+  galloc->payload = payload;
+  galloc->next = generic_allocations;
+  generic_allocations = galloc;
+  generic_allocations_count += 1;
+  return ok;
+}
 
 void gcol_mark(Atom root) {
   if (nilp(root)) {
@@ -35,7 +70,7 @@ void gcol_mark(Atom root) {
     }
 }
 
-void gcol() {
+void gcol_cons() {
   // Sweep cons allocations (pairs).
   ConsAllocation **pair_allocations_it = &global_pair_allocations;
   ConsAllocation *prev_pair_allocation = NULL;
@@ -63,6 +98,53 @@ void gcol() {
   }
 }
 
+void gcol_generic() {
+  GenericAllocation **galloc_it = &generic_allocations;
+  GenericAllocation *prev_galloc = NULL;
+  GenericAllocation *galloc = generic_allocations;
+  while ((galloc = *galloc_it) != NULL) {
+    if (!galloc->mark) {
+      galloc_it = &galloc->next;
+      if (prev_galloc) {
+        prev_galloc->next = galloc->next;
+      } else {
+        generic_allocations = galloc->next;
+      }
+      free(galloc->payload);
+      free(galloc);
+      generic_allocations_freed += 1;
+    } else {
+      galloc_it = &galloc->next;
+      prev_galloc = galloc;
+    }
+  }
+  // Clear mark.
+  galloc = generic_allocations;
+  while (galloc != NULL) {
+    galloc->mark = 0;
+    galloc = galloc->next;
+  }
+}
+
+void gcol() {
+  gcol_cons();
+  gcol_generic();
+}
+
+void print_gcol_data() {
+  printf("Cons Allocations Count:    %zu\n"
+         "Cons Allocations Freed:    %zu\n"
+         "Generic Allocations Count: %zu\n"
+         "Generic Allocations Freed: %zu\n"
+         , pair_allocations_count
+         , pair_allocations_freed
+         , generic_allocations_count
+         , generic_allocations_freed
+         );
+}
+
+//================================================================ END garbage_collection
+
 Atom cons(Atom car_atom, Atom cdr_atom) {
   ConsAllocation *alloc;
   alloc = malloc(sizeof(ConsAllocation));
@@ -81,6 +163,7 @@ Atom cons(Atom car_atom, Atom cdr_atom) {
   car(newpair) = car_atom;
   cdr(newpair) = cdr_atom;
   newpair.docstring = NULL;
+  newpair.galloc = NULL;
   return newpair;
 }
 

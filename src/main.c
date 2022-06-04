@@ -80,15 +80,17 @@ int main(int argc, char **argv) {
     }
   }
   enter_repl(environment);
-  // Garbage collection with no marking means free everything.
+  Atom me;
   int debug_memory = env_non_nil(environment, make_sym("DEBUG/MEMORY"));
   free_symbol_table();
+  // Test generic allocations.
+  gcol_generic_allocation(&me, malloc(8));
+  gcol_generic_allocation(&me, malloc(8));
+  gcol_generic_allocation(&me, malloc(8));
+  // Garbage collection with no marking means free everything.
   gcol();
   if (debug_memory) {
-    printf("Cons Allocations Count: %zu\n"
-           "Cons Allocations Freed: %zu\n"
-           , pair_allocations_count
-           , pair_allocations_freed);
+    print_gcol_data();
   }
   return 0;
 }
