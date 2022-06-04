@@ -187,15 +187,6 @@ Error evaluate_expression(Atom expr, Atom environment, Atom *result) {
   static size_t gcol_count = gcol_count_default;
   do {
     if (!--gcol_count) {
-      gcol_mark(expr);
-      gcol_mark(environment);
-      gcol_mark(stack);
-      gcol_mark(*sym_table());
-      gcol();
-      if (env_non_nil(environment, make_sym("DEBUG/MEMORY"))) {
-        printf("Garbage Collected\n");
-        print_gcol_data();
-      }
       size_t threshold;
       Atom threshold_atom = nil;
       err = env_get(environment, make_sym("GARBAGE-COLLECTOR-ITERATIONS-THRESHOLD"), &threshold_atom);
@@ -206,6 +197,15 @@ Error evaluate_expression(Atom expr, Atom environment, Atom *result) {
         threshold = threshold_atom.value.integer;
       }
       gcol_count = threshold;
+      gcol_mark(expr);
+      gcol_mark(environment);
+      gcol_mark(stack);
+      gcol_mark(*sym_table());
+      gcol();
+      if (env_non_nil(environment, make_sym("DEBUG/MEMORY"))) {
+        printf("Garbage Collected\n");
+        print_gcol_data();
+      }
     }
     if (expr.type == ATOM_TYPE_SYMBOL) {
       err = env_get(environment, expr, result);
@@ -380,28 +380,34 @@ Error evaluate_expression(Atom expr, Atom environment, Atom *result) {
                   size_t newlen = strlen(atom.docstring) + siglen + 10;
                   char *newdoc = (char *)malloc(newlen);
                   if (newdoc) {
-                    memcpy(newdoc, "ARGS: ", 6);
+                    memcpy(newdoc, "ARGS: ", 7);
                     strcat(newdoc, signature);
-                    free(signature);
                     strcat(newdoc, "\n\n");
                     strcat(newdoc, atom.docstring);
-                    newdoc[newlen] = '\0';
+                    docstring = newdoc;
                   } else {
                     // Could not allocate buffer for new docstring,
                     // free allocated memory and use regular docstring.
-                    free(signature);
-                    newdoc = strdup(atom.docstring);
+                    newdoc = (char *)atom.docstring;
                   }
+                  free(signature);
                   docstring = newdoc;
                 } else {
                   docstring = signature;
                 }
+              } else {
+                docstring = (char *)atom.docstring;
               }
             } else {
-            docstring = strdup(atom.docstring);
+            docstring = (char *)atom.docstring;
           }
-          // FIXME: When docstring is not NULL, it is leaked.
-          *result = docstring == NULL ? nil : make_string(docstring);
+          if (docstring) {
+            *result = make_string(docstring);
+            free(docstring);
+            docstring = NULL;
+          } else {
+            *result = nil;
+          }
         } else if (strcmp(operator.value.symbol, "ENV") == 0) {
           // Ensure no arguments.
           // TODO: It would be cool to take a symbol argument

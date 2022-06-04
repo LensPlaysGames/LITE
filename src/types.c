@@ -40,7 +40,6 @@ Error gcol_generic_allocation(Atom *ref, void *payload) {
                , NULL);
     return err;
   }
-  printf("new galloc at %p with payload %p\n", galloc, payload);
   galloc->mark = 0;
   galloc->payload = payload;
   galloc->next = generic_allocations;
@@ -59,7 +58,6 @@ void gcol_mark(Atom root) {
     return;
   }
   if (root.galloc) {
-    printf("marking galloc at %p\n", root.galloc);
     root.galloc->mark = 1;
   }
   // Any type made with `cons()` belongs here.
@@ -112,20 +110,16 @@ void gcol_generic() {
   GenericAllocation *galloc = generic_allocations;
   while ((galloc = *galloc_it) != NULL) {
     if (!galloc->mark) {
-      printf("Unmarked galloc at %p\n", galloc);
       *galloc_it = galloc->next;
       if (prev_galloc) {
         prev_galloc->next = galloc->next;
       } else {
         generic_allocations = galloc->next;
       }
-      printf("Freeing galloc payload at %p\n", galloc->payload);
       free(galloc->payload);
       galloc->payload = NULL;
-      printf("Freeing galloc at %p\n", galloc);
       free(galloc);
       galloc = NULL;
-      printf("Freed galloc\n");
       generic_allocations_freed += 1;
     } else {
       galloc_it = &galloc->next;
@@ -229,7 +223,13 @@ Atom make_sym(symbol_t *value) {
 Atom make_string(symbol_t *contents) {
   Atom string = nil;
   string.type = ATOM_TYPE_STRING;
-  string.value.symbol = contents;
+  string.value.symbol = strdup(contents);
+  if (!string.value.symbol) {
+    printf("Could not allocate memory for new string.\n");
+    return nil;
+  }
+  // Register allocated string in garbage collector.
+  gcol_generic_allocation(&string, (void *)string.value.symbol);
   return string;
 }
 
@@ -404,15 +404,11 @@ int format_bufsz(const char *format, ...) {
 }
 
 char *atom_string(Atom atom, char *buffer) {
-  if (!buffer) {
-    buffer = malloc(8);
-    buffer[0] = '\0';
-  }
   char *left;
   char *right;
   size_t leftlen;
   size_t rightlen;
-  size_t length = strlen(buffer);
+  size_t length = buffer ? strlen(buffer) : 0;
   size_t to_add = 0;
   switch (atom.type) {
   case ATOM_TYPE_NIL:
@@ -422,7 +418,7 @@ char *atom_string(Atom atom, char *buffer) {
     memmove(buffer+length, "NIL", to_add);
     break;
   case ATOM_TYPE_SYMBOL:
-    to_add = format_bufsz("%s", atom.value.symbol);
+    to_add = strlen(atom.value.symbol);
     buffer = realloc(buffer, length+to_add);
     if (!buffer) { return NULL; }
     snprintf(buffer+length, to_add, "%s", atom.value.symbol);

@@ -129,7 +129,6 @@ of the `.` improper list operator."
 
 Error parse_string(const char *beg, const char **end, Atom *result) {
   Atom string = nil;
-  string.type = ATOM_TYPE_STRING;
   *result = nil;
   *end = beg;
   Error err = ok;
@@ -154,12 +153,13 @@ Error parse_string(const char *beg, const char **end, Atom *result) {
   // Closing quote is eaten here.
   *end = p + 1;
   size_t string_length = *end - beg - 2;
-  string.docstring = NULL;
   // Allocate memory for string contents.
   char *contents = malloc(string_length + 1);
   memcpy(contents, beg + 1, string_length);
   contents[string_length] = '\0';
-  string.value.symbol = contents;
+  // Make LISP String Atom from C-style string.
+  string = make_string(contents);
+  free(contents);
   *result = string;
   return ok;
 }
