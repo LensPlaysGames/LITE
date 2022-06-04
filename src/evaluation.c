@@ -368,7 +368,7 @@ Error evaluate_expression(Atom expr, Atom environment, Atom *result) {
           // If atom is of type closure, show closure signature (arguments).
           // FIXME: The docstring could be set to this value instead of
           // creating this new string each time the docstring is fetched.
-          char *docstring;
+          char *docstring = NULL;
           if (atom.type == ATOM_TYPE_CLOSURE
               || atom.type == ATOM_TYPE_MACRO)
             {
@@ -395,18 +395,18 @@ Error evaluate_expression(Atom expr, Atom environment, Atom *result) {
                 } else {
                   docstring = signature;
                 }
-              } else {
-                docstring = (char *)atom.docstring;
               }
-            } else {
-            docstring = (char *)atom.docstring;
-          }
+            }
           if (docstring) {
             *result = make_string(docstring);
             free(docstring);
             docstring = NULL;
           } else {
-            *result = nil;
+            if (atom.docstring) {
+              *result = make_string(atom.docstring);
+            } else {
+              *result = nil;
+            }
           }
         } else if (strcmp(operator.value.symbol, "ENV") == 0) {
           // Ensure no arguments.

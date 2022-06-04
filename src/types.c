@@ -418,7 +418,7 @@ char *atom_string(Atom atom, char *buffer) {
     memmove(buffer+length, "NIL", to_add);
     break;
   case ATOM_TYPE_SYMBOL:
-    to_add = strlen(atom.value.symbol);
+    to_add = format_bufsz("%s", atom.value.symbol);
     buffer = realloc(buffer, length+to_add);
     if (!buffer) { return NULL; }
     snprintf(buffer+length, to_add, "%s", atom.value.symbol);
@@ -437,23 +437,64 @@ char *atom_string(Atom atom, char *buffer) {
     snprintf(buffer+length, to_add, "%lli", atom.value.integer);
     break;
   case ATOM_TYPE_PAIR:
-    // TODO: Handle lists better.
-    // Currently, there's a lot of parens.
+    right = malloc(8);
+    if (!right) {
+      return NULL;
+    }
+    right[0] = '\0';
+    rightlen = 0;
     left = atom_string(car(atom), NULL);
     leftlen = left == NULL ? 0 : strlen(left);
-    right = atom_string(cdr(atom), NULL);
-    rightlen = strlen(right);
-    // Finally, allocate new buffer of left+right length,
-    // and copy from left+right buffer into new buffer.
-    to_add = leftlen + rightlen + 3;
-    buffer = realloc(buffer, length+to_add);
-    if (!buffer) { return NULL; }
-    buffer[length] = '(';
-    memcpy(buffer+length+1, left, leftlen);
-    buffer[length+1+leftlen] = ' ';
-    memcpy(buffer+length+1+leftlen+1, right, rightlen);
-    buffer[length+to_add-1] = ')';
-    buffer[length+to_add] = '\0';
+    atom = cdr(atom);
+    while (!nilp(atom)) {
+      if (pairp(atom)) {
+        char *new_right = atom_string(car(atom), NULL);
+        if (!new_right) {
+          break;
+        }
+        size_t new_rightlen = rightlen + strlen(new_right) + 2;
+        right = realloc(right, new_rightlen);
+        if (!right) {
+          printf("could not reallocate string for right side of pair.\n");
+          break;
+        }
+        rightlen = new_rightlen;
+        strcat(right, " ");
+        strcat(right, new_right);
+        free(new_right);
+        atom = cdr(atom);
+      } else {
+        char *new_right = atom_string(atom, NULL);
+        if (!new_right) {
+          break;
+        }
+        size_t new_rightlen = rightlen + strlen(new_right) + 2;
+        right = realloc(right, new_rightlen);
+        if (!right) {
+          printf("could not reallocate string for right side of pair.\n");
+          break;
+        }
+        rightlen = new_rightlen;
+        strcat(right, ". ");
+        strcat(right, new_right);
+        free(new_right);
+        break;
+      }
+    }
+    if (left && right) {
+      to_add = format_bufsz("(%s%s)", left, right);
+      buffer = realloc(buffer, length+to_add);
+      if (!buffer) { return NULL; }
+      snprintf(buffer+length, to_add, "(%s%s)", left, right);
+      free(left);
+      free(right);
+    } else if (left) {
+      to_add = format_bufsz("(%s)", left);
+      buffer = realloc(buffer, length+to_add);
+      if (!buffer) { return NULL; }
+      snprintf(buffer+length, to_add, "(%s)", left);
+      free(left);
+    }
     break;
   case ATOM_TYPE_BUILTIN:
     to_add = format_bufsz("#<BUILTIN>:%p", atom.value.builtin);
