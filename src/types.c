@@ -46,7 +46,12 @@ Error gcol_generic_allocation(Atom *ref, void *payload) {
   galloc->more = NULL;
   generic_allocations = galloc;
   generic_allocations_count += 1;
-  ref->galloc = galloc;
+  if (ref->galloc) {
+    galloc->more = ref->galloc;
+    ref->galloc = galloc;
+  } else {
+    ref->galloc = galloc;
+  }
   return ok;
 }
 
