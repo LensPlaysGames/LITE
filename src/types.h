@@ -1,7 +1,6 @@
 #ifndef LITE_TYPES_H
 #define LITE_TYPES_H
 
-#include "types.h"
 #include <stddef.h>
 
 struct Atom;
@@ -38,13 +37,19 @@ struct Pair {
   struct Atom atom[2];
 };
 
+static const Atom nil = { ATOM_TYPE_NIL, 0, NULL, NULL };
+
 #define nilp(a) ((a).type == ATOM_TYPE_NIL)
+#define pairp(a) ((a).type == ATOM_TYPE_PAIR)
+#define symbolp(a) ((a).type == ATOM_TYPE_SYMBOL)
+#define integerp(a) ((a).type == ATOM_TYPE_INTEGER)
+#define builtinp(a) ((a).type == ATOM_TYPE_BUILTIN)
+#define closurep(a) ((a).type == ATOM_TYPE_CLOSURE)
+#define macrop(a) ((a).type == ATOM_TYPE_MACRO)
+#define stringp(a) ((a).type == ATOM_TYPE_STRING)
+
 #define car(a) ((a).value.pair->atom[0])
 #define cdr(a) ((a).value.pair->atom[1])
-
-#define integerp(a) ((a).type == ATOM_TYPE_INTEGER)
-
-static const Atom nil = { ATOM_TYPE_NIL, 0, NULL };
 
 //================================================================ BEG garbage_collection
 

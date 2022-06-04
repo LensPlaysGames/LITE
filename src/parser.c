@@ -52,6 +52,7 @@ Error parse_simple(const char *beg, const char *end, Atom *result) {
     result->type = ATOM_TYPE_INTEGER;
     result->value.integer = value;
     result->docstring = NULL;
+    result->galloc = NULL;
     return ok;
   }
   // NIL or SYMBOL
@@ -115,7 +116,7 @@ of the `.` improper list operator."
     err = parse_expr(token, end, &item);
     if (err.type) { return err; }
     if (nilp(list)) {
-      // First item in list.
+      // Create list with one item.
       *result = cons(item, nil);
       list = *result;
     } else {
@@ -127,11 +128,11 @@ of the `.` improper list operator."
 }
 
 Error parse_string(const char *beg, const char **end, Atom *result) {
-  Atom string;
+  Atom string = nil;
   string.type = ATOM_TYPE_STRING;
   *result = nil;
   *end = beg;
-  Error err;
+  Error err = ok;
   if (beg[0] != '"') {
     PREP_ERROR(err, ERROR_SYNTAX, nil
                , "A string is expected to begin with a double quote."
@@ -166,8 +167,7 @@ Error parse_string(const char *beg, const char **end, Atom *result) {
 /// Eat the next LISP object from source.
 Error parse_expr(const char *source, const char **end, Atom *result) {
   const char *token;
-  Error err;
-  err = lex(source, &token, end);
+  Error err = lex(source, &token, end);
   if (err.type) { return err; }
   if (token[0] == '(') {
     return parse_list(*end, end, result);

@@ -57,7 +57,7 @@ void enter_repl(Atom environment) {
     // Skip trailing whitespace for end comparison.
     const char *ws = " \t\n";
     size_t span = 0;
-    while (span = strspn(source, ws)) {
+    while ((span = strspn(source, ws))) {
       source += span;
     }
     if (source < expected_end) {

@@ -183,7 +183,7 @@ Error evaluate_return_value(Atom *stack, Atom *expr, Atom *environment, Atom *re
 Error evaluate_expression(Atom expr, Atom environment, Atom *result) {
   MAKE_ERROR(err, ERROR_NONE, nil, NULL, NULL);
   Atom stack = nil;
-  const static size_t gcol_count_default = 1000;
+  const static size_t gcol_count_default = 100000;
   static size_t gcol_count = gcol_count_default;
   do {
     if (!--gcol_count) {
@@ -194,6 +194,7 @@ Error evaluate_expression(Atom expr, Atom environment, Atom *result) {
       gcol();
       if (env_non_nil(environment, make_sym("DEBUG/MEMORY"))) {
         printf("Garbage Collected\n");
+        print_gcol_data();
       }
       size_t threshold;
       Atom threshold_atom = nil;

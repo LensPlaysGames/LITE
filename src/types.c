@@ -21,22 +21,21 @@ size_t generic_allocations_count = 0;
 size_t generic_allocations_freed = 0;
 
 Error gcol_generic_allocation(Atom *ref, void *payload) {
-  MAKE_ERROR(err, ERROR_NONE, nil, NULL, NULL);
   if (!ref) {
-    PREP_ERROR(err, ERROR_ARGUMENTS, nil,
+    MAKE_ERROR(err, ERROR_ARGUMENTS, nil,
                "GALLOC: Can not allocate when NULL referring Atom is passed."
                , NULL);
       return err;
   }
   if (!payload) {
-    PREP_ERROR(err, ERROR_ARGUMENTS, *ref
+    MAKE_ERROR(err, ERROR_ARGUMENTS, *ref
                , "GALLOC: Can not allocate NULL payload."
                , NULL);
     return err;
   }
   GenericAllocation *galloc = malloc(sizeof(GenericAllocation));
   if (!galloc) {
-    PREP_ERROR(err, ERROR_MEMORY, *ref
+    MAKE_ERROR(err, ERROR_MEMORY, *ref
                , "GALLOC: Could not allocate memory for generic allocation."
                , NULL);
     return err;
@@ -44,8 +43,10 @@ Error gcol_generic_allocation(Atom *ref, void *payload) {
   galloc->mark = 0;
   galloc->payload = payload;
   galloc->next = generic_allocations;
+  galloc->more = NULL;
   generic_allocations = galloc;
   generic_allocations_count += 1;
+  ref->galloc = galloc;
   return ok;
 }
 
@@ -53,21 +54,23 @@ void gcol_mark(Atom root) {
   if (nilp(root)) {
     return;
   }
-  if (root.type == ATOM_TYPE_PAIR
-      || root.type == ATOM_TYPE_CLOSURE
-      || root.type == ATOM_TYPE_MACRO)
-    {
-      ConsAllocation *alloc = (ConsAllocation *)
-        ((char *)root.value.pair - offsetof(ConsAllocation, pair));
-      if (!alloc || alloc->mark) {
-        return;
-      }
-      alloc->mark = 1;
-      gcol_mark(car(root));
-      if (!nilp(cdr(root))) {
-        gcol_mark(cdr(root));
-      }
+  if (root.galloc) {
+    printf("marking galloc at %p\n", root.galloc);
+    root.galloc->mark = 1;
+  }
+  // Any type made with `cons()` belongs here.
+  if (pairp(root) || closurep(root) || macrop(root)) {
+    ConsAllocation *alloc = (ConsAllocation *)
+      ((char *)root.value.pair - offsetof(ConsAllocation, pair));
+    if (!alloc || alloc->mark) {
+      return;
     }
+    alloc->mark = 1;
+    gcol_mark(car(root));
+    if (!nilp(cdr(root))) {
+      gcol_mark(cdr(root));
+    }
+  }
 }
 
 void gcol_cons() {
@@ -104,7 +107,7 @@ void gcol_generic() {
   GenericAllocation *galloc = generic_allocations;
   while ((galloc = *galloc_it) != NULL) {
     if (!galloc->mark) {
-      galloc_it = &galloc->next;
+      *galloc_it = galloc->next;
       if (prev_galloc) {
         prev_galloc->next = galloc->next;
       } else {
@@ -174,15 +177,14 @@ Atom nil_with_docstring(symbol_t *docstring) {
 }
 
 Atom make_int(integer_t value) {
-  Atom a;
+  Atom a = nil;
   a.type = ATOM_TYPE_INTEGER;
   a.value.integer = value;
-  a.docstring = NULL;
   return a;
 }
 
 Atom make_int_with_docstring(integer_t value, symbol_t *docstring) {
-  Atom a;
+  Atom a = nil;
   a.type = ATOM_TYPE_INTEGER;
   a.value.integer = value;
   a.docstring = docstring;
@@ -190,11 +192,10 @@ Atom make_int_with_docstring(integer_t value, symbol_t *docstring) {
 }
 
 Atom make_sym(symbol_t *value) {
-  Atom a;
-  Atom symbol_table_it;
+  Atom a = nil;
   // TODO: uppercase value symbol in search.
   // Attempt to find existing symbol in symbol table.
-  symbol_table_it = symbol_table;
+  Atom symbol_table_it = symbol_table;
   while (!nilp(symbol_table_it)) {
     a = car(symbol_table_it);
     if (strcmp(a.value.symbol, value) == 0) {
@@ -211,6 +212,7 @@ Atom make_sym(symbol_t *value) {
     return nil;
   }
   a.docstring = NULL;
+  a.galloc = NULL;
   // Add new symbol to symbol table.
   symbol_table = cons(a, symbol_table);
   return a;
@@ -227,15 +229,14 @@ void free_symbol_table() {
 }
 
 Atom make_string(symbol_t *contents) {
-  Atom string;
+  Atom string = nil;
   string.type = ATOM_TYPE_STRING;
   string.value.symbol = contents;
-  string.docstring = NULL;
   return string;
 }
 
 Atom make_builtin(BuiltIn function, symbol_t *docstring) {
-  Atom builtin;
+  Atom builtin = nil;
   builtin.type = ATOM_TYPE_BUILTIN;
   builtin.value.builtin = function;
   builtin.docstring = docstring;
@@ -244,7 +245,6 @@ Atom make_builtin(BuiltIn function, symbol_t *docstring) {
 
 Error make_closure(Atom environment, Atom arguments, Atom body, Atom *result) {
   Error err;
-  Atom arguments_it;
   if (!listp(body)) {
     PREP_ERROR(err, ERROR_SYNTAX
                , body
@@ -253,7 +253,7 @@ Error make_closure(Atom environment, Atom arguments, Atom body, Atom *result) {
     return err;
   }
   // Ensure all arguments are valid symbols.
-  arguments_it = arguments;
+  Atom arguments_it = arguments;
   while (!nilp(arguments_it)) {
     // Handle variadic arguments.
     if (arguments_it.type == ATOM_TYPE_SYMBOL) {
@@ -272,7 +272,6 @@ Error make_closure(Atom environment, Atom arguments, Atom body, Atom *result) {
   }
   Atom closure = cons(environment, cons(arguments, body));
   closure.type = ATOM_TYPE_CLOSURE;
-  closure.docstring = NULL;
   *result = closure;
   return ok;
 }
