@@ -40,18 +40,17 @@ Error gcol_generic_allocation(Atom *ref, void *payload) {
                , NULL);
     return err;
   }
+  printf("new galloc at %p with payload %p\n", galloc, payload);
   galloc->mark = 0;
   galloc->payload = payload;
   galloc->next = generic_allocations;
-  galloc->more = NULL;
   generic_allocations = galloc;
   generic_allocations_count += 1;
+  galloc->more = NULL;
   if (ref->galloc) {
     galloc->more = ref->galloc;
-    ref->galloc = galloc;
-  } else {
-    ref->galloc = galloc;
   }
+  ref->galloc = galloc;
   return ok;
 }
 
@@ -92,6 +91,7 @@ void gcol_cons() {
         global_pair_allocations = pair_allocation->next;
       }
       free(pair_allocation);
+      pair_allocation = NULL;
       pair_allocations_freed += 1;
     } else {
       pair_allocations_it = &pair_allocation->next;
@@ -112,14 +112,20 @@ void gcol_generic() {
   GenericAllocation *galloc = generic_allocations;
   while ((galloc = *galloc_it) != NULL) {
     if (!galloc->mark) {
+      printf("Unmarked galloc at %p\n", galloc);
       *galloc_it = galloc->next;
       if (prev_galloc) {
         prev_galloc->next = galloc->next;
       } else {
         generic_allocations = galloc->next;
       }
+      printf("Freeing galloc payload at %p\n", galloc->payload);
       free(galloc->payload);
+      galloc->payload = NULL;
+      printf("Freeing galloc at %p\n", galloc);
       free(galloc);
+      galloc = NULL;
+      printf("Freed galloc\n");
       generic_allocations_freed += 1;
     } else {
       galloc_it = &galloc->next;
@@ -135,8 +141,8 @@ void gcol_generic() {
 }
 
 void gcol() {
-  gcol_cons();
   gcol_generic();
+  gcol_cons();
 }
 
 void print_gcol_data() {
@@ -165,13 +171,11 @@ Atom cons(Atom car_atom, Atom cdr_atom) {
   global_pair_allocations = alloc;
   pair_allocations_count += 1;
 
-  Atom newpair;
+  Atom newpair = nil;
   newpair.type = ATOM_TYPE_PAIR;
   newpair.value.pair = &alloc->pair;
   car(newpair) = car_atom;
   cdr(newpair) = cdr_atom;
-  newpair.docstring = NULL;
-  newpair.galloc = NULL;
   return newpair;
 }
 
@@ -210,27 +214,16 @@ Atom make_sym(symbol_t *value) {
   }
   // Create a new symbol.
   a.type = ATOM_TYPE_SYMBOL;
-  // FIXME: These symbols are leaked!
   a.value.symbol = strdup(value);
   if (!a.value.symbol) {
     printf("Could not allocate memory for new symbol.\n");
     return nil;
   }
-  a.docstring = NULL;
-  a.galloc = NULL;
+  // Register allocated symbol in garbage collector.
+  gcol_generic_allocation(&a, (void *)a.value.symbol);
   // Add new symbol to symbol table.
   symbol_table = cons(a, symbol_table);
   return a;
-}
-
-void free_symbol_table() {
-  if (!nilp(symbol_table)) {
-    Atom symbol_table_it = symbol_table;
-    while (!nilp(symbol_table_it)) {
-      free((void *)car(symbol_table_it).value.symbol);
-      symbol_table_it = cdr(symbol_table_it);
-    }
-  }
 }
 
 Atom make_string(symbol_t *contents) {

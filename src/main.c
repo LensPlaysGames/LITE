@@ -81,22 +81,6 @@ int main(int argc, char **argv) {
   }
   enter_repl(environment);
   int debug_memory = env_non_nil(environment, make_sym("DEBUG/MEMORY"));
-  free_symbol_table();
-  // Test generic allocations.
-  Atom test0;
-  Atom test1;
-  Atom test2;
-  gcol_generic_allocation(&test0, malloc(8));
-  gcol_generic_allocation(&test1, malloc(8));
-  gcol_generic_allocation(&test2, malloc(8));
-  gcol_generic_allocation(&test2, malloc(8));
-  printf("test0: %p payload=%p\n"
-         "test1: %p payload=%p\n"
-         "test2: %p payload=%p extra_payload=%p\n"
-         , test0.galloc, test0.galloc->payload
-         , test1.galloc, test1.galloc->payload
-         , test2.galloc, test2.galloc->payload, test2.galloc->more->payload
-         );
   // Garbage collection with no marking means free everything.
   gcol();
   if (debug_memory) {
