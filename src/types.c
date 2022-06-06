@@ -430,7 +430,7 @@ char *atom_string(Atom atom, char *buffer) {
     snprintf(buffer+length, to_add, "\"%s\"", atom.value.symbol);
     break;
   case ATOM_TYPE_INTEGER:
-    // FIXME: Format only works when interger_t is long long int
+    // FIXME: Format only works when integer_t is long long int
     to_add = format_bufsz("%lli", atom.value.integer);
     buffer = realloc(buffer, length+to_add);
     if (!buffer) { return NULL; }

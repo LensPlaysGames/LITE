@@ -10,6 +10,10 @@
 #include <repl.h>
 #include <types.h>
 
+#ifdef LITE_GFX
+#include <gui.h>
+#endif
+
 //================================================================ BEG file_io
 size_t file_size(FILE *file) {
   if (!file) {
@@ -72,6 +76,7 @@ Error load_file(Atom environment, const char* path) {
 
 int main(int argc, char **argv) {
   printf("LITE will guide the way through the darkness.\n");
+
   Atom environment = default_environment();
   // Treat every given argument as a file to load, for now.
   if (argc > 1) {
@@ -79,12 +84,46 @@ int main(int argc, char **argv) {
       load_file(environment, argv[i]);
     }
   }
+
+#ifdef LITE_GFX
+  create_gui();
+  int open = 1;
+  GUIContext ctx;
+  ctx.headline = "LITE Headline";
+  ctx.contents = "\0";
+  ctx.footline = "LITE Footline";
+  GUIInput input;
+  memset(&input, 0, sizeof(GUIInput));
+  input.prev[0] = ' ';
+  while (open) {
+    Error err;
+    handle_input_gui(&input);
+    //const char* source = input;
+    //Atom expr;
+    //while (parse_expr(source, &source, &expr).type == ERROR_NONE) {
+    //  Atom result;
+    //  err = evaluate_expression(expr, environment, &result);
+    //  if (err.type) { return err; }
+    //  ctx.contents = atom_string(result, ctx.contents);
+    //}
+    //free(source);
+    ctx.contents = input.prev;
+    do_gui(&open, &input, &ctx);
+  }
+#else
   enter_repl(environment);
+#endif /* #ifdef LITE_GFX */
+
   int debug_memory = env_non_nil(environment, make_sym("DEBUG/MEMORY"));
   // Garbage collection with no marking means free everything.
   gcol();
   if (debug_memory) {
     print_gcol_data();
   }
+
+#ifdef LITE_GFX
+  destroy_gui();
+#endif /* #ifdef LITE_GFX */
+
   return 0;
 }

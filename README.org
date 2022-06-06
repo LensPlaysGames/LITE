@@ -22,7 +22,8 @@ there are many tutorials out there: pick one that makes sense to you.
 
 *** Usage
 
-Enter the REPL by running the executable from a terminal.
+If using LITE GFX, simply launch the executable and a window should appear.
+Otherwise, enter the REPL by running the executable from a terminal.
 
 Any arguments given are treated as source files, and
 are loaded into the environment before entring the REPL.
