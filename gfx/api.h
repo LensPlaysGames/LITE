@@ -4,7 +4,7 @@
  * graphics frontend, or at least must be stubbed out.
  *
  * This is in order to allow the backend a channel of
- * communication back for user input (among other things).b
+ * communication back for user input (among other things).
  */
 
 #ifndef API_H

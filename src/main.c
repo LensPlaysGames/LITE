@@ -81,6 +81,11 @@ Error load_file(Atom environment, const char* path) {
 //================================================================ BEG api.c
 void handle_character_dn(uint64_t c) {
   printf("Got character input: %c\n", (char)c);
+  // TODO: Use LISP env. variables to determine a buffer to insert into,
+  // at what offset (point/cursor), etc.
+  // TODO: Handle modifier key input state being true.
+  // For example, while holding ctrl, characters should not be entered.
+  // Eventually, we should gather-and-test to determine a key command.
 }
 
 void handle_character_up(uint64_t c) {

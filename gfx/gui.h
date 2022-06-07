@@ -12,6 +12,9 @@
 #ifndef GUI_H
 #define GUI_H
 
+// TODO: Extend GUIContext (maybe even make it extensible).
+//       Definitely split contents into a linked list of windows,
+//       each with their own string of contents (or something similar).
 typedef struct GUIContext {
   const char *headline;
   const char *contents;

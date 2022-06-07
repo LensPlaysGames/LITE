@@ -114,6 +114,8 @@ void draw_gui(GUIContext *ctx) {
     SDL_Surface *contents = NULL;
     // TODO: Display each line on a newline!
     // TODO: Wrapped text vs unwrapped text.
+    //       SDL_ttf V2.0.18 introduced _Wrapped functions to all
+    //       of these functions, which is very, very handy!
     contents = TTF_RenderUTF8_Blended(font, ctx->contents, fg);
     if (!contents) {
       printf("GFX::SDL: Could not render contents text.\n");
