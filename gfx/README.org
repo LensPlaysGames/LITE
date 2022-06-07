@@ -1,0 +1,37 @@
+* LITE GFX
+
+LITE may be built utilizing a graphics library.
+This allows LITE to create a GUI.
+
+As LITE is meant to be cross-platform and able to be
+ported to a multitude of systems, the graphical backend
+is built as a separate library and linked into LITE.
+
+- ~gui.h~ -- The graphical backend implements this.
+  LITE will use these to display things.
+
+- ~api.h~ -- LITE implements this, and the graphical
+  backend uses these to communicate data (like user input).
+
+** Building LITE with LITE GFX
+
+All build configuration is done through CMake options.
+
+: -DLITE_GFX=ON
+
+When the ~LITE_GFX~ CMake option is =ON=, the
+LITE GFX library will be included in the final
+LITE executable, as well as alter LITE's
+functionality slightly for user input and such.
+
+: -DLITE_GFX_IMPLEMENTATION_SUBDIR
+
+~LITE_GFX_IMPLEMENTATION_SUBDIR~ is a relative
+path from this directory into a subdirectory
+containing an implementation of everything
+declared in ~gui.h~. By default, ~sdl2~ is used.
+
+NOTE: Additional configuration and build steps may be
+necessary, depending on the graphical backend used.
+Please be sure to take a look at the README in the
+backend subdirectory for additional information.

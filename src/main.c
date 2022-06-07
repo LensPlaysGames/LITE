@@ -1,5 +1,6 @@
 #include <stdbool.h>
 #include <stdio.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -74,6 +75,14 @@ Error load_file(Atom environment, const char* path) {
 
 //================================================================ END file_io
 
+void handle_character_dn(uint64_t c) {
+  printf("Got char dn: %c\n", (char)c);
+}
+
+void handle_character_up(uint64_t c) {
+  printf("Got char up: %c\n", (char)c);
+}
+
 int main(int argc, char **argv) {
   printf("LITE will guide the way through the darkness.\n");
 
@@ -90,14 +99,10 @@ int main(int argc, char **argv) {
   int open = 1;
   GUIContext ctx;
   ctx.headline = "LITE Headline";
-  ctx.contents = "\0";
+  ctx.contents = "LITE";
   ctx.footline = "LITE Footline";
-  GUIInput input;
-  memset(&input, 0, sizeof(GUIInput));
-  input.prev[0] = ' ';
   while (open) {
     Error err;
-    handle_input_gui(&input);
     //const char* source = input;
     //Atom expr;
     //while (parse_expr(source, &source, &expr).type == ERROR_NONE) {
@@ -107,8 +112,7 @@ int main(int argc, char **argv) {
     //  ctx.contents = atom_string(result, ctx.contents);
     //}
     //free(source);
-    ctx.contents = input.prev;
-    do_gui(&open, &input, &ctx);
+    do_gui(&open, &ctx);
   }
 #else
   enter_repl(environment);

@@ -1,6 +1,7 @@
 // This file will be compiled into a library
 // that is then linked with, after compilation.
 
+#include <api.h>
 #include <gui.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -59,29 +60,6 @@ int create_gui() {
   }
   printf("GFX::SDL: SDL_ttf Initialized\n");
   return 0;
-}
-
-void handle_input_gui(GUIInput *input) {
-  if (!input) {
-    return;
-  }
-  SDL_Event event;
-  while (SDL_PollEvent(&event)) {
-    switch(event.type) {
-    default:
-      break;
-    case SDL_KEYDOWN:
-      input->prev[input->prev_counter] = event.key.keysym.sym;
-      input->prev[INPUT_PREV_SIZE] = '\0';
-      input->prev_counter += 1;
-      input->prev_counter %= INPUT_PREV_SIZE;
-      break;
-    case SDL_QUIT:
-      printf("GFX::SDL: Quitting\n");
-      destroy_gui();
-      exit(0);
-    }
-  }
 }
 
 static inline void draw_bg() {
@@ -153,7 +131,6 @@ void draw_gui(GUIContext *ctx) {
     SDL_BlitSurface(footline, NULL, surface, &rect_footline);
     SDL_FreeSurface(footline);
   }
-  
   texture = SDL_CreateTextureFromSurface(grender, surface);
   SDL_FreeSurface(surface);
   if (!texture) {
@@ -168,11 +145,27 @@ void draw_gui(GUIContext *ctx) {
 }
 
 // Returns a boolean-like integer value (0 is false).
-void do_gui(int *open, GUIInput *input, GUIContext *ctx) {
+void do_gui(int *open, GUIContext *ctx) {
   if (!open || *open == 0 || !ctx) {
     return;
   }
-  handle_input_gui(input);
+  SDL_Event event;
+  while (SDL_PollEvent(&event)) {
+    switch(event.type) {
+    default:
+      break;
+    case SDL_KEYDOWN:
+      handle_character_dn(event.key.keysym.sym);
+      break;
+    case SDL_KEYUP:
+      handle_character_up(event.key.keysym.sym);
+      break;
+    case SDL_QUIT:
+      printf("GFX::SDL: Quitting\n");
+      destroy_gui();
+      exit(0);
+    }
+  }
   draw_gui(ctx);
   *open = 1;
 }
