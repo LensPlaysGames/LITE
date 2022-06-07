@@ -1,6 +1,7 @@
 // This file will be compiled into a library
 // that is then linked with, after compilation.
 
+#include "SDL_keycode.h"
 #include <api.h>
 #include <gui.h>
 #include <stdint.h>
@@ -144,21 +145,58 @@ void draw_gui(GUIContext *ctx) {
   SDL_RenderPresent(grender);
 }
 
+// Returns GUI_MODKEY_MAX for any key that is not a modifier,
+// otherwise returns the corresponding GUI_MODKEY_* enum.
+GUIModifierKey is_modifier(SDL_KeyCode key) {
+  switch (key) {
+  default:
+    return GUI_MODKEY_MAX;
+    break;
+  case SDLK_LCTRL:
+    return GUI_MODKEY_LCTRL;
+    break;
+  case SDLK_RCTRL:
+    return GUI_MODKEY_RCTRL;
+    break;
+  case SDLK_LALT:
+    return GUI_MODKEY_LALT;
+    break;
+  case SDLK_RALT:
+    return GUI_MODKEY_RALT;
+    break;
+  case SDLK_LSHIFT:
+    return GUI_MODKEY_LSHIFT;
+    break;
+  case SDLK_RSHIFT:
+    return GUI_MODKEY_RSHIFT;
+    break;
+  }
+}
+
 // Returns a boolean-like integer value (0 is false).
 void do_gui(int *open, GUIContext *ctx) {
   if (!open || *open == 0 || !ctx) {
     return;
   }
   SDL_Event event;
+  GUIModifierKey mod;
   while (SDL_PollEvent(&event)) {
     switch(event.type) {
     default:
       break;
     case SDL_KEYDOWN:
-      handle_character_dn(event.key.keysym.sym);
+      if ((mod = is_modifier(event.key.keysym.sym)) != GUI_MODKEY_MAX) {
+        handle_modifier_dn(mod);
+      } else {
+        handle_character_dn(event.key.keysym.sym);
+      }
       break;
     case SDL_KEYUP:
-      handle_character_up(event.key.keysym.sym);
+      if ((mod = is_modifier(event.key.keysym.sym)) != GUI_MODKEY_MAX) {
+        handle_modifier_up(mod);
+      } else {
+        handle_character_up(event.key.keysym.sym);
+      }
       break;
     case SDL_QUIT:
       printf("GFX::SDL: Quitting\n");

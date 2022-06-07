@@ -2,12 +2,19 @@
 
 ** Dependencies
 
-NOTE: The SDL2 /DEVELOPMENT/ release(s) is/are necessary (don't get runtime binaries).
+NOTE: The /DEVELOPMENT/ releases are necessary (don't get runtime binaries).
 
-- SDL2
-  - SDL2_ttf
+- [[https://www.libsdl.org/download-2.0.php][SDL2]]
+- [[h://github.com/libsdl-org/SDL_ttf/releases/latest][SDL2_ttf]]
+
 
 ** Notes
+
+*** Working Directory
+
+Currently, it is important to start LITE with a working directory of
+the base of the repository, so that fonts may be properly found. \\
+In the future, we hope to provide better methods of handling fonts.
 
 *** Windows
 
@@ -18,15 +25,18 @@ It is also necessary to set SDL2_TTF_DIR CMake variable to find SDL_TTF extensio
 : -DSDL2_TTF_DIR=<full path to SDL2_ttf directory containing bin, lib, include>
 
 NOTE: If the program compiles and links with zero errors, but exits immediately
-upon launching the executable, it is likely that the necessary DLLs (~SDL2_ttf.dll~)
-are not located in the same folder as the executable.
+upon launching the executable, it is likely that the necessary DLLs, ~SDL2.dll~
+and ~SDL2_ttf.dll~, are not located in the same folder as the executable.
 
 *** General
 
 NOTE: Because graphical applications exit immediately (at least on Windows),
 it is necessary to re-direct the output if you wish to see ~printf()~ output.
-PowerShell:
-: .\bin\GUI.exe | Out-File .\bin\log.txt ; Get-Contents -Path .\bin\log.txt
+Nushell:
+: bin/LITE.exe | save bin/log.txt ; cat bin/log.txt
 
 Bash:
-: bin/GUI.exe > bin/log.txt 2>&1 && cat bin/log.txt
+: bin/LITE.exe > bin/log.txt 2>&1 && cat bin/log.txt
+
+PowerShell:
+: .\bin\LITE.exe | Out-File .\bin\log.txt ; Get-Contents -Path .\bin\log.txt

@@ -12,9 +12,25 @@
 
 #include <stdint.h>
 
-// Keydown/keyup events should call these handlers.
+// Handlers for non-modifier characters.
 // Hopefully 64 bits is enough for a character ;^).
+// Let's go with UTF8 for now, but UNICODE is on the horizon.
 void handle_character_dn(uint64_t c);
 void handle_character_up(uint64_t c);
+
+typedef enum GUIModifierKey {
+  GUI_MODKEY_LCTRL,
+  GUI_MODKEY_RCTRL,
+  GUI_MODKEY_LALT,
+  GUI_MODKEY_RALT,
+  GUI_MODKEY_LSHIFT,
+  GUI_MODKEY_RSHIFT,
+  GUI_MODKEY_MAX,
+} GUIModifierKey;
+
+
+// Handlers for modifier keys.
+void handle_modifier_dn(GUIModifierKey);
+void handle_modifier_up(GUIModifierKey);
 
 #endif /* API_H */

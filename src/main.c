@@ -12,6 +12,7 @@
 #include <types.h>
 
 #ifdef LITE_GFX
+#include <api.h>
 #include <gui.h>
 #endif
 
@@ -75,13 +76,73 @@ Error load_file(Atom environment, const char* path) {
 
 //================================================================ END file_io
 
+
+#ifdef LITE_GFX
+//================================================================ BEG api.c
 void handle_character_dn(uint64_t c) {
-  printf("Got char dn: %c\n", (char)c);
+  printf("Got character input: %c\n", (char)c);
 }
 
 void handle_character_up(uint64_t c) {
-  printf("Got char up: %c\n", (char)c);
+  // We may never actually need to handle a regular character up...
+  (void)c;
 }
+
+void handle_modifier_dn(GUIModifierKey mod) {
+  if (mod >= GUI_MODKEY_MAX) {
+    return;
+  }
+  switch (mod) {
+  default:
+    printf("API::GFX:ERROR: Unhandled modifier keydown: %d\n"
+           "              : Please report as issue on LITE GitHub.\n"
+           , mod);
+  case GUI_MODKEY_LCTRL:
+  case GUI_MODKEY_RCTRL:
+    // TODO: Global input key state CTRL modifier -> true
+    printf("Ctrl down.\n");
+    break;
+  case GUI_MODKEY_LALT:
+  case GUI_MODKEY_RALT:
+    // TODO: Global input key state ALT modifier -> true
+    printf("Alt down.\n");
+    break;
+  case GUI_MODKEY_LSHIFT:
+  case GUI_MODKEY_RSHIFT:
+    // TODO: Global input key state SHIFT modifier -> true
+    printf("Shift down.\n");
+    break;
+  }
+}
+
+void handle_modifier_up(GUIModifierKey mod) {
+  if (mod >= GUI_MODKEY_MAX) {
+    return;
+  }
+  switch (mod) {
+  default:
+    printf("API::GFX:ERROR: Unhandled modifier keyup: %d\n"
+           "              : Please report as issue on LITE GitHub.\n"
+           , mod);
+  case GUI_MODKEY_LCTRL:
+  case GUI_MODKEY_RCTRL:
+    // TODO: Global input key state CTRL modifier -> true
+    printf("Ctrl up.\n");
+    break;
+  case GUI_MODKEY_LALT:
+  case GUI_MODKEY_RALT:
+    // TODO: Global input key state ALT modifier -> true
+    printf("Alt up.\n");
+    break;
+  case GUI_MODKEY_LSHIFT:
+  case GUI_MODKEY_RSHIFT:
+    // TODO: Global input key state SHIFT modifier -> true
+    printf("Shift up.\n");
+    break;
+  }
+}
+//================================================================ END api.c
+#endif /* #ifdef LITE_GFX */
 
 int main(int argc, char **argv) {
   printf("LITE will guide the way through the darkness.\n");
