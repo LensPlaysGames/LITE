@@ -25,4 +25,18 @@ target_link_libraries(
   ${SDL2_TTF_LIBRARIES}
 )
 
+# Copy SDL2 dynamically linked libraries (.dll)
+if (CMAKE_HOST_WIN32)
+  add_custom_command(
+    TARGET SDL_LIB POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+    "${CMAKE_CURRENT_LIST_DIR}/SDL2.dll"
+    ${EXECUTABLE_OUTPUT_PATH})
+  add_custom_command(
+    TARGET SDL_LIB POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+    "${CMAKE_CURRENT_LIST_DIR}/SDL2_ttf.dll"
+    ${EXECUTABLE_OUTPUT_PATH})
+endif ()
+
 set(LITE_GFX_LIBRARY SDL_LIB)

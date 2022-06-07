@@ -12,8 +12,8 @@ NOTE: The /DEVELOPMENT/ releases are necessary (don't get runtime binaries).
 
 *** Working Directory
 
-Currently, it is important to start LITE with a working directory of
-the base of the repository, so that fonts may be properly found. \\
+Currently, it is important to start LITE with a working directory of the base
+of the repository or a subdirectory so that fonts may be properly found. \\
 In the future, we hope to provide better methods of handling fonts.
 
 *** Windows

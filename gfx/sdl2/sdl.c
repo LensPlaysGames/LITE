@@ -1,16 +1,15 @@
 // This file will be compiled into a library
 // that is then linked with, after compilation.
 
-#include "SDL_keycode.h"
 #include <api.h>
 #include <gui.h>
 #include <stdint.h>
 #include <stdlib.h>
 
-#include <SDL_ttf.h>
 
 #define SDL_MAIN_HANDLED
 #include <SDL.h>
+#include <SDL_ttf.h>
 
 #include <stdio.h>
 
@@ -51,9 +50,15 @@ int create_gui() {
     printf("GFX::SDL:ERROR: Failed to initialize SDL_ttf.\n");
     return 1;
   }
+  // First, assume working directory of base of the repository.
   font = TTF_OpenFont("gfx/sdl2/DroidSans.ttf", 18);
+  // Next, assume working directory of bin repository subdirectory.
+  if (!font) { font = TTF_OpenFont("../gfx/sdl2/DroidSans.ttf", 18); }
+  // Next, search current directory.
+  if (!font) { font = TTF_OpenFont("DroidSans.ttf", 18); }
+  // Finally, if no font was found anywhere, error out.
   if (!font) {
-    printf("GFX::SDL: SDL_ttf could not load default font\n"
+    printf("GFX::SDL: SDL_ttf could not open a font.\n"
            "        : %s\n"
            , TTF_GetError()
            );
