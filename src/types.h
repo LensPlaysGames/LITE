@@ -34,7 +34,7 @@ typedef struct Atom {
   struct GenericAllocation *galloc;
 } Atom;
 struct Pair {
-  struct Atom atom[2];
+  Atom atom[2];
 };
 
 static const Atom nil = { ATOM_TYPE_NIL, 0, NULL, NULL };

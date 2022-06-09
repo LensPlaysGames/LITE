@@ -77,8 +77,8 @@ Error load_file(Atom environment, const char* path) {
 //================================================================ END file_io
 
 
-#ifdef LITE_GFX
 //================================================================ BEG api.c
+#ifdef LITE_GFX
 void handle_character_dn(uint64_t c) {
   printf("Got character input: %c\n", (char)c);
   // TODO: Use LISP env. variables to determine a buffer to insert into,
@@ -146,8 +146,8 @@ void handle_modifier_up(GUIModifierKey mod) {
     break;
   }
 }
-//================================================================ END api.c
 #endif /* #ifdef LITE_GFX */
+//================================================================ END api.c
 
 int main(int argc, char **argv) {
   printf("LITE will guide the way through the darkness.\n");
@@ -168,7 +168,7 @@ int main(int argc, char **argv) {
   ctx.contents = "LITE";
   ctx.footline = "LITE Footline";
   while (open) {
-    Error err;
+    //Error err;
     //const char* source = input;
     //Atom expr;
     //while (parse_expr(source, &source, &expr).type == ERROR_NONE) {
