@@ -149,6 +149,273 @@ void handle_modifier_up(GUIModifierKey mod) {
 #endif /* #ifdef LITE_GFX */
 //================================================================ END api.c
 
+typedef struct Rope {
+  size_t weight;
+  char *string;
+  struct Rope *left;
+  struct Rope *right;
+} Rope;
+
+size_t rope_length(Rope *rope) {
+  return rope ? rope->weight : 0;
+}
+
+Rope *make_rope(const char *str) {
+  if (!str) {
+    return NULL;
+  }
+
+  // Copy input string to heap.
+  size_t len = strlen(str);
+  char *newstr = malloc(len);
+  if (!newstr) {
+    return NULL;
+  }
+  strncpy(newstr, str, len);
+
+  // Allocate new rope nodes on heap.
+  Rope *rope = malloc(sizeof(Rope));
+  if (!rope) {
+    return NULL;
+  }
+  Rope *left = malloc(sizeof(Rope));
+  if (!left) {
+    return NULL;
+  }
+
+  // Initialize nodes.
+  left->weight = len;
+  left->string = newstr;
+  left->right = NULL;
+  left->left = NULL;
+  
+  rope->weight = len;
+  rope->string = NULL;
+  rope->right = NULL;
+  rope->left = left;
+
+  return rope;
+}
+
+/// Return the sum of the weights of all nodes in any subtree.
+size_t rope_sum(Rope *rope) {
+  if (rope->string) {
+    return rope->weight;
+  }
+  size_t sum = 0;
+  if (rope->left) {
+    sum += rope_sum(rope->left);
+  }
+  if (rope->right) {
+    sum += rope_sum(rope->left);
+  }
+  return sum;
+}
+
+// Re-calculates weight based on what the current values are.
+void rope_update_weights(Rope *rope) {
+  if (rope->left) {
+    rope_update_weights(rope->left);
+    rope->weight = rope_sum(rope->left);
+  }
+  if (rope->right) {
+    rope_update_weights(rope->right);
+  }
+}
+
+/// Return a new rope with string inserted at index,
+/// or NULL if the operation is not able to be completed.
+Rope *rope_insert(Rope *rope, size_t index, char *str) {
+  if (!rope || !str) {
+    return NULL;
+  }
+  size_t contents_length = strlen(str);
+  char *contents = malloc(contents_length > 0 ? contents_length : 8);
+  strncpy(contents, str, contents_length);
+  contents[contents_length] = '\0';
+  if (index >= rope->weight) {
+    // Append
+    Rope *new_rope = malloc(sizeof(Rope));
+    if (!new_rope) {
+      return NULL;
+    }
+    Rope *new_contents = malloc(sizeof(Rope));
+    if (!new_contents) {
+      free(new_rope);
+      return NULL;
+    }
+
+    new_contents->weight = contents_length;
+    new_contents->string = contents;
+    new_contents->right = NULL;
+    new_contents->left = NULL;
+
+    rope->right = new_contents;
+
+    new_rope->weight = rope->weight + new_contents->weight;
+    new_rope->string = NULL;
+    new_rope->right = NULL;
+    new_rope->left = rope;
+
+    return new_rope;
+  } else {
+    // Insert
+
+    // SOMETHING HERE BREAKS ENTIRELY AND I HATE IT THANKS
+
+    size_t current_index = index + 1;
+    Rope *current_rope = rope;
+    while (!current_rope->string) {
+      if (current_index > current_rope->weight) {
+        current_index -= current_rope->weight;
+        current_rope = current_rope->right;
+      } else {
+        // Update weights as we find the string to change.
+        current_rope->weight += contents_length;
+        current_rope = current_rope->left;
+      }
+    }
+
+    Rope *new_left_left = malloc(sizeof(Rope));
+    if (!new_left_left) {
+      return NULL;
+    }
+    Rope *new_left = malloc(sizeof(Rope));
+    if (!new_left) {
+      free(new_left_left);
+      return NULL;
+    }
+    Rope *new_contents = malloc(sizeof(Rope));
+    if (!new_contents) {
+      free(new_left_left);
+      free(new_left);
+      return NULL;
+    }
+    Rope *new_right = malloc(sizeof(Rope));
+    if (!new_right) {
+      free(new_left_left);
+      free(new_left);
+      free(new_contents);
+      return NULL;
+    }
+
+    new_contents->string = contents;
+    new_contents->weight = contents_length;
+    new_contents->left = NULL;
+    new_contents->right = NULL;
+
+    new_left_left->string = current_rope->string;
+    new_left_left->weight = current_index;
+    new_left_left->left = NULL;
+    new_left_left->right = NULL;
+
+    new_left->string = NULL;
+    new_left->weight = new_left_left->weight;
+    new_left->left = new_left_left;
+    new_left->right = new_contents;
+
+    new_right->string = current_rope->string + current_index;
+    new_right->weight = current_rope->weight - current_index;
+    new_right->left = NULL;
+    new_right->right = NULL;
+
+    current_rope->string = NULL;
+    current_rope->left = new_left;
+    current_rope->right = new_right;
+    rope_update_weights(current_rope);
+  }
+  return rope;
+}
+
+Rope *rope_append(Rope *rope, char *string) {
+  return rope_insert(rope, SIZE_MAX, string);
+}
+
+/// Return a new rope with string inserted at index,
+/// or NULL if the operation is not able to be completed.
+Rope *rope_insert_char(Rope *rope, size_t index, char c) {
+  if (!rope) {
+    return NULL;
+  }
+  if (index >= rope->weight) {
+    // Append
+    // TODO: Find right-most string-containing rope-node,
+    // allocate a new buffer with size for the new char
+    // as well as a null terminator, then replace string.
+  } else {
+    // Insert
+    // TODO: Find string-containing rope-node by index (see above),
+    // allocate a new buffer with size for the new char
+    // as well as a null terminator, then replace string.
+  }
+  return rope;
+}
+
+// Either create a new string or append to existing.
+char *rope_string(Rope *rope, char *string) {
+  if (!rope) {
+    return NULL;
+  }
+  if (!string) {
+    string = malloc(8);
+    string[0] = '\0';
+  }
+  if (rope->string) {
+    size_t len = strlen(string);
+    size_t to_add = strlen(rope->string);
+    string = realloc(string, len+to_add);
+    if (!string) { return NULL; }
+    strncat(string, rope->string, to_add);
+  } else {
+    if (rope->left) {
+      string = rope_string(rope->left, string);
+    }
+    if (rope->right) {
+      string = rope_string(rope->right, string);
+    }
+  }
+  return string;
+}
+
+void rope_free(Rope *rope) {
+  if (rope->string) {
+    free(rope->string);
+  }
+  if (rope->left) {
+    rope_free(rope->left);
+  }
+  if (rope->right) {
+    rope_free(rope->right);
+  }
+  free(rope);
+}
+
+
+// I don't really like this visually, but I don't have an alternative.
+// Reading bottom up helps me to interpret the output the best.
+void rope_print(Rope *rope, size_t depth) {
+  if (!rope) {
+    return;
+  }
+  while (depth) {
+    printf("|   ");
+    depth -= 1;
+  }
+  if (rope->left) {
+    printf("|-- ");
+  } else {
+    printf("`-- ");
+  }
+  if (rope->string) {
+    printf("\"%s\" (%zu)\n", rope->string, rope->weight);
+  } else {
+    printf("(%zu)\n", rope->weight);
+  }
+  rope_print(rope->right, depth+1);
+  rope_print(rope->left, depth);
+}
+
+
 int main(int argc, char **argv) {
   printf("LITE will guide the way through the darkness.\n");
 
@@ -159,6 +426,34 @@ int main(int argc, char **argv) {
       load_file(environment, argv[i]);
     }
   }
+
+  Rope *rope = make_rope("This is a rope.");
+  if (!rope) {
+    return 1;
+  }
+  rope_print(rope, 0);
+
+  rope = rope_insert(rope, SIZE_MAX, " | Appended.");
+  if (!rope) {
+    printf("Failed to append.\n");
+    return 1;
+  }
+  rope_print(rope,0);
+
+  //rope = rope_insert(rope, 8, "| Inserted | ");
+  //if (!rope) {
+  //  printf("Failed to insert.\n");
+  //  return 1;
+  //}
+  //rope_print(rope,0);
+
+  char *test = rope_string(rope, NULL);
+  if (test) {
+    printf("rope test: %s\n", test);
+    free(test);
+  }
+
+  rope_free(rope);
 
 #ifdef LITE_GFX
   create_gui();
