@@ -149,6 +149,8 @@ void handle_modifier_up(GUIModifierKey mod) {
 #endif /* #ifdef LITE_GFX */
 //================================================================ END api.c
 
+//================================================================ BEG ropes
+
 typedef struct Rope {
   size_t weight;
   char *string;
@@ -260,9 +262,6 @@ Rope *rope_insert(Rope *rope, size_t index, char *str) {
     return new_rope;
   } else {
     // Insert
-
-    // SOMETHING HERE BREAKS ENTIRELY AND I HATE IT THANKS
-
     size_t current_index = index + 1;
     Rope *current_rope = rope;
     while (!current_rope->string) {
@@ -275,6 +274,33 @@ Rope *rope_insert(Rope *rope, size_t index, char *str) {
         current_rope = current_rope->left;
       }
     }
+
+    if (current_index == 0) {
+      printf("TODO: Insertion at the beginning of a rope string (prepend) has not yet been implemented.\n");
+    }
+
+    // INPUT: "This is a rope. | Appended"
+    //
+    //     <root> (27)-x
+    //    /
+    //   <node> (15)---------,
+    //  /                     \
+    // "This is a rope." (15)  " | Appended" (12)
+    //
+    // Attempting to insert "| Inserted | " at index of eight.
+    //
+    // OUTPUT: "This is | Inserted | a rope. | Appended"
+    //
+    //         <root> (40)-x
+    //        /
+    //       <node> (28)---------,
+    //      /                     \
+    //     <current_node> (21)-,   " | Appended"
+    //    /                     \
+    //   <new_left> (8)-,        "a rope."
+    //  /                \       new_right
+    // "This is "         "| Inserted | "
+    // new_left_left      new_contents
 
     Rope *new_left_left = malloc(sizeof(Rope));
     if (!new_left_left) {
@@ -299,29 +325,48 @@ Rope *rope_insert(Rope *rope, size_t index, char *str) {
       return NULL;
     }
 
-    new_contents->string = contents;
-    new_contents->weight = contents_length;
-    new_contents->left = NULL;
-    new_contents->right = NULL;
+    size_t new_left_left_len = current_index + 1;
+    char *new_left_left_str = malloc(new_left_left_len);
+    strncpy(new_left_left_str
+            , current_rope->string
+            , new_left_left_len
+            );
+    new_left_left_str[new_left_left_len - 1] = '\0';
 
-    new_left_left->string = current_rope->string;
-    new_left_left->weight = current_index;
+    new_left_left->string = new_left_left_str;
+    new_left_left->weight = new_left_left_len - 1;
     new_left_left->left = NULL;
     new_left_left->right = NULL;
+
+    new_contents->string = contents;
+    new_contents->weight = contents_length - 1;
+    new_contents->left = NULL;
+    new_contents->right = NULL;
 
     new_left->string = NULL;
     new_left->weight = new_left_left->weight;
     new_left->left = new_left_left;
     new_left->right = new_contents;
 
-    new_right->string = current_rope->string + current_index;
-    new_right->weight = current_rope->weight - current_index;
+    size_t new_right_len = current_rope->weight - current_index;
+    char *new_right_str = malloc(new_right_len);
+    strncpy(new_right_str
+            , current_rope->string + current_index // skip left_left
+            , new_right_len
+            );
+    new_right_str[new_right_len - 1] = '\0';
+
+    free(current_rope->string);
+
+    new_right->string = new_right_str;
+    new_right->weight = new_right_len;
     new_right->left = NULL;
     new_right->right = NULL;
 
     current_rope->string = NULL;
     current_rope->left = new_left;
     current_rope->right = new_right;
+
     rope_update_weights(current_rope);
   }
   return rope;
@@ -352,7 +397,7 @@ Rope *rope_insert_char(Rope *rope, size_t index, char c) {
 }
 
 // Either create a new string or append to existing.
-char *rope_string(Rope *rope, char *string) {
+char *rope_string(Rope *parent, Rope *rope, char *string) {
   if (!rope) {
     return NULL;
   }
@@ -363,15 +408,16 @@ char *rope_string(Rope *rope, char *string) {
   if (rope->string) {
     size_t len = strlen(string);
     size_t to_add = strlen(rope->string);
-    string = realloc(string, len+to_add);
+    string = realloc(string, len+to_add+1);
     if (!string) { return NULL; }
     strncat(string, rope->string, to_add);
+    string[len+to_add] = '\0';
   } else {
     if (rope->left) {
-      string = rope_string(rope->left, string);
+      string = rope_string(rope, rope->left, string);
     }
     if (rope->right) {
-      string = rope_string(rope->right, string);
+      string = rope_string(rope, rope->right, string);
     }
   }
   return string;
@@ -407,13 +453,58 @@ void rope_print(Rope *rope, size_t depth) {
     printf("`-- ");
   }
   if (rope->string) {
-    printf("\"%s\" (%zu)\n", rope->string, rope->weight);
+    printf("\"%s\" (%zu)\n"
+           , rope->string
+           , rope->weight
+           );
   } else {
     printf("(%zu)\n", rope->weight);
   }
   rope_print(rope->right, depth+1);
   rope_print(rope->left, depth);
 }
+
+void rope_print2(Rope *rope, size_t given_depth) {
+  if (!rope) {
+    return;
+  }
+  size_t depth = given_depth;
+  const char *depth_string = "  ";
+  while (depth) {
+    printf("%s", depth_string);
+    depth -= 1;
+  }
+  if (rope->string) {
+    printf("\"%s\" (%zu)\n"
+           , rope->string
+           , rope->weight
+           );
+    return;
+  }
+  printf("<node> (%zu)\n", rope->weight);
+  depth = given_depth;
+  while (depth) {
+    printf("%s", depth_string);
+    depth -= 1;
+  }
+  printf("l:\n");
+  rope_print2(rope->left, given_depth + 1);
+  depth = given_depth;
+  while (depth) {
+    printf("%s", depth_string);
+    depth -= 1;
+  }
+  printf("r:\n");
+  rope_print2(rope->right, given_depth + 1);
+  depth = given_depth;
+  while (depth) {
+    printf("%s", depth_string);
+    depth -= 1;
+  }
+  printf("END\n");
+}
+
+//================================================================ END ropes
 
 
 int main(int argc, char **argv) {
@@ -432,22 +523,25 @@ int main(int argc, char **argv) {
     return 1;
   }
   rope_print(rope, 0);
+  rope_print2(rope, 0);
 
-  rope = rope_insert(rope, SIZE_MAX, " | Appended.");
+  rope = rope_append(rope, " | Appended.");
   if (!rope) {
     printf("Failed to append.\n");
     return 1;
   }
+  rope_print(rope, 0);
+  rope_print2(rope, 0);
+
+  rope = rope_insert(rope, 7, "| Inserted | ");
+  if (!rope) {
+    printf("Failed to insert.\n");
+    return 1;
+  }
   rope_print(rope,0);
+  rope_print2(rope, 0);
 
-  //rope = rope_insert(rope, 8, "| Inserted | ");
-  //if (!rope) {
-  //  printf("Failed to insert.\n");
-  //  return 1;
-  //}
-  //rope_print(rope,0);
-
-  char *test = rope_string(rope, NULL);
+  char *test = rope_string(NULL, rope, NULL);
   if (test) {
     printf("rope test: %s\n", test);
     free(test);
