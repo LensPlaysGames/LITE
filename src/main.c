@@ -258,7 +258,7 @@ Rope *rope_copy(Rope *original) {
   Rope *rope = malloc(sizeof(Rope));
   if (!rope) { return NULL; }
   rope->weight = original->weight;
-  rope->string = original->string;
+  rope->string = original->string ? strdup(original->string) : NULL;
   rope->left = rope_copy(original->left);
   rope->right = rope_copy(original->right);
   return rope;
@@ -319,7 +319,7 @@ Rope *rope_insert(Rope *rope, size_t index, char *str) {
       //
       //     <root> (27)-x
       //    /
-      //   <current_rope> (15)--,
+      //   <node> (15)----------,
       //  /                      \
       // "This is a rope." (15)   " | Appended." (12)
       //
@@ -329,17 +329,13 @@ Rope *rope_insert(Rope *rope, size_t index, char *str) {
       //
       //       <root> (41)-x
       //      /
-      //     <current_rope> (29)-,
-      //    /                     \
-      //   <new_left> (14)----,    " | Appended." (12)
-      //  /                    \
-      // "| Prepended | " (14)  "This is a rope." (15)
-      // new_contents
+      //     <node> (29)------------,
+      //    /                        \
+      //   <current_rope> (14)-,      " | Appended." (12)
+      //  /                     \
+      // "| Prepended | " (14)   "This is a rope." (15)
+      // new_contents            rope_copy(current_rope)
 
-      Rope *new_left = malloc(sizeof(Rope));
-      if (!new_left) {
-        return NULL;
-      }
       Rope *new_contents = malloc(sizeof(Rope));
       if (!new_contents) {
         return NULL;
@@ -350,14 +346,12 @@ Rope *rope_insert(Rope *rope, size_t index, char *str) {
       new_contents->right = NULL;
       new_contents->left = NULL;
 
-      new_left->weight = new_contents->weight;
-      new_left->string = NULL;
-      new_left->right = rope_copy(current_rope);
-      new_left->left = new_contents;
-
+      current_rope->right = rope_copy(current_rope);
+      current_rope->left = new_contents;
+      current_rope->weight = new_contents->weight;
       current_rope->string = NULL;
-      current_rope->left = new_left;
-      current_rope->weight = rope_sum(new_left);
+
+      rope_update_weights(current_rope);
 
       return rope;
     }
@@ -378,12 +372,12 @@ Rope *rope_insert(Rope *rope, size_t index, char *str) {
     //        /
     //       <node> (28)---------,
     //      /                     \
-    //     <current_rope> (21)-,   " | Appended."
+    //     <current_rope> (21)-,   " | Appended." (12)
     //    /                     \
     //   <new_left> (8)-,        "a rope."
-    //  /                \       new_right
+    //  /                \       new_right (7)
     // "This is "         "| Inserted | "
-    // new_left_left      new_contents
+    // new_left_left (8)  new_contents (13)
 
     Rope *new_left_left = malloc(sizeof(Rope));
     if (!new_left_left) {
@@ -432,24 +426,22 @@ Rope *rope_insert(Rope *rope, size_t index, char *str) {
     new_left->right = new_contents;
 
     size_t new_right_len = current_rope->weight - current_index;
-    char *new_right_str = malloc(new_right_len);
+    char *new_right_str = malloc(new_right_len+1);
     strncpy(new_right_str
             , current_rope->string + current_index // skip left_left
             , new_right_len
             );
-    new_right_str[new_right_len - 1] = '\0';
-
-    free(current_rope->string);
+    new_right_str[new_right_len] = '\0';
 
     new_right->string = new_right_str;
     new_right->weight = new_right_len;
     new_right->left = NULL;
     new_right->right = NULL;
 
+    free(current_rope->string);
     current_rope->string = NULL;
     current_rope->left = new_left;
     current_rope->right = new_right;
-
     rope_update_weights(current_rope);
   }
   return rope;
