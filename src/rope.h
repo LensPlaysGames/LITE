@@ -26,6 +26,12 @@ Rope *rope_prepend_byte(Rope *rope, char c);
 Rope *rope_insert_byte(Rope *rope, size_t index, char c);
 Rope *rope_append_byte(Rope *rope, char c);
 
+// TODO: This function is a WIP and is not yet complete.
+Rope *rope_span_at(Rope *rope, size_t amount, size_t index);
+
+/// Remove a given amount of bytes from the end of the given rope.
+Rope *rope_remove_from_end(Rope *rope, size_t amount);
+
 /// Convert a rope into a string.
 /// Pass NULL as PARENT if passing root node as ROPE.
 /// Pass NULL as STRING for a newly allocated string,

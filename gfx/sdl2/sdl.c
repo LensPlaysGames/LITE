@@ -1,10 +1,8 @@
-// This file will be compiled into a library
-// that is then linked with, after compilation.
-
 #include <api.h>
 #include <gui.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 
 
 #define SDL_MAIN_HANDLED
@@ -105,7 +103,7 @@ void draw_gui(GUIContext *ctx) {
   rect_footline.w = width;
   rect_footline.h = height * 0.05;
 
-  if (ctx->headline) {
+  if (ctx->headline && strlen(ctx->headline)) {
     SDL_Surface *headline = NULL;
     headline = TTF_RenderUTF8_Blended(font, ctx->headline, fg);
     if (!headline) {
@@ -115,7 +113,7 @@ void draw_gui(GUIContext *ctx) {
     SDL_BlitSurface(headline, NULL, surface, &rect_headline);
     SDL_FreeSurface(headline);
   }
-  if (ctx->contents) {
+  if (ctx->contents && strlen(ctx->contents)) {
     SDL_Surface *contents = NULL;
     // TODO: Display each line on a newline!
     // TODO: Wrapped text vs unwrapped text.
@@ -129,7 +127,7 @@ void draw_gui(GUIContext *ctx) {
     SDL_BlitSurface(contents, NULL, surface, &rect_contents);
     SDL_FreeSurface(contents);
   }
-  if (ctx->footline) {
+  if (ctx->footline && strlen(ctx->footline)) {
     SDL_Surface *footline = NULL;
     footline = TTF_RenderUTF8_Blended(font, ctx->footline, fg);
     if (!footline) {
@@ -192,10 +190,12 @@ void do_gui(int *open, GUIContext *ctx) {
     default:
       break;
     case SDL_KEYDOWN:
+      // TODO: Convert `SDLK_` keycodes to Unicode (currently UTF8, I guess).
       if ((mod = is_modifier(event.key.keysym.sym)) != GUI_MODKEY_MAX) {
         handle_modifier_dn(mod);
       } else {
-        handle_character_dn(event.key.keysym.sym);
+        uint64_t c = event.key.keysym.sym;
+        handle_character_dn(c);
       }
       break;
     case SDL_KEYUP:
@@ -206,9 +206,8 @@ void do_gui(int *open, GUIContext *ctx) {
       }
       break;
     case SDL_QUIT:
-      printf("GFX::SDL: Quitting\n");
-      destroy_gui();
-      exit(0);
+      *open = 0;
+      return;
     }
   }
   draw_gui(ctx);

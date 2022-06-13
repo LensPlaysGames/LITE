@@ -496,3 +496,64 @@ void rope_print(Rope *rope, size_t given_depth) {
   }
   printf("END\n");
 }
+
+Rope *rope_remove_span_at(Rope *rope, size_t amount, size_t index) {
+  if (!rope) {
+    return NULL;
+  }
+
+  // TODO:
+  // Find string-containing node using index (see above).
+  // Re-allocate smaller string for node.
+  // Copy old string - amount.
+  // Update string pointer.
+  // If weight was less than amount, call self recursively.
+
+  return NULL;
+}
+
+Rope *rope_remove_from_end(Rope *rope, size_t amount) {
+  if (!rope) {
+    return NULL;
+  }
+
+  // Find right-most string-containing node.
+  int left_right = -1; // 0 if child is left, 1 if child is right of parent.
+  Rope *parent_rope = NULL;
+  Rope *current_rope = rope;
+  while (!current_rope->string) {
+    if (current_rope->right) {
+      parent_rope = current_rope;
+      current_rope = current_rope->right;
+      left_right = 1;
+    } else if (current_rope->left) {
+      parent_rope = current_rope;
+      current_rope = current_rope->left;
+      left_right = 0;
+    } else {
+      return NULL;
+    }
+  }
+
+  if (amount < current_rope->weight) {
+    size_t newstr_len = current_rope->weight - amount;
+    char *newstr = malloc(newstr_len + 1);
+    strncpy(newstr, current_rope->string, newstr_len);
+    newstr[newstr_len] = '\0';
+    current_rope->weight = newstr_len;
+    current_rope->string = newstr;
+    // Update weights
+    current_rope = rope;
+    while (!current_rope->string) {
+      if (current_rope->right) {
+        current_rope = current_rope->right;
+      } else if (current_rope->left) {
+        current_rope->weight -= 1;
+        current_rope = current_rope->left;
+      }
+    }
+  } else {
+    // TODO:
+    // We have to handle removal of this entire node, and then do it all again...
+  }
+}
