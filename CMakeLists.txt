@@ -35,6 +35,7 @@ add_executable(
   src/evaluation.c
   src/main.c
   src/repl.c
+  src/rope.c
   src/parser.c
   src/types.c
 )
