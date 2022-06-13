@@ -21,7 +21,9 @@ typedef struct GUIContext {
   const char *footline;
 } GUIContext;
 
+/// Returns 0 upon success.
 int create_gui();
+
 void destroy_gui();
 
 /// Render a single frame based on graphical context.

@@ -80,6 +80,12 @@ Error load_file(Atom environment, const char* path) {
 
 //================================================================ BEG api.c
 #ifdef LITE_GFX
+typedef struct GUIModifierKeyState {
+  uint64_t bitfield; // Indexed by GUIModifierKey enum
+} GUIModifierKeyState;
+
+static GUIModifierKeyState gmodkeys;
+
 void handle_character_dn(uint64_t c) {
   printf("Got character input: %c\n", (char)c);
   // TODO: Use LISP env. variables to determine a buffer to insert into,
@@ -103,20 +109,24 @@ void handle_modifier_dn(GUIModifierKey mod) {
     printf("API::GFX:ERROR: Unhandled modifier keydown: %d\n"
            "              : Please report as issue on LITE GitHub.\n"
            , mod);
+    break;
   case GUI_MODKEY_LCTRL:
+    gmodkeys.bitfield |= ((uint64_t)1 << GUI_MODKEY_LCTRL);
+    break;
   case GUI_MODKEY_RCTRL:
-    // TODO: Global input key state CTRL modifier -> true
-    printf("Ctrl down.\n");
+    gmodkeys.bitfield |= ((uint64_t)1 << GUI_MODKEY_RCTRL);
     break;
   case GUI_MODKEY_LALT:
+    gmodkeys.bitfield |= ((uint64_t)1 << GUI_MODKEY_LALT);
+    break;
   case GUI_MODKEY_RALT:
-    // TODO: Global input key state ALT modifier -> true
-    printf("Alt down.\n");
+    gmodkeys.bitfield |= ((uint64_t)1 << GUI_MODKEY_RALT);
     break;
   case GUI_MODKEY_LSHIFT:
+    gmodkeys.bitfield |= ((uint64_t)1 << GUI_MODKEY_LSHIFT);
+    break;
   case GUI_MODKEY_RSHIFT:
-    // TODO: Global input key state SHIFT modifier -> true
-    printf("Shift down.\n");
+    gmodkeys.bitfield |= ((uint64_t)1 << GUI_MODKEY_RSHIFT);
     break;
   }
 }
@@ -130,20 +140,24 @@ void handle_modifier_up(GUIModifierKey mod) {
     printf("API::GFX:ERROR: Unhandled modifier keyup: %d\n"
            "              : Please report as issue on LITE GitHub.\n"
            , mod);
+    break;
   case GUI_MODKEY_LCTRL:
+    gmodkeys.bitfield &= !((uint64_t)1 << GUI_MODKEY_LCTRL);
+    break;
   case GUI_MODKEY_RCTRL:
-    // TODO: Global input key state CTRL modifier -> true
-    printf("Ctrl up.\n");
+    gmodkeys.bitfield &= !((uint64_t)1 << GUI_MODKEY_RCTRL);
     break;
   case GUI_MODKEY_LALT:
+    gmodkeys.bitfield &= !((uint64_t)1 << GUI_MODKEY_LALT);
+    break;
   case GUI_MODKEY_RALT:
-    // TODO: Global input key state ALT modifier -> true
-    printf("Alt up.\n");
+    gmodkeys.bitfield &= !((uint64_t)1 << GUI_MODKEY_RALT);
     break;
   case GUI_MODKEY_LSHIFT:
+    gmodkeys.bitfield &= !((uint64_t)1 << GUI_MODKEY_LSHIFT);
+    break;
   case GUI_MODKEY_RSHIFT:
-    // TODO: Global input key state SHIFT modifier -> true
-    printf("Shift up.\n");
+    gmodkeys.bitfield &= !((uint64_t)1 << GUI_MODKEY_RSHIFT);
     break;
   }
 }
@@ -163,8 +177,11 @@ int main(int argc, char **argv) {
   }
 
 #ifdef LITE_GFX
-  create_gui();
   int open = 1;
+  if ((open = create_gui())) {
+    return open;
+  }
+  open = 1;
   GUIContext ctx;
   ctx.headline = "LITE Headline";
   ctx.contents = "LITE";
