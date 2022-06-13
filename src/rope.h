@@ -22,7 +22,9 @@ Rope *rope_insert(Rope *rope, size_t index, char *string);
 Rope *rope_append(Rope *rope, char *string);
 
 // TODO: This function is a WIP and is not yet complete.
-Rope *rope_insert_char(Rope *rope, size_t index, char c);
+Rope *rope_prepend_byte(Rope *rope, char c);
+Rope *rope_insert_byte(Rope *rope, size_t index, char c);
+Rope *rope_append_byte(Rope *rope, char c);
 
 /// Convert a rope into a string.
 /// Pass NULL as PARENT if passing root node as ROPE.

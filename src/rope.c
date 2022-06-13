@@ -36,11 +36,12 @@ Rope *rope_create(const char *str) {
 
   // Copy input string to heap.
   size_t len = strlen(str);
-  char *newstr = malloc(len);
+  char *newstr = malloc(len + 1);
   if (!newstr) {
     return NULL;
   }
   strncpy(newstr, str, len);
+  newstr[len] = '\0';
 
   // Allocate new rope nodes on heap.
   Rope *rope = malloc(sizeof(Rope));
@@ -119,6 +120,9 @@ Rope *rope_insert(Rope *rope, size_t index, char *str) {
     return NULL;
   }
   size_t contents_length = strlen(str);
+  if (contents_length == 1) {
+    return rope_insert_byte(rope, index, str[0]);
+  }
   char *contents = malloc(contents_length > 0 ? contents_length + 1 : 8);
   strncpy(contents, str, contents_length);
   contents[contents_length] = '\0';
@@ -296,32 +300,121 @@ Rope *rope_insert(Rope *rope, size_t index, char *str) {
   return rope;
 }
 
-Rope *rope_append(Rope *rope, char *string) {
-  return rope_insert(rope, SIZE_MAX, string);
-}
-
 Rope *rope_prepend(Rope *rope, char *string) {
   return rope_insert(rope, 0, string);
 }
 
+Rope *rope_append(Rope *rope, char *string) {
+  return rope_insert(rope, SIZE_MAX, string);
+}
+
 /// Return a new rope with string inserted at index,
 /// or NULL if the operation is not able to be completed.
-Rope *rope_insert_char(Rope *rope, size_t index, char c) {
+Rope *rope_insert_byte(Rope *rope, size_t index, char c) {
   if (!rope) {
     return NULL;
   }
   if (index >= rope->weight) {
     // Append
-    // TODO: Find right-most string-containing rope-node,
-    // allocate a new buffer with size for the new char
-    // as well as a null terminator, then replace string.
-  } else {
-    // Insert
-    // TODO: Find string-containing rope-node by index (see above),
-    // allocate a new buffer with size for the new char
-    // as well as a null terminator, then replace string.
+
+    // Find right-most string-containing node.
+    Rope *current_rope = rope;
+    while (!current_rope->string) {
+      if (current_rope->right) {
+        current_rope = current_rope->right;
+      } else if (current_rope->left) {
+        // Update weights as we go.
+        current_rope->weight += 1;
+        current_rope = current_rope->left;
+      } else {
+        return NULL;
+      }
+    }
+
+    char *newstr = malloc(current_rope->weight + 2);
+    if (!newstr) { return NULL; }
+    strncpy(newstr, current_rope->string, current_rope->weight);
+    newstr[current_rope->weight] = c;
+    newstr[current_rope->weight + 1] = '\0';
+
+    free(current_rope->string);
+    current_rope->string = newstr;
+    current_rope->weight += 1;
+
+    return rope;
   }
+
+  // Insert
+  size_t current_index = index + 1;
+  Rope *current_rope = rope;
+  while (!current_rope->string) {
+    if (current_index > current_rope->weight) {
+      current_index -= current_rope->weight;
+      current_rope = current_rope->right;
+    } else {
+      // Update weights as we find the string to change.
+      current_rope->weight += 1;
+      current_rope = current_rope->left;
+    }
+  }
+
+  if (current_index <= 1) {
+    // Prepend
+    char *newstr = malloc(current_rope->weight + 2);
+    if (!newstr) { return NULL; }
+    newstr[0] = c;
+    strncpy(newstr + 1
+            , current_rope->string
+            , current_rope->weight);
+    newstr[current_rope->weight + 1] = '\0';
+
+    free(current_rope->string);
+
+    current_rope->string = newstr;
+    current_rope->weight += 1;
+    return rope;
+  }
+
+  // INPUT: "This is a rope. | Appended."
+  //
+  //     <root> (27)-x
+  //    /
+  //   <node> (15)---------,
+  //  /                     \
+  // "This is a rope." (15)  " | Appended." (12)
+  //
+  // Attempting to insert '|' at index of 23.
+  //
+  // OUTPUT: "This is a rope. | Append|ed."
+  //
+  //         <root> (28)-x
+  //        /
+  //       <node> (15)-----------,
+  //      /                       \
+  //     "This is a rope." (15)    " | Append|ed." (13)
+
+  char *newstr = malloc(current_rope->weight + 2);
+  if (!newstr) { return NULL; }
+  strncpy(newstr, current_rope->string, current_index);
+  newstr[current_index] = c;
+  strncpy(newstr + current_index + 1
+          , current_rope->string + current_index
+          , current_rope->weight - current_index);
+  newstr[current_rope->weight + 1] = '\0';
+
+  free(current_rope->string);
+
+  current_rope->string = newstr;
+  current_rope->weight += 1;
   return rope;
+}
+
+Rope *rope_prepend_byte(Rope *rope, char c) {
+  rope_insert_byte(rope, 0, c);
+}
+
+Rope *rope_append_byte(Rope *rope, char c) {
+  rope_insert_byte(rope, SIZE_MAX, c);
 }
 
 // Either create a new string or append to existing.
