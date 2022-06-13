@@ -436,35 +436,7 @@ void rope_free(Rope *rope) {
   free(rope);
 }
 
-
-// I don't really like this visually, but I don't have an alternative.
-// Reading bottom up helps me to interpret the output the best.
-void rope_print(Rope *rope, size_t depth) {
-  if (!rope) {
-    return;
-  }
-  while (depth) {
-    printf("|   ");
-    depth -= 1;
-  }
-  if (rope->left) {
-    printf("|-- ");
-  } else {
-    printf("`-- ");
-  }
-  if (rope->string) {
-    printf("\"%s\" (%zu)\n"
-           , rope->string
-           , rope->weight
-           );
-  } else {
-    printf("(%zu)\n", rope->weight);
-  }
-  rope_print(rope->right, depth+1);
-  rope_print(rope->left, depth);
-}
-
-void rope_print2(Rope *rope, size_t given_depth) {
+void rope_print(Rope *rope, size_t given_depth) {
   if (!rope) {
     return;
   }
@@ -488,14 +460,14 @@ void rope_print2(Rope *rope, size_t given_depth) {
     depth -= 1;
   }
   printf("l:\n");
-  rope_print2(rope->left, given_depth + 1);
+  rope_print(rope->left, given_depth + 1);
   depth = given_depth;
   while (depth) {
     printf("%s", depth_string);
     depth -= 1;
   }
   printf("r:\n");
-  rope_print2(rope->right, given_depth + 1);
+  rope_print(rope->right, given_depth + 1);
   depth = given_depth;
   while (depth) {
     printf("%s", depth_string);
@@ -517,37 +489,6 @@ int main(int argc, char **argv) {
       load_file(environment, argv[i]);
     }
   }
-
-  Rope *rope = make_rope("This is a rope.");
-  if (!rope) {
-    return 1;
-  }
-  rope_print(rope, 0);
-  rope_print2(rope, 0);
-
-  rope = rope_append(rope, " | Appended.");
-  if (!rope) {
-    printf("Failed to append.\n");
-    return 1;
-  }
-  rope_print(rope, 0);
-  rope_print2(rope, 0);
-
-  rope = rope_insert(rope, 7, "| Inserted | ");
-  if (!rope) {
-    printf("Failed to insert.\n");
-    return 1;
-  }
-  rope_print(rope,0);
-  rope_print2(rope, 0);
-
-  char *test = rope_string(NULL, rope, NULL);
-  if (test) {
-    printf("rope test: %s\n", test);
-    free(test);
-  }
-
-  rope_free(rope);
 
 #ifdef LITE_GFX
   create_gui();
