@@ -5,7 +5,7 @@
 NOTE: The /DEVELOPMENT/ releases are necessary (don't get runtime binaries).
 
 - [[https://www.libsdl.org/download-2.0.php][SDL2]]
-- [[h://github.com/libsdl-org/SDL_ttf/releases/latest][SDL2_ttf]]
+- [[https://github.com/libsdl-org/SDL_ttf/releases/latest][SDL2_ttf]]
 
 
 ** Notes
