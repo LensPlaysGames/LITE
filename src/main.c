@@ -162,6 +162,26 @@ size_t rope_length(Rope *rope) {
   return rope ? rope->weight : 0;
 }
 
+char rope_index(Rope *rope, size_t index) {
+  if (!rope) {
+    return 0;
+  }
+  size_t current_index = index + 1;
+  Rope *current_rope = rope;
+  while (current_rope && !current_rope->string) {
+    if (current_index > current_rope->weight) {
+      current_index -= current_rope->weight;
+      current_rope = current_rope->right;
+    } else {
+      current_rope = current_rope->left;
+    }
+  }
+  if (!current_rope) {
+    return 0;
+  }
+  return current_rope->string[current_index];
+}
+
 Rope *make_rope(const char *str) {
   if (!str) {
     return NULL;
@@ -201,6 +221,9 @@ Rope *make_rope(const char *str) {
 
 /// Return the sum of the weights of all nodes in any subtree.
 size_t rope_sum(Rope *rope) {
+  if (!rope) {
+    return 0;
+  }
   if (rope->string) {
     return rope->weight;
   }
@@ -216,6 +239,9 @@ size_t rope_sum(Rope *rope) {
 
 // Re-calculates weight based on what the current values are.
 void rope_update_weights(Rope *rope) {
+  if (!rope) {
+    return;
+  }
   if (rope->left) {
     rope_update_weights(rope->left);
     rope->weight = rope_sum(rope->left);
@@ -225,6 +251,19 @@ void rope_update_weights(Rope *rope) {
   }
 }
 
+Rope *rope_copy(Rope *original) {
+  if (!original) {
+    return NULL;
+  }
+  Rope *rope = malloc(sizeof(Rope));
+  if (!rope) { return NULL; }
+  rope->weight = original->weight;
+  rope->string = original->string;
+  rope->left = rope_copy(original->left);
+  rope->right = rope_copy(original->right);
+  return rope;
+}
+
 /// Return a new rope with string inserted at index,
 /// or NULL if the operation is not able to be completed.
 Rope *rope_insert(Rope *rope, size_t index, char *str) {
@@ -232,7 +271,7 @@ Rope *rope_insert(Rope *rope, size_t index, char *str) {
     return NULL;
   }
   size_t contents_length = strlen(str);
-  char *contents = malloc(contents_length > 0 ? contents_length : 8);
+  char *contents = malloc(contents_length > 0 ? contents_length + 1 : 8);
   strncpy(contents, str, contents_length);
   contents[contents_length] = '\0';
   if (index >= rope->weight) {
@@ -275,27 +314,71 @@ Rope *rope_insert(Rope *rope, size_t index, char *str) {
       }
     }
 
-    if (current_index == 0) {
-      printf("TODO: Insertion at the beginning of a rope string (prepend) has not yet been implemented.\n");
+    if (current_index <= 1) {
+      // INPUT: "This is a rope. | Appended."
+      //
+      //     <root> (27)-x
+      //    /
+      //   <current_rope> (15)--,
+      //  /                      \
+      // "This is a rope." (15)   " | Appended." (12)
+      //
+      // Attempting to prepend "| Prepended | ".
+      //
+      // OUTPUT: "| Prepended | This is a rope. | Appended."
+      //
+      //       <root> (41)-x
+      //      /
+      //     <current_rope> (29)-,
+      //    /                     \
+      //   <new_left> (14)----,    " | Appended." (12)
+      //  /                    \
+      // "| Prepended | " (14)  "This is a rope." (15)
+      // new_contents
+
+      Rope *new_left = malloc(sizeof(Rope));
+      if (!new_left) {
+        return NULL;
+      }
+      Rope *new_contents = malloc(sizeof(Rope));
+      if (!new_contents) {
+        return NULL;
+      }
+
+      new_contents->weight = contents_length;
+      new_contents->string = contents;
+      new_contents->right = NULL;
+      new_contents->left = NULL;
+
+      new_left->weight = new_contents->weight;
+      new_left->string = NULL;
+      new_left->right = rope_copy(current_rope);
+      new_left->left = new_contents;
+
+      current_rope->string = NULL;
+      current_rope->left = new_left;
+      current_rope->weight = rope_sum(new_left);
+
+      return rope;
     }
 
-    // INPUT: "This is a rope. | Appended"
+    // INPUT: "This is a rope. | Appended."
     //
     //     <root> (27)-x
     //    /
     //   <node> (15)---------,
     //  /                     \
-    // "This is a rope." (15)  " | Appended" (12)
+    // "This is a rope." (15)  " | Appended." (12)
     //
     // Attempting to insert "| Inserted | " at index of eight.
     //
-    // OUTPUT: "This is | Inserted | a rope. | Appended"
+    // OUTPUT: "This is | Inserted | a rope. | Appended."
     //
     //         <root> (40)-x
     //        /
     //       <node> (28)---------,
     //      /                     \
-    //     <current_node> (21)-,   " | Appended"
+    //     <current_rope> (21)-,   " | Appended."
     //    /                     \
     //   <new_left> (8)-,        "a rope."
     //  /                \       new_right
@@ -374,6 +457,10 @@ Rope *rope_insert(Rope *rope, size_t index, char *str) {
 
 Rope *rope_append(Rope *rope, char *string) {
   return rope_insert(rope, SIZE_MAX, string);
+}
+
+Rope *rope_prepend(Rope *rope, char *string) {
+  return rope_insert(rope, 0, string);
 }
 
 /// Return a new rope with string inserted at index,
@@ -498,18 +585,9 @@ int main(int argc, char **argv) {
   ctx.contents = "LITE";
   ctx.footline = "LITE Footline";
   while (open) {
-    //Error err;
-    //const char* source = input;
-    //Atom expr;
-    //while (parse_expr(source, &source, &expr).type == ERROR_NONE) {
-    //  Atom result;
-    //  err = evaluate_expression(expr, environment, &result);
-    //  if (err.type) { return err; }
-    //  ctx.contents = atom_string(result, ctx.contents);
-    //}
-    //free(source);
     do_gui(&open, &ctx);
   }
+  destroy_gui();
 #else
   enter_repl(environment);
 #endif /* #ifdef LITE_GFX */
@@ -520,10 +598,6 @@ int main(int argc, char **argv) {
   if (debug_memory) {
     print_gcol_data();
   }
-
-#ifdef LITE_GFX
-  destroy_gui();
-#endif /* #ifdef LITE_GFX */
 
   return 0;
 }
