@@ -1,3 +1,4 @@
+#include <ctype.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -107,7 +108,7 @@ int modkey_state(GUIModifierKey key) {
   }
 }
 
-// All these global variables are bad :/
+// All these global variables may be bad :^|
 
 Rope *ginput = NULL;
 
@@ -116,11 +117,9 @@ Atom *genv = NULL;
 GUIContext *gctx = NULL;
 
 void handle_character_dn(uint64_t c) {
-  // TODO: Use LISP env. variables to determine a buffer to insert into,
-  // at what offset (point/cursor), etc.
-  // TODO: Handle modifier key input state being true.
-  // For example, while holding ctrl, characters should not be entered.
-  // Eventually, we should gather-and-test to determine a key command.
+  // TODO: Use LISP env. variables to determine a buffer
+  // to insert into, at what offset (point/cursor), etc.
+  // TODO: We maybe should gather-and-test to determine a key command?
   const char *ignored_bytes = "\e\f\v";
   if (strchr(ignored_bytes, (unsigned char)c)) {
     return;
@@ -136,7 +135,16 @@ void handle_character_dn(uint64_t c) {
       const char *source = input;
       size_t source_len = strlen(source);
       if (source_len >= 4 && memcmp(source, "quit", 4) == 0) {
-        // TODO: Handle `quit`
+        int debug_memory = env_non_nil(genv ? *genv : default_environment()
+                                       , make_sym("DEBUG/MEMORY")
+                                       );
+        // Garbage collection with no marking means free everything.
+        gcol();
+        if (debug_memory) {
+          print_gcol_data();
+        }
+        destroy_gui();
+        exit(0);
         return;
       }
       // PARSE
@@ -174,10 +182,12 @@ void handle_character_dn(uint64_t c) {
         break;
       default:
         if (gctx) {
-          free(gctx->footline);
           char *err = malloc(8);
-          strncpy(err, "ERROR!", 8);
-          gctx->footline = err;
+          if (err) {
+            strncpy(err, "ERROR!", 8);
+            free(gctx->footline);
+            gctx->footline = err;
+          }
         }
         // TODO: We need `error_string()`!!
         printf("\nEVALUATION ");
@@ -197,49 +207,89 @@ void handle_character_dn(uint64_t c) {
     } else if (c == '\t') {
       // TODO: Handle tabs (LISP environment variable to deal with spaces conversion).
     } else {
-      // FIXME: I am not proud of whatever this shift implementation is.
-      if ((modkey_state(GUI_MODKEY_LSHIFT) || modkey_state(GUI_MODKEY_RSHIFT))) {
+      if (modkey_state(GUI_MODKEY_LSHIFT) || modkey_state(GUI_MODKEY_RSHIFT)) {
+        // FIXME: I am not proud of whatever this shift implementation is.
         if (c >= 'a' && c <= 'z') {
-          // Capital letters.
-          c -= 32;
-        } else if (c >= '0' && c <= '9') {
-          // Digits.
-          switch (c) {
-          case '1':
-            c = '!';
-            break;
-          case '2':
-            c = '@';
-            break;
-          case '3':
-            c = '#';
-            break;
-          case '4':
-            c = '$';
-            break;
-          case '5':
-            c = '%';
-            break;
-          case '6':
-            c = '^';
-            break;
-          case '7':
-            c = '&';
-            break;
-          case '8':
-            c = '*';
-            break;
-          case '9':
-            c = '(';
-            break;
-          case '0':
-            c = ')';
-            break;
-          }
+          c = toupper(c);
+        }
+        // FIXME: This assumes American QWERTY layout.
+        // To fix this, it's probably our best bet to make it a LISP association
+        // list, or something like that that the end user can easily change.
+        switch (c) {
+        default:
+          break;
+        case '1':
+          c = '!';
+          break;
+        case '2':
+          c = '@';
+          break;
+        case '3':
+          c = '#';
+          break;
+        case '4':
+          c = '$';
+          break;
+        case '5':
+          c = '%';
+          break;
+        case '6':
+          c = '^';
+          break;
+        case '7':
+          c = '&';
+          break;
+        case '8':
+          c = '*';
+          break;
+        case '9':
+          c = '(';
+          break;
+        case '0':
+          c = ')';
+          break;
+        case '-':
+          c = '_';
+          break;
+        case '=':
+          c = '+';
+          break;
+        case '/':
+          c = '?';
+          break;
+        case '.':
+          c = '>';
+          break;
+        case ',':
+          c = '<';
+          break;
+        case '\'':
+          c = '"';
+          break;
+        case ';':
+          c = ':';
+          break;
+        case '\\':
+          c = '|';
+          break;
+        case ']':
+          c = '}';
+          break;
+        case '[':
+          c = '{';
+          break;
+        case '`':
+          c = '~';
+          break;
         }
       }
-      // FIXME: This falsely assumes one-byte content.
-      rope_append_byte(ginput, (char)c);
+      if (modkey_state(GUI_MODKEY_LCTRL) || modkey_state(GUI_MODKEY_RCTRL)) {
+        // TODO: Look in a keymap for command? Or maybe
+        // begin building command input string somewhere?
+      } else {
+        // FIXME: This falsely assumes one-byte content.
+        rope_append_byte(ginput, (char)c);
+      }
     }
   }
 }
@@ -346,6 +396,7 @@ int main(int argc, char **argv) {
   Rope *input = rope_create("");
   if (!input) { return 1; }
   ginput = input;
+  // TODO: This is very badly optimized!!
   while (open) {
     free((void *)ctx.contents);
     ctx.contents = rope_string(NULL, ginput, NULL);
