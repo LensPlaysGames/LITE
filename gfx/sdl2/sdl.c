@@ -147,6 +147,7 @@ void draw_gui(GUIContext *ctx) {
     return;
   }
   SDL_RenderCopy(grender, texture, NULL, NULL);
+  SDL_DestroyTexture(texture);
   SDL_RenderPresent(grender);
 }
 
