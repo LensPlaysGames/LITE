@@ -1,6 +1,7 @@
 #include <api.h>
 #include <gui.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -8,8 +9,15 @@
 #define SDL_MAIN_HANDLED
 #include <SDL.h>
 #include <SDL_ttf.h>
+/* TODO:
+ * |-- Handle events like SDL_APP_TERMINATING (OS shutdown).
+ * |   https://wiki.libsdl.org/SDL_EventType
+ * |   https://wiki.libsdl.org/SDL_SetEventFilter
+ * |
+ * `-- Respond to more window events.
+ *     https://wiki.libsdl.org/SDL_WindowEvent
+ */
 
-#include <stdio.h>
 
 SDL_Color bg = { 18, 18, 18, UINT8_MAX };
 SDL_Color fg = { UINT8_MAX, UINT8_MAX, UINT8_MAX, UINT8_MAX };
@@ -33,6 +41,7 @@ int create_gui() {
      , SDL_WINDOW_SHOWN
      | SDL_WINDOW_RESIZABLE
      | SDL_WINDOW_ALLOW_HIGHDPI
+     | SDL_WINDOW_INPUT_FOCUS
      );
   if (!gwindow) {
     printf("GFX::SDL:ERROR: Could not create SDL window.\n");
@@ -67,16 +76,20 @@ int create_gui() {
 }
 
 static inline void draw_bg() {
+  // NOTE: Alpha has no effect :(.
   SDL_SetRenderDrawColor(grender, bg.r, bg.g, bg.b, bg.a);
   SDL_RenderClear(grender);
 }
 
 void draw_gui(GUIContext *ctx) {
   draw_bg();
+  if (ctx->title) {
+    SDL_SetWindowTitle(gwindow, ctx->title);
+    ctx->title = NULL;
+  }
   int width = 0;
   int height = 0;
   SDL_GetWindowSize(gwindow, &width, &height);
-
   SDL_Surface *surface = SDL_CreateRGBSurfaceWithFormat
     (0, width, height, 32, SDL_PIXELFORMAT_RGBA32);
   if (!surface) {

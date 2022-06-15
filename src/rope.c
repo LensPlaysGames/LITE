@@ -308,9 +308,8 @@ Rope *rope_append(Rope *rope, char *string) {
   return rope_insert(rope, SIZE_MAX, string);
 }
 
-/// Return a new rope with string inserted at index,
-/// or NULL if the operation is not able to be completed.
 Rope *rope_insert_byte(Rope *rope, size_t index, char c) {
+  // TODO: Split string-containing nodes that grow too large.
   if (!rope) {
     return NULL;
   }

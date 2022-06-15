@@ -16,6 +16,7 @@
 //       Definitely split contents into a linked list of windows,
 //       each with their own string of contents (or something similar).
 typedef struct GUIContext {
+  char *title; /// Graphical window title
   char *headline;
   char *contents;
   char *footline;

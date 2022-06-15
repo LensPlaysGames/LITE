@@ -327,23 +327,25 @@ int main(int argc, char **argv) {
   open = 1;
   GUIContext ctx;
   gctx = &ctx;
-  ctx.headline = malloc(16);
-  if (!ctx.headline) { return 2; }
-  strncpy(ctx.headline, "LITE Headline", 16);
-  ctx.contents = malloc(16);
-  if (!ctx.contents) { return 2; }
-  strncpy(ctx.contents, "LITE Contents", 16);
-  ctx.footline = malloc(16);
-  if (!ctx.footline) { return 2; }
-  strncpy(ctx.footline, "LITE Footline", 16);
+  gctx->title = "LITE GFX";
+  const size_t init_buffer_sz = 16;
+  gctx->headline = malloc(init_buffer_sz);
+  if (!gctx->headline) { return 2; }
+  strncpy(gctx->headline, "LITE Headline", init_buffer_sz);
+  gctx->contents = malloc(init_buffer_sz);
+  if (!gctx->contents) { return 2; }
+  strncpy(gctx->contents, "LITE Contents", init_buffer_sz);
+  gctx->footline = malloc(init_buffer_sz);
+  if (!gctx->footline) { return 2; }
+  strncpy(gctx->footline, "LITE Footline", init_buffer_sz);
   Rope *input = rope_create("");
   if (!input) { return 1; }
   ginput = input;
   // TODO: This is very badly optimized!!
   while (open) {
-    free((void *)ctx.contents);
-    ctx.contents = rope_string(NULL, ginput, NULL);
-    do_gui(&open, &ctx);
+    free((void *)gctx->contents);
+    gctx->contents = rope_string(NULL, ginput, NULL);
+    do_gui(&open, gctx);
   }
   destroy_gui();
 #else
