@@ -219,7 +219,7 @@ void handle_character_dn(uint64_t c) {
             Atom remapping = alist_get(shift_remap, make_string(tmp_str));
             free(tmp_str);
             if (stringp(remapping)) {
-              if (strlen(remapping.value.symbol)){
+              if (remapping.value.symbol && strlen(remapping.value.symbol)) {
                 c = remapping.value.symbol[0];
               }
             }
@@ -318,7 +318,6 @@ int main(int argc, char **argv) {
       load_file(environment, argv[i]);
     }
   }
-
 
 #ifdef LITE_GFX
   int open;

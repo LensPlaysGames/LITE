@@ -294,7 +294,7 @@ int builtin_eq(Atom arguments, Atom *result) {
       equal = (a.value.symbol == b.value.symbol);
       break;
     case ATOM_TYPE_STRING:
-      equal = (!strcmp(a.value.symbol, b.value.symbol));
+      equal = (strcmp(a.value.symbol, b.value.symbol) == 0);
       break;
     case ATOM_TYPE_INTEGER:
       equal = (a.value.integer == b.value.integer);

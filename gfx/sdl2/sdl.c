@@ -105,13 +105,11 @@ void draw_gui(GUIContext *ctx) {
 
   if (ctx->headline && strlen(ctx->headline)) {
     SDL_Surface *headline = NULL;
-    headline = TTF_RenderUTF8_Blended(font, ctx->headline, fg);
-    if (!headline) {
-      printf("GFX::SDL: Could not render headline text.\n");
-      return;
+    headline = TTF_RenderUTF8_Blended_Wrapped(font, ctx->headline, fg, width);
+    if (headline) {
+      SDL_BlitSurface(headline, NULL, surface, &rect_headline);
+      SDL_FreeSurface(headline);
     }
-    SDL_BlitSurface(headline, NULL, surface, &rect_headline);
-    SDL_FreeSurface(headline);
   }
   if (ctx->contents && strlen(ctx->contents)) {
     SDL_Surface *contents = NULL;
@@ -119,35 +117,30 @@ void draw_gui(GUIContext *ctx) {
     // TODO: Wrapped text vs unwrapped text.
     //       SDL_ttf V2.0.18 introduced _Wrapped functions to all
     //       of these functions, which is very, very handy!
-    contents = TTF_RenderUTF8_Blended(font, ctx->contents, fg);
-    if (!contents) {
-      printf("GFX::SDL: Could not render contents text.\n");
-      return;
+    contents = TTF_RenderUTF8_Blended_Wrapped(font, ctx->contents, fg, width);
+    if (contents) {
+      SDL_BlitSurface(contents, NULL, surface, &rect_contents);
+      SDL_FreeSurface(contents);
     }
-    SDL_BlitSurface(contents, NULL, surface, &rect_contents);
-    SDL_FreeSurface(contents);
   }
   if (ctx->footline && strlen(ctx->footline)) {
     SDL_Surface *footline = NULL;
-    footline = TTF_RenderUTF8_Blended(font, ctx->footline, fg);
-    if (!footline) {
-      printf("GFX::SDL: Could not render footline text.\n");
-      return;
+    footline = TTF_RenderUTF8_Blended_Wrapped(font, ctx->footline, fg, width);
+    if (footline) {
+      SDL_BlitSurface(footline, NULL, surface, &rect_footline);
+      SDL_FreeSurface(footline);
     }
-    SDL_BlitSurface(footline, NULL, surface, &rect_footline);
-    SDL_FreeSurface(footline);
   }
   texture = SDL_CreateTextureFromSurface(grender, surface);
   SDL_FreeSurface(surface);
-  if (!texture) {
+  if (texture) {
+    SDL_RenderCopy(grender, texture, NULL, NULL);
+    SDL_DestroyTexture(texture);
+  } else {
     printf("GFX::SDL:ERROR: Could not create texture from surface.\n"
            "              : %s\n"
-           , SDL_GetError()
-           );
-    return;
+           , SDL_GetError());
   }
-  SDL_RenderCopy(grender, texture, NULL, NULL);
-  SDL_DestroyTexture(texture);
   SDL_RenderPresent(grender);
 }
 

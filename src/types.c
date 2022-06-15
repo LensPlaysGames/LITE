@@ -292,6 +292,13 @@ Atom list_get(Atom list, int k) {
   return car(list);
 }
 
+Atom list_get_past(Atom list, int k) {
+  while (k--) {
+    list = cdr(list);
+  }
+  return list;
+}
+
 void list_set(Atom list, int k, Atom value) {
   while (k--) {
     list = cdr(list);
@@ -335,6 +342,18 @@ Atom copy_list(Atom list) {
   return newlist;
 }
 
+int alistp(Atom expr) {
+  while (!nilp(expr)) {
+    if (expr.type != ATOM_TYPE_PAIR
+        || car(expr).type != ATOM_TYPE_PAIR)
+      {
+        return 0;
+      }
+    expr = cdr(expr);
+  }
+  return 1;
+}
+
 Atom make_empty_alist() {
   return cons(nil, nil);
 }
@@ -344,26 +363,42 @@ Atom make_alist(Atom key, Atom value) {
 }
 
 Atom alist_get(Atom alist, Atom key) {
-  if (!listp(alist)) {
+  if (!alistp(alist) || nilp(key)) {
     return nil;
   }
   size_t i = 0;
+  Atom list;
+  Atom item;
   while (1) {
-    Atom item = list_get(alist, i);
-    if (nilp(item)) {
+    list = list_get_past(alist, i);
+    item = car(list);
+    // Every item within an association list needs to be a pair!
+    if (!pairp(item)) {
       return nil;
     }
+    // Test if key matches.
     Atom is_match = nil;
-    builtin_eq(cons(key, cons(car(item), nil)), &is_match);
+    Error err;
+    err.type = builtin_eq(cons(key, cons(car(item), nil)), &is_match);
+    if (err.type) {
+      printf("alist_get() ");
+      print_error(err);
+      return nil;
+    }
+    // Return value if key matched.
     if (!nilp(is_match)) {
       return cdr(item);
+    }
+    // Don't extend past end of alist.
+    if (nilp(cdr(list))) {
+      return nil;
     }
     i++;
   }
 }
 
 void alist_set(Atom *alist, Atom key, Atom value) {
-  if (!alist || !listp(*alist)) {
+  if (!alist || !alistp(*alist)) {
     return;
   }
   list_push(alist, cons(key, value));
