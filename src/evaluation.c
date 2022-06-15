@@ -132,6 +132,13 @@ Error evaluate_return_value(Atom *stack, Atom *expr, Atom *environment, Atom *re
       operator.type = ATOM_TYPE_CLOSURE;
       list_set(*stack, 2, operator);
       list_set(*stack, 4, arguments);
+      if (env_non_nil(*environment, make_sym("DEBUG/MACRO"))) {
+        printf("Evaluating macro: (");
+        print_atom(*expr);
+        putchar(' ');
+        print_atom(list_get(*stack, 4));
+        printf(")\n");
+      }
       return evaluate_bind_arguments(stack, expr, environment);
     }
   } else if (operator.type == ATOM_TYPE_SYMBOL) {
@@ -161,6 +168,11 @@ Error evaluate_return_value(Atom *stack, Atom *expr, Atom *environment, Atom *re
     }
   } else if (operator.type == ATOM_TYPE_MACRO) {
     *expr = *result;
+    if (env_non_nil(*environment, make_sym("DEBUG/MACRO"))) {
+      printf("          result: ");
+      print_atom(*result);
+      putchar('\n');
+    }
     *stack = car(*stack);
     return ok;
   } else {
