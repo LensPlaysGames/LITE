@@ -96,12 +96,17 @@ Atom cons(Atom car_atom, Atom cdr_atom);
 
 /// Returns boolean-like value, 0 = false.
 int listp(Atom expr);
-
 Atom list_get(Atom list, int k);
 void list_set(Atom list, int k, Atom value);
+/// Push a value on to the beginning of a list.
+void list_push(Atom *list, Atom value);
 void list_reverse(Atom *list);
-
 Atom copy_list(Atom list);
+
+Atom make_empty_alist();
+Atom make_alist(Atom key, Atom value);
+Atom alist_get(Atom alist, Atom key);
+void alist_set(Atom *alist, Atom key, Atom value);
 
 Atom nil_with_docstring(symbol_t *docstring);
 Atom make_int(integer_t value);

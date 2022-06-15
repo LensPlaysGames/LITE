@@ -208,79 +208,22 @@ void handle_character_dn(uint64_t c) {
       // TODO: Handle tabs (LISP environment variable to deal with spaces conversion).
     } else {
       if (modkey_state(GUI_MODKEY_LSHIFT) || modkey_state(GUI_MODKEY_RSHIFT)) {
-        // FIXME: I am not proud of whatever this shift implementation is.
-        if (c >= 'a' && c <= 'z') {
-          c = toupper(c);
-        }
-        // FIXME: This assumes American QWERTY layout.
-        // To fix this, it's probably our best bet to make it a LISP association
-        // list, or something like that that the end user can easily change.
-        switch (c) {
-        default:
-          break;
-        case '1':
-          c = '!';
-          break;
-        case '2':
-          c = '@';
-          break;
-        case '3':
-          c = '#';
-          break;
-        case '4':
-          c = '$';
-          break;
-        case '5':
-          c = '%';
-          break;
-        case '6':
-          c = '^';
-          break;
-        case '7':
-          c = '&';
-          break;
-        case '8':
-          c = '*';
-          break;
-        case '9':
-          c = '(';
-          break;
-        case '0':
-          c = ')';
-          break;
-        case '-':
-          c = '_';
-          break;
-        case '=':
-          c = '+';
-          break;
-        case '/':
-          c = '?';
-          break;
-        case '.':
-          c = '>';
-          break;
-        case ',':
-          c = '<';
-          break;
-        case '\'':
-          c = '"';
-          break;
-        case ';':
-          c = ':';
-          break;
-        case '\\':
-          c = '|';
-          break;
-        case ']':
-          c = '}';
-          break;
-        case '[':
-          c = '{';
-          break;
-        case '`':
-          c = '~';
-          break;
+        if (genv) {
+          Atom shift_remap = nil;
+          env_get(*genv, make_sym("SHIFT-CONVERSION-ALIST"), &shift_remap);
+          if (!nilp(shift_remap)) {
+            // TODO/FIXME: This falsely assumes one-byte character.
+            char *tmp_str = malloc(2);
+            tmp_str[0] = (char)c;
+            tmp_str[1] = '\0';
+            Atom remapping = alist_get(shift_remap, make_string(tmp_str));
+            free(tmp_str);
+            if (stringp(remapping)) {
+              if (strlen(remapping.value.symbol)){
+                c = remapping.value.symbol[0];
+              }
+            }
+          }
         }
       }
       if (modkey_state(GUI_MODKEY_LCTRL) || modkey_state(GUI_MODKEY_RCTRL)) {
@@ -375,6 +318,56 @@ int main(int argc, char **argv) {
       load_file(environment, argv[i]);
     }
   }
+
+  // Only the first character of the string is used for now.
+  Atom shift_map_alist = make_alist(make_string("q"), make_string("Q"));
+  alist_set(&shift_map_alist, make_string("w"), make_string("W"));
+  alist_set(&shift_map_alist, make_string("e"), make_string("E"));
+  alist_set(&shift_map_alist, make_string("r"), make_string("R"));
+  alist_set(&shift_map_alist, make_string("t"), make_string("T"));
+  alist_set(&shift_map_alist, make_string("y"), make_string("Y"));
+  alist_set(&shift_map_alist, make_string("u"), make_string("U"));
+  alist_set(&shift_map_alist, make_string("i"), make_string("I"));
+  alist_set(&shift_map_alist, make_string("o"), make_string("O"));
+  alist_set(&shift_map_alist, make_string("p"), make_string("P"));
+  alist_set(&shift_map_alist, make_string("["), make_string("{"));
+  alist_set(&shift_map_alist, make_string("]"), make_string("}"));
+  alist_set(&shift_map_alist, make_string("\\"), make_string("|"));
+  alist_set(&shift_map_alist, make_string("a"), make_string("A"));
+  alist_set(&shift_map_alist, make_string("s"), make_string("S"));
+  alist_set(&shift_map_alist, make_string("d"), make_string("D"));
+  alist_set(&shift_map_alist, make_string("f"), make_string("F"));
+  alist_set(&shift_map_alist, make_string("g"), make_string("G"));
+  alist_set(&shift_map_alist, make_string("h"), make_string("H"));
+  alist_set(&shift_map_alist, make_string("j"), make_string("J"));
+  alist_set(&shift_map_alist, make_string("k"), make_string("K"));
+  alist_set(&shift_map_alist, make_string("l"), make_string("L"));
+  alist_set(&shift_map_alist, make_string(";"), make_string(":"));
+  alist_set(&shift_map_alist, make_string("'"), make_string("\""));
+  alist_set(&shift_map_alist, make_string("z"), make_string("Z"));
+  alist_set(&shift_map_alist, make_string("x"), make_string("X"));
+  alist_set(&shift_map_alist, make_string("c"), make_string("C"));
+  alist_set(&shift_map_alist, make_string("v"), make_string("V"));
+  alist_set(&shift_map_alist, make_string("b"), make_string("B"));
+  alist_set(&shift_map_alist, make_string("n"), make_string("N"));
+  alist_set(&shift_map_alist, make_string("m"), make_string("M"));
+  alist_set(&shift_map_alist, make_string(","), make_string("<"));
+  alist_set(&shift_map_alist, make_string("."), make_string(">"));
+  alist_set(&shift_map_alist, make_string("/"), make_string("?"));
+  alist_set(&shift_map_alist, make_string("`"), make_string("~"));
+  alist_set(&shift_map_alist, make_string("1"), make_string("!"));
+  alist_set(&shift_map_alist, make_string("2"), make_string("@"));
+  alist_set(&shift_map_alist, make_string("3"), make_string("#"));
+  alist_set(&shift_map_alist, make_string("4"), make_string("$"));
+  alist_set(&shift_map_alist, make_string("5"), make_string("%"));
+  alist_set(&shift_map_alist, make_string("6"), make_string("^"));
+  alist_set(&shift_map_alist, make_string("7"), make_string("&"));
+  alist_set(&shift_map_alist, make_string("8"), make_string("*"));
+  alist_set(&shift_map_alist, make_string("9"), make_string("("));
+  alist_set(&shift_map_alist, make_string("0"), make_string(")"));
+  alist_set(&shift_map_alist, make_string("-"), make_string("_"));
+  alist_set(&shift_map_alist, make_string("="), make_string("+"));
+  env_set(environment, make_sym("SHIFT-CONVERSION-ALIST"), shift_map_alist);
 
 #ifdef LITE_GFX
   int open;

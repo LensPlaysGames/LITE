@@ -1,5 +1,6 @@
 #include <types.h>
 
+#include <builtins.h>
 #include <error.h>
 #include <stdarg.h>
 #include <stddef.h>
@@ -298,7 +299,17 @@ void list_set(Atom list, int k, Atom value) {
   car(list) = value;
 }
 
+void list_push(Atom *list, Atom value) {
+  if (!list) {
+    return;
+  }
+  *list = cons(value, *list);
+}
+
 void list_reverse(Atom *list) {
+  if (!list) {
+    return;
+  }
   Atom tail = nil;
   while (!nilp(*list)) {
     Atom p = cdr(*list);
@@ -322,6 +333,40 @@ Atom copy_list(Atom list) {
     list = cdr(list);
   }
   return newlist;
+}
+
+Atom make_empty_alist() {
+  return cons(nil, nil);
+}
+
+Atom make_alist(Atom key, Atom value) {
+  return cons(cons(key, value), nil);
+}
+
+Atom alist_get(Atom alist, Atom key) {
+  if (!listp(alist)) {
+    return nil;
+  }
+  size_t i = 0;
+  while (1) {
+    Atom item = list_get(alist, i);
+    if (nilp(item)) {
+      return nil;
+    }
+    Atom is_match = nil;
+    builtin_eq(cons(key, cons(car(item), nil)), &is_match);
+    if (!nilp(is_match)) {
+      return cdr(item);
+    }
+    i++;
+  }
+}
+
+void alist_set(Atom *alist, Atom key, Atom value) {
+  if (!alist || !listp(*alist)) {
+    return;
+  }
+  list_push(alist, cons(key, value));
 }
 
 void print_atom(Atom atom) {

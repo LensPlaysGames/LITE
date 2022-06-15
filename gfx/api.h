@@ -14,7 +14,7 @@
 
 // Handlers for non-modifier characters.
 // Hopefully 64 bits is enough for a character ;^).
-// Let's go with UTF8 for now, but UNICODE is on the horizon.
+// At this point we assume UTF8, but it's too early to matter.
 void handle_character_dn(uint64_t c);
 void handle_character_up(uint64_t c);
 
