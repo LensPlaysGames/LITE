@@ -311,6 +311,16 @@ int builtin_eq(Atom arguments, Atom *result) {
   return ERROR_NONE;
 }
 
+symbol_t *builtin_symbol_table_docstring =
+  "Return the LISP symbol table.";
+int builtin_symbol_table(Atom arguments, Atom *result) {
+  if (!nilp(arguments)) {
+    return ERROR_ARGUMENTS;
+  }
+  *result = *sym_table();
+  return ERROR_NONE;
+}
+
 symbol_t *builtin_print_docstring =
   "Print the given ARG to standard out, prettily.";
 int builtin_print(Atom arguments, Atom *result) {

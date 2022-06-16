@@ -117,24 +117,25 @@ Atom default_shift_conversion_alist() {
 Atom default_environment() {
   Atom environment = env_create(nil);
   env_set(environment, make_sym("T"),     make_sym("T"));
-  env_set(environment, make_sym("!"),     make_builtin(builtin_not,         builtin_not_docstring));
-  env_set(environment, make_sym("CAR"),   make_builtin(builtin_car,         builtin_car_docstring));
-  env_set(environment, make_sym("CDR"),   make_builtin(builtin_cdr,         builtin_cdr_docstring));
-  env_set(environment, make_sym("CONS"),  make_builtin(builtin_cons,        builtin_cons_docstring));
-  env_set(environment, make_sym("+"),     make_builtin(builtin_add,         builtin_add_docstring));
-  env_set(environment, make_sym("-"),     make_builtin(builtin_subtract,    builtin_subtract_docstring));
-  env_set(environment, make_sym("*"),     make_builtin(builtin_multiply,    builtin_multiply_docstring));
-  env_set(environment, make_sym("/"),     make_builtin(builtin_divide,      builtin_divide_docstring));
-  env_set(environment, make_sym("="),     make_builtin(builtin_numeq,       builtin_numeq_docstring));
-  env_set(environment, make_sym("!="),    make_builtin(builtin_numnoteq,    builtin_numnoteq_docstring));
-  env_set(environment, make_sym("<"),     make_builtin(builtin_numlt,       builtin_numlt_docstring));
-  env_set(environment, make_sym("<="),    make_builtin(builtin_numlt_or_eq, builtin_numlt_or_eq_docstring));
-  env_set(environment, make_sym(">"),     make_builtin(builtin_numgt,       builtin_numgt_docstring));
-  env_set(environment, make_sym(">="),    make_builtin(builtin_numgt_or_eq, builtin_numgt_or_eq_docstring));
-  env_set(environment, make_sym("APPLY"), make_builtin(builtin_apply,       builtin_apply_docstring));
-  env_set(environment, make_sym("PAIRP"), make_builtin(builtin_pairp,       builtin_pairp_docstring));
-  env_set(environment, make_sym("EQ"),    make_builtin(builtin_eq,          builtin_eq_docstring));
-  env_set(environment, make_sym("PRINT"), make_builtin(builtin_print,       builtin_print_docstring));
+  env_set(environment, make_sym("!"),     make_builtin(builtin_not,          builtin_not_docstring));
+  env_set(environment, make_sym("CAR"),   make_builtin(builtin_car,          builtin_car_docstring));
+  env_set(environment, make_sym("CDR"),   make_builtin(builtin_cdr,          builtin_cdr_docstring));
+  env_set(environment, make_sym("CONS"),  make_builtin(builtin_cons,         builtin_cons_docstring));
+  env_set(environment, make_sym("+"),     make_builtin(builtin_add,          builtin_add_docstring));
+  env_set(environment, make_sym("-"),     make_builtin(builtin_subtract,     builtin_subtract_docstring));
+  env_set(environment, make_sym("*"),     make_builtin(builtin_multiply,     builtin_multiply_docstring));
+  env_set(environment, make_sym("/"),     make_builtin(builtin_divide,       builtin_divide_docstring));
+  env_set(environment, make_sym("="),     make_builtin(builtin_numeq,        builtin_numeq_docstring));
+  env_set(environment, make_sym("!="),    make_builtin(builtin_numnoteq,     builtin_numnoteq_docstring));
+  env_set(environment, make_sym("<"),     make_builtin(builtin_numlt,        builtin_numlt_docstring));
+  env_set(environment, make_sym("<="),    make_builtin(builtin_numlt_or_eq,  builtin_numlt_or_eq_docstring));
+  env_set(environment, make_sym(">"),     make_builtin(builtin_numgt,        builtin_numgt_docstring));
+  env_set(environment, make_sym(">="),    make_builtin(builtin_numgt_or_eq,  builtin_numgt_or_eq_docstring));
+  env_set(environment, make_sym("APPLY"), make_builtin(builtin_apply,        builtin_apply_docstring));
+  env_set(environment, make_sym("PAIRP"), make_builtin(builtin_pairp,        builtin_pairp_docstring));
+  env_set(environment, make_sym("EQ"),    make_builtin(builtin_eq,           builtin_eq_docstring));
+  env_set(environment, make_sym("PRINT"), make_builtin(builtin_print,        builtin_print_docstring));
+  env_set(environment, make_sym("SYM"),   make_builtin(builtin_symbol_table, builtin_symbol_table_docstring));
   // FIXME: It's always best to keep docstrings out of here and where they belong.
   env_set(environment, make_sym("GARBAGE-COLLECTOR-ITERATIONS-THRESHOLD"), make_int_with_docstring
           (100000, "This number corresponds to the amount of evaluation operations before \

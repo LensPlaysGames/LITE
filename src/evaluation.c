@@ -240,6 +240,7 @@ Error evaluate_expression(Atom expr, Atom environment, Atom *result) {
         putchar('\n');
       }
       if (operator.type == ATOM_TYPE_SYMBOL) {
+        // Special forms
         if (strcmp(operator.value.symbol, "QUOTE") == 0) {
           if (nilp(arguments) || !nilp(cdr(arguments))) {
             PREP_ERROR(err, ERROR_ARGUMENTS
@@ -421,29 +422,15 @@ Error evaluate_expression(Atom expr, Atom environment, Atom *result) {
             }
           }
         } else if (strcmp(operator.value.symbol, "ENV") == 0) {
-          // Ensure no arguments.
-          // TODO: It would be cool to take a symbol argument
-          // and return it's value in the environment.
-          // We could probably achieve this rather quickly
-          // by type checking then delegating to `env_get()`.
+          const char *usage_env = "Usage: (ENV)";
           if (!nilp(arguments)) {
             PREP_ERROR(err, ERROR_ARGUMENTS
                        , arguments
-                       , "ENV: Arguments are not accepted."
-                       , "Usage: (ENV)");
+                       , "ENV: Too many arguments! Zero arguments are accepted."
+                       , usage_env);
             return err;
           }
           *result = environment;
-        } else if (strcmp(operator.value.symbol, "SYM") == 0) {
-          // Ensure no arguments.
-          if (!nilp(arguments)) {
-            PREP_ERROR(err, ERROR_ARGUMENTS
-                       , arguments
-                       , "SYM: Arguments are not accepted."
-                       , ("Usage: (SYM)"));
-            return err;
-          }
-          *result = *sym_table();
         } else {
           // Evaluate operator before application.
           stack = make_frame(stack, environment, arguments);

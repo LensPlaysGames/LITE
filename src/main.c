@@ -136,8 +136,7 @@ void handle_character_dn(uint64_t c) {
       size_t source_len = strlen(source);
       if (source_len >= 4 && memcmp(source, "quit", 4) == 0) {
         int debug_memory = env_non_nil(genv ? *genv : default_environment()
-                                       , make_sym("DEBUG/MEMORY")
-                                       );
+                                       , make_sym("DEBUG/MEMORY"));
         // Garbage collection with no marking means free everything.
         gcol();
         if (debug_memory) {
