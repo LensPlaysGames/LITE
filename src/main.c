@@ -369,7 +369,7 @@ int main(int argc, char **argv) {
   printf("LITE will guide the way through the darkness.\n");
 
   Atom environment = default_environment();
-  genv = &environment;
+
   // Treat every given argument as a file to load, for now.
   if (argc > 1) {
     for (size_t i = 1; i < argc; ++i) {
@@ -378,6 +378,8 @@ int main(int argc, char **argv) {
   }
 
 #ifdef LITE_GFX
+  genv = &environment;
+
   int open;
   if ((open = create_gui())) {
     return open;
