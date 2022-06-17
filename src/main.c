@@ -340,6 +340,31 @@ void handle_modifier_up(GUIModifierKey mod) {
 #endif /* #ifdef LITE_GFX */
 //================================================================ END api.c
 
+#if defined (_WIN32) || defined (_WIN64)
+#  include <windows.h>
+#  define SLEEP(ms) Sleep(ms)
+#elif defined (__unix)
+#  ifdef _POSIX_C_SOURCE
+#    define _POSIX_C_SOURCE_BACKUP _POSIX_C_SOURCE
+#    undef _POSIX_C_SOURCE
+#  endif
+#  define _POSIX_C_SOURCE 199309L
+#  include <time.h>
+#  define SLEEP(ms) do {                        \
+    struct timespec ts;                         \
+    ts.tv_sec = ms / 1000;                      \
+    ts.tv_nsec = ms % 1000 * 1000;              \
+    nanosleep(&ts, NULL);                       \
+  } while (0)
+#  undef _POSIX_C_SOURCE
+#  ifdef _POSIX_C_SOURCE_BACKUP
+#    define _POSIX_C_SOURCE _POSIX_C_SOURCE_BACKUP
+#    undef _POSIX_C_SOURCE_BACKUP
+#  endif
+#else
+#  error "System unknown! Can not create SLEEP macro."
+#endif
+
 int main(int argc, char **argv) {
   printf("LITE will guide the way through the darkness.\n");
 
@@ -359,21 +384,23 @@ int main(int argc, char **argv) {
   }
   open = 1;
   GUIContext ctx;
+  memset(&ctx, 0, sizeof(GUIContext));
   gctx = &ctx;
   gctx->title = "LITE GFX";
-  gctx->headline = allocate_string("LITE Headline");
+  update_headline(gctx, allocate_string("LITE Headline"));
   if (!gctx->headline) { return 2; }
-  gctx->contents = allocate_string("LITE Contents");
+  update_contents(gctx, allocate_string("LITE Contents"));
   if (!gctx->contents) { return 2; }
-  gctx->footline = allocate_string("LITE Footline");
+  update_footline(gctx, allocate_string("LITE Footline"));
   if (!gctx->footline) { return 2; }
   Rope *input = rope_create("");
   if (!input) { return 1; }
   ginput = input;
-  // TODO: This is very badly optimized!!
   while (open) {
-    gctx->contents = rope_string(NULL, ginput, NULL);
+    update_contents(gctx, rope_string(NULL, ginput, NULL));
     do_gui(&open, gctx);
+    // Only update GUI every 10 milliseconds.
+    SLEEP(10);
   }
   destroy_gui();
 #else
