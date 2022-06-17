@@ -21,7 +21,7 @@ static size_t font_height = 0;
 
 // Returns GUI_MODKEY_MAX for any key that is not a modifier,
 // otherwise returns the corresponding GUI_MODKEY_* enum.
-static inline GUIModifierKey is_modifier(SDL_KeyCode key) {
+static inline GUIModifierKey is_modifier(SDL_Keycode key) {
   switch (key) {
   default:          return GUI_MODKEY_MAX;
   case SDLK_LCTRL:  return GUI_MODKEY_LCTRL;

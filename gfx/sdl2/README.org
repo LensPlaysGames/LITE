@@ -7,6 +7,7 @@ NOTE: The /DEVELOPMENT/ releases are necessary (don't get runtime binaries).
 - [[https://www.libsdl.org/download-2.0.php][SDL2]]
 - [[https://github.com/libsdl-org/SDL_ttf/releases/latest][SDL2_ttf]]
 
+On most Linux distros: ~sudo apt install libsdl2-dev libsdl2-ttf-dev~
 
 ** Notes
 
