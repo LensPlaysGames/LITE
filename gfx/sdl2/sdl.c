@@ -5,28 +5,52 @@
 #include <stdlib.h>
 #include <string.h>
 
-
 #define SDL_MAIN_HANDLED
 #include <SDL.h>
 #include <SDL_ttf.h>
-/* TODO:
- * |-- Handle events like SDL_APP_TERMINATING (OS shutdown).
- * |   https://wiki.libsdl.org/SDL_EventType
- * |   https://wiki.libsdl.org/SDL_SetEventFilter
- * |
- * `-- Respond to more window events.
- *     https://wiki.libsdl.org/SDL_WindowEvent
- */
 
+static SDL_Color bg = { 18, 18, 18, UINT8_MAX };
+static SDL_Color fg = { UINT8_MAX, UINT8_MAX, UINT8_MAX, UINT8_MAX };
 
-SDL_Color bg = { 18, 18, 18, UINT8_MAX };
-SDL_Color fg = { UINT8_MAX, UINT8_MAX, UINT8_MAX, UINT8_MAX };
+static SDL_Window *gwindow = NULL;
+static SDL_Renderer *grender = NULL;
+static SDL_Texture *texture = NULL;
 
-SDL_Window *gwindow = NULL;
-SDL_Renderer *grender = NULL;
-SDL_Texture *texture = NULL;
+static TTF_Font *font = NULL;
+static size_t font_height = 0;
 
-TTF_Font *font = NULL;
+// Returns GUI_MODKEY_MAX for any key that is not a modifier,
+// otherwise returns the corresponding GUI_MODKEY_* enum.
+static inline GUIModifierKey is_modifier(SDL_KeyCode key) {
+  switch (key) {
+  default:          return GUI_MODKEY_MAX;
+  case SDLK_LCTRL:  return GUI_MODKEY_LCTRL;
+  case SDLK_RCTRL:  return GUI_MODKEY_RCTRL;
+  case SDLK_LALT:   return GUI_MODKEY_LALT;
+  case SDLK_RALT:   return GUI_MODKEY_RALT;
+  case SDLK_LSHIFT: return GUI_MODKEY_LSHIFT;
+  case SDLK_RSHIFT: return GUI_MODKEY_RSHIFT;
+  }
+}
+
+static inline size_t count_lines(char *str) {
+  if (!str) {
+    return 0;
+  }
+  size_t line_count = 0;
+  char *string_iterator = str;
+  do {
+    line_count += 1;
+    string_iterator = strchr(string_iterator + 1, '\n');
+  } while (string_iterator);
+  return line_count;
+}
+
+static inline void draw_bg() {
+  // NOTE: Alpha has no effect :(.
+  SDL_SetRenderDrawColor(grender, bg.r, bg.g, bg.b, bg.a);
+  SDL_RenderClear(grender);
+}
 
 int create_gui() {
   if (SDL_Init(SDL_INIT_VIDEO) != 0) {
@@ -71,14 +95,16 @@ int create_gui() {
            );
     return 1;
   }
+  font_height = TTF_FontHeight(font);
+  if (!font_height) {
+    printf("GFX::SDL: SDL_ttf could not get height of font.\n"
+           "        : %s\n"
+           , TTF_GetError()
+           );
+    return 1;
+  }
   printf("GFX::SDL: SDL_ttf Initialized\n");
   return 0;
-}
-
-static inline void draw_bg() {
-  // NOTE: Alpha has no effect :(.
-  SDL_SetRenderDrawColor(grender, bg.r, bg.g, bg.b, bg.a);
-  SDL_RenderClear(grender);
 }
 
 void draw_gui(GUIContext *ctx) {
@@ -99,24 +125,33 @@ void draw_gui(GUIContext *ctx) {
     return;
   }
 
-  // TODO: Align on character grid for current font size.
+  // TODO: Handle wrapping of long lines.
+  size_t headline_line_count = count_lines(ctx->headline);
+  size_t footline_line_count = count_lines(ctx->footline);
+
+  size_t headline_height = font_height * headline_line_count;
+  size_t footline_height = font_height * footline_line_count;
+
+  // TODO: Handle corner case when there is not enough room for contents.
+  size_t contents_height = height - headline_height - footline_height;
+
   SDL_Rect rect_headline;
   rect_headline.x = 0;
   rect_headline.y = 0;
   rect_headline.w = width;
-  rect_headline.h = height * 0.05;
+  rect_headline.h = headline_height;
   SDL_Rect rect_contents;
   rect_contents.x = 0;
   rect_contents.y = rect_headline.h + rect_headline.y;
   rect_contents.w = width;
-  rect_contents.h = height * 0.90;
+  rect_contents.h = contents_height;
   SDL_Rect rect_footline;
   rect_footline.x = 0;
   rect_footline.y = rect_contents.h + rect_contents.y;
   rect_footline.w = width;
-  rect_footline.h = height * 0.05;
+  rect_footline.h = footline_height;
 
-  if (ctx->headline && strlen(ctx->headline)) {
+  if (ctx->headline && ctx->headline[0] != '\0') {
     SDL_Surface *headline = NULL;
     headline = TTF_RenderUTF8_Blended_Wrapped(font, ctx->headline, fg, width);
     if (headline) {
@@ -124,7 +159,7 @@ void draw_gui(GUIContext *ctx) {
       SDL_FreeSurface(headline);
     }
   }
-  if (ctx->contents && strlen(ctx->contents)) {
+  if (ctx->contents && ctx->contents[0] != '\0') {
     SDL_Surface *contents = NULL;
     // TODO: Display each line on a newline!
     // TODO: Wrapped text vs unwrapped text.
@@ -136,7 +171,7 @@ void draw_gui(GUIContext *ctx) {
       SDL_FreeSurface(contents);
     }
   }
-  if (ctx->footline && strlen(ctx->footline)) {
+  if (ctx->footline && ctx->footline[0] != '\0') {
     SDL_Surface *footline = NULL;
     footline = TTF_RenderUTF8_Blended_Wrapped(font, ctx->footline, fg, width);
     if (footline) {
@@ -157,34 +192,6 @@ void draw_gui(GUIContext *ctx) {
   SDL_RenderPresent(grender);
 }
 
-// Returns GUI_MODKEY_MAX for any key that is not a modifier,
-// otherwise returns the corresponding GUI_MODKEY_* enum.
-GUIModifierKey is_modifier(SDL_KeyCode key) {
-  switch (key) {
-  default:
-    return GUI_MODKEY_MAX;
-    break;
-  case SDLK_LCTRL:
-    return GUI_MODKEY_LCTRL;
-    break;
-  case SDLK_RCTRL:
-    return GUI_MODKEY_RCTRL;
-    break;
-  case SDLK_LALT:
-    return GUI_MODKEY_LALT;
-    break;
-  case SDLK_RALT:
-    return GUI_MODKEY_RALT;
-    break;
-  case SDLK_LSHIFT:
-    return GUI_MODKEY_LSHIFT;
-    break;
-  case SDLK_RSHIFT:
-    return GUI_MODKEY_RSHIFT;
-    break;
-  }
-}
-
 // Returns a boolean-like integer value (0 is false).
 void do_gui(int *open, GUIContext *ctx) {
   if (!open || *open == 0 || !ctx) {
@@ -197,10 +204,11 @@ void do_gui(int *open, GUIContext *ctx) {
     default:
       break;
     case SDL_KEYDOWN:
-      // TODO: Convert `SDLK_` keycodes to Unicode (currently UTF8, I guess).
       if ((mod = is_modifier(event.key.keysym.sym)) != GUI_MODKEY_MAX) {
         handle_modifier_dn(mod);
       } else {
+        // TODO: Convert `SDLK_` keycodes to UTF8.
+        // Maybe look into SDL TEXTINPUT event?
         uint64_t c = event.key.keysym.sym;
         handle_character_dn(c);
       }
@@ -218,15 +226,12 @@ void do_gui(int *open, GUIContext *ctx) {
     }
   }
   draw_gui(ctx);
-  *open = 1;
 }
 
 void destroy_gui() {
   SDL_DestroyRenderer(grender);
   SDL_DestroyWindow(gwindow);
-  if (font) {
-    TTF_CloseFont(font);
-  }
+  TTF_CloseFont(font);
   TTF_Quit();
   SDL_Quit();
 }

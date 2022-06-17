@@ -423,6 +423,7 @@ Error evaluate_expression(Atom expr, Atom environment, Atom *result) {
           }
         } else if (strcmp(operator.value.symbol, "ENV") == 0) {
           const char *usage_env = "Usage: (ENV)";
+          // FIXME: Why does this crash the program???
           if (!nilp(arguments)) {
             PREP_ERROR(err, ERROR_ARGUMENTS
                        , arguments

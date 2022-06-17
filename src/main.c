@@ -79,6 +79,50 @@ Error load_file(Atom environment, const char* path) {
 //================================================================ END file_io
 
 
+#ifdef LITE_GFX
+char *allocate_string(const char *string) {
+  if (!string) {
+    return NULL;
+  }
+  size_t string_length = strlen(string);
+  if (!string_length) {
+    return NULL;
+  }
+  char *out = malloc(string_length + 1);
+  if (!out) {
+    return NULL;
+  }
+  strncpy(out, string, string_length);
+  out[string_length] = '\0';
+  return out;
+}
+
+void update_headline(GUIContext *ctx, char *new_headline) {
+  if (!ctx || !new_headline) { return; }
+  if (ctx->headline) {
+    free(ctx->headline);
+  }
+  ctx->headline = new_headline;
+}
+
+void update_contents(GUIContext *ctx, char *new_contents) {
+  if (!ctx || !new_contents) { return; }
+  if (ctx->contents) {
+    free(ctx->contents);
+  }
+  ctx->contents = new_contents;
+}
+
+void update_footline(GUIContext *ctx, char *new_footline) {
+  if (!ctx || !new_footline) { return; }
+  if (ctx->footline) {
+    free(ctx->footline);
+  }
+  ctx->footline = new_footline;
+}
+
+#endif /* #ifdef LITE_GFX */
+
 //================================================================ BEG api.c
 #ifdef LITE_GFX
 typedef struct GUIModifierKeyState {
@@ -174,21 +218,12 @@ void handle_character_dn(uint64_t c) {
       // DISPLAY
       switch (err.type) {
       case ERROR_NONE:
-        if (gctx) {
-          free(gctx->footline);
-          gctx->footline = atom_string(result, NULL);
-        }
+        update_footline(gctx, atom_string(result, NULL));
         break;
       default:
-        if (gctx) {
-          char *err = malloc(8);
-          if (err) {
-            strncpy(err, "ERROR!", 8);
-            free(gctx->footline);
-            gctx->footline = err;
-          }
-        }
-        // TODO: We need `error_string()`!!
+        // FIXME: This is awful!
+        // We need `error_string()`!!
+        update_footline(gctx, allocate_string("ERROR!"));
         printf("\nEVALUATION ");
         print_error(err);
         printf("Faulting Expression: ");
@@ -283,28 +318,27 @@ void handle_modifier_up(GUIModifierKey mod) {
            , mod);
     break;
   case GUI_MODKEY_LCTRL:
-    gmodkeys.bitfield &= !((uint64_t)1 << GUI_MODKEY_LCTRL);
+    gmodkeys.bitfield &= ~((uint64_t)1 << GUI_MODKEY_LCTRL);
     break;
   case GUI_MODKEY_RCTRL:
-    gmodkeys.bitfield &= !((uint64_t)1 << GUI_MODKEY_RCTRL);
+    gmodkeys.bitfield &= ~((uint64_t)1 << GUI_MODKEY_RCTRL);
     break;
   case GUI_MODKEY_LALT:
-    gmodkeys.bitfield &= !((uint64_t)1 << GUI_MODKEY_LALT);
+    gmodkeys.bitfield &= ~((uint64_t)1 << GUI_MODKEY_LALT);
     break;
   case GUI_MODKEY_RALT:
-    gmodkeys.bitfield &= !((uint64_t)1 << GUI_MODKEY_RALT);
+    gmodkeys.bitfield &= ~((uint64_t)1 << GUI_MODKEY_RALT);
     break;
   case GUI_MODKEY_LSHIFT:
-    gmodkeys.bitfield &= !((uint64_t)1 << GUI_MODKEY_LSHIFT);
+    gmodkeys.bitfield &= ~((uint64_t)1 << GUI_MODKEY_LSHIFT);
     break;
   case GUI_MODKEY_RSHIFT:
-    gmodkeys.bitfield &= !((uint64_t)1 << GUI_MODKEY_RSHIFT);
+    gmodkeys.bitfield &= ~((uint64_t)1 << GUI_MODKEY_RSHIFT);
     break;
   }
 }
 #endif /* #ifdef LITE_GFX */
 //================================================================ END api.c
-
 
 int main(int argc, char **argv) {
   printf("LITE will guide the way through the darkness.\n");
@@ -327,22 +361,17 @@ int main(int argc, char **argv) {
   GUIContext ctx;
   gctx = &ctx;
   gctx->title = "LITE GFX";
-  const size_t init_buffer_sz = 16;
-  gctx->headline = malloc(init_buffer_sz);
+  gctx->headline = allocate_string("LITE Headline");
   if (!gctx->headline) { return 2; }
-  strncpy(gctx->headline, "LITE Headline", init_buffer_sz);
-  gctx->contents = malloc(init_buffer_sz);
+  gctx->contents = allocate_string("LITE Contents");
   if (!gctx->contents) { return 2; }
-  strncpy(gctx->contents, "LITE Contents", init_buffer_sz);
-  gctx->footline = malloc(init_buffer_sz);
+  gctx->footline = allocate_string("LITE Footline");
   if (!gctx->footline) { return 2; }
-  strncpy(gctx->footline, "LITE Footline", init_buffer_sz);
   Rope *input = rope_create("");
   if (!input) { return 1; }
   ginput = input;
   // TODO: This is very badly optimized!!
   while (open) {
-    free((void *)gctx->contents);
     gctx->contents = rope_string(NULL, ginput, NULL);
     do_gui(&open, gctx);
   }
