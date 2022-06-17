@@ -142,3 +142,7 @@ as well as places INITIAL-VALUE at the end of SOME-LIST.")
           x))
   "Return X's distance from zero, which is always positive,
 also known as the absolute value.")
+
+(macro set-docstring (x string)
+       "Set the docstring of a given atom and return it."
+       `(define ,x ,x ,string))
