@@ -294,16 +294,16 @@ extra output concerning macros is produced.
 
 *** Misc
 
-- Environment
+- Symbol Table
 
-  Get the current environment by using the ~ENV~ operator.
+  Get the current symbol table with the ~SYM~ operator.
 
   Alternatively, visualize the environment by setting
   ~DEBUG/ENVIRONMENT~ to any non-nil value.
 
-- Symbol Table
+- Environment
 
-  Get the current symbol table with the ~SYM~ operator.
+  Get the current environment by using the ~ENV~ operator.
 
   Alternatively, visualize the environment by setting
   ~DEBUG/ENVIRONMENT~ to any non-nil value.
@@ -312,3 +312,15 @@ extra output concerning macros is produced.
 
   Currently, closures are stored in the environment with the following syntax:
   : (ENVIRONMENT (ARGUMENT ...) BODY-EXPRESSION)
+
+- Debug environment variables
+
+  There are environment variables that cause LITE to report output extra
+  information regarding the topic the variable pertains to when non-nil.
+
+  Here is a list of debug variables that are currently valid.
+   - ~DEBUG/ENVIRONMENT~
+   - ~DEBUG/EVALUATE~
+   - ~DEBUG/MACRO~
+   - ~DEBUG/MEMORY~
+   - ~DEBUG/WHILE~

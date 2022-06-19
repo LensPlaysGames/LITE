@@ -158,11 +158,66 @@ Error evaluate_return_value(Atom *stack, Atom *expr, Atom *environment, Atom *re
       return ok;
     } else if (strcmp(operator.value.symbol, "IF") == 0) {
       arguments = list_get(*stack, 3);
+      // `result` determines what to evaluate next ("then", or "else" branch).
       *expr = nilp(*result) ? car(cdr(arguments)) : car(arguments);
+      // Continue execution, we've handled the IF entirely.
       *stack = car(*stack);
       return ok;
+    } else if (strcmp(operator.value.symbol, "WHILE") == 0) {
+      arguments = list_get(*stack, 3);
+      int debug_while = env_non_nil(*environment, make_sym("DEBUG/WHILE"));
+
+      // Store recurse count in evaluated arguments list.
+      Atom recurse_count = list_get(*stack, 4);
+      if (!integerp(recurse_count)) {
+        recurse_count = make_int(0);
+      } else {
+        recurse_count.value.integer += 1;
+      }
+      Atom recurse_maximum = nil;
+      env_get(*environment, make_sym("WHILE-RECURSE-LIMIT"), &recurse_maximum);
+      if (!integerp(recurse_maximum)) { recurse_maximum = make_int(10000); }
+      list_set(*stack, 4, recurse_count);
+
+      if (debug_while) {
+        printf("WHILE: recurse count is ");
+        print_atom(recurse_count);
+        printf(" (max ");
+        print_atom(recurse_maximum);
+        printf(")\n");
+        printf("  condition: ");
+        print_atom(car(arguments));
+        putchar('\n');
+        printf("  result: ");
+        print_atom(*result);
+        putchar('\n');
+        if (recurse_count.value.integer == 0) {
+          printf("  body:  ");
+          print_atom(car(cdr(arguments)));
+          putchar('\n');
+        }
+      }
+      // At this point, result contains condition return value.
+      // If result is nil, or maximum recursion limit has been reached, exit the loop.
+      if (nilp(*result) || recurse_count.value.integer >= recurse_maximum.value.integer) {
+        if (debug_while) { printf("  Loop ending.\n"); }
+        // WHILE stack frame handled.
+        *stack = car(*stack);
+        return ok;
+      }
+      if (debug_while) { printf("  Loop continuing.\n"); }
+      // TODO+FIXME: This really shouldn't and doesn't need to be recursive!
+      // We should use a stack frame/continuation instead...
+      // But we are going to need two stack frames due to needing to make
+      // it back here after evaluating the body, right? I don't know...
+      Atom body_result = nil;
+      Error err = evaluate_expression(car(cdr(arguments)), *environment, &body_result);
+      if (err.type) { return err; }
+      // Re-evaluate expression before continuing.
+      *expr = car(arguments);
+      return ok;
     } else {
-      // Store argument
+      // Store arguments.
       arguments = list_get(*stack, 4);
       list_set(*stack, 4, cons(*result, arguments));
     }
@@ -319,6 +374,27 @@ Error evaluate_expression(Atom expr, Atom environment, Atom *result) {
             }
           stack = make_frame(stack, environment, cdr(arguments));
           list_set(stack, 2, operator);
+          expr = car(arguments);
+          continue;
+        } else if (strcmp(operator.value.symbol, "WHILE") == 0) {
+          const char* usage_while = "Usage: (WHILE <condition> <body>)";
+          if (nilp(arguments) || nilp(cdr(arguments))) {
+            PREP_ERROR(err, ERROR_ARGUMENTS
+                       , arguments
+                       , "WHILE: Not enough arguments!"
+                       , usage_while);
+            return err;
+          }
+
+          printf("WHILE: Encountered ");
+          print_atom(cons(operator, arguments));
+          putchar('\n');
+
+          stack = make_frame(stack, environment, arguments);
+          // Stack operator set to WHILE.
+          list_set(stack, 2, operator);
+          // Evaluate condition of while loop.
+          // Result handled in `evaluate_return_value()`
           expr = car(arguments);
           continue;
         } else if (strcmp(operator.value.symbol, "MACRO") == 0) {

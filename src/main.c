@@ -394,6 +394,8 @@ int enter_lite_gui() {
   if (!input) { return 1; }
   ginput = input;
   while (open) {
+    // TODO: Use LISP environment variable to get current buffer,
+    // then convert that rope into a string and display it.
     update_contents(gctx, rope_string(NULL, ginput, NULL));
     do_gui(&open, gctx);
     // Only update GUI every 10 milliseconds.

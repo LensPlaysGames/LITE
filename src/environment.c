@@ -152,6 +152,12 @@ LISP evaluation environment, including the symbol table."));
           ("When non-nil, display debug information concerning macros, \
 including what each expansion step looks like."));
 
+  // TODO: Give docstrings to "DEBUG/MEMORY" and "DEBUG/WHILE".
+
+  env_set(environment, make_sym("WHILE-RECURSE-LIMIT"), make_int_with_docstring
+          (10000
+           , "This is the maximum amount of times a while loop may loop.\n\nUsed to prevent infinite loops."));
+
   env_set(environment, make_sym("SHIFT-CONVERSION-ALIST"), default_shift_conversion_alist());
 
   return environment;
