@@ -365,36 +365,31 @@ void handle_modifier_up(GUIModifierKey mod) {
 #  error "System unknown! Can not create SLEEP macro."
 #endif
 
-int main(int argc, char **argv) {
-  printf("LITE will guide the way through the darkness.\n");
-
-  Atom environment = default_environment();
-
-  // Treat every given argument as a file to load, for now.
-  if (argc > 1) {
-    for (size_t i = 1; i < argc; ++i) {
-      load_file(environment, argv[i]);
-    }
-  }
-
 #ifdef LITE_GFX
-  genv = &environment;
+GUIContext *initialize_lite_gui_ctx() {
+  GUIContext *ctx = malloc(sizeof(GUIContext));
+  if (!ctx) { return NULL; }
+  memset(ctx, 0, sizeof(GUIContext));
+  ctx->title = "LITE GFX";
+  update_headline(ctx, allocate_string("LITE Headline"));
+  update_contents(ctx, allocate_string("LITE Contents"));
+  update_footline(ctx, allocate_string("LITE Footline"));
+  if (!ctx->headline || !ctx->contents || !ctx->footline) {
+    return NULL;
+  }
+  return ctx;
+}
 
+int enter_lite_gui() {
   int open;
   if ((open = create_gui())) {
     return open;
   }
   open = 1;
-  GUIContext ctx;
-  memset(&ctx, 0, sizeof(GUIContext));
-  gctx = &ctx;
-  gctx->title = "LITE GFX";
-  update_headline(gctx, allocate_string("LITE Headline"));
-  if (!gctx->headline) { return 2; }
-  update_contents(gctx, allocate_string("LITE Contents"));
-  if (!gctx->contents) { return 2; }
-  update_footline(gctx, allocate_string("LITE Footline"));
-  if (!gctx->footline) { return 2; }
+  gctx = initialize_lite_gui_ctx();
+  if (!gctx) {
+    return 2;
+  }
   Rope *input = rope_create("");
   if (!input) { return 1; }
   ginput = input;
@@ -405,9 +400,27 @@ int main(int argc, char **argv) {
     SLEEP(10);
   }
   destroy_gui();
+  return 0;
+}
+#endif
+
+int main(int argc, char **argv) {
+  printf("LITE will guide the way through the darkness.\n");
+
+  Atom environment = default_environment();
+  // Treat every given argument as a file to load, for now.
+  if (argc > 1) {
+    for (size_t i = 1; i < argc; ++i) {
+      load_file(environment, argv[i]);
+    }
+  }
+
+#ifdef LITE_GFX
+  genv = &environment;
+  enter_lite_gui();
 #else
   enter_repl(environment);
-#endif /* #ifdef LITE_GFX */
+#endif
 
   int debug_memory = env_non_nil(environment, make_sym("DEBUG/MEMORY"));
   // Garbage collection with no marking means free everything.
