@@ -385,11 +385,11 @@ Error evaluate_expression(Atom expr, Atom environment, Atom *result) {
                        , usage_while);
             return err;
           }
-
-          printf("WHILE: Encountered ");
-          print_atom(cons(operator, arguments));
-          putchar('\n');
-
+          if (env_non_nil(environment, make_sym("DEBUG/WHILE"))) {
+            printf("WHILE: First encounter of ");
+            print_atom(cons(operator, arguments));
+            putchar('\n');
+          }
           stack = make_frame(stack, environment, arguments);
           // Stack operator set to WHILE.
           list_set(stack, 2, operator);
