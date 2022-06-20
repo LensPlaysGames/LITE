@@ -151,6 +151,24 @@ also known as the absolute value.")
        "Evaluate BODY iff CONDITION evaluates to nil."
        `(if (! ,condition) ,@body nil))
 
+;; ASSOCIATION LISTS
+;; also known as ALISTS
+
+(macro alist-set (alist key value)
+       "Associate VALUE with KEY in ALIST."
+       `(define ,alist (cons (cons ,key ,value) ,alist)))
+
+(define alist-get
+    (lambda (alist key)
+      (if (eq key (car (car alist)))
+          ;;then
+          (cdr (car alist))
+          ;;else
+          (if (cdr alist)
+              (alist-get (cdr alist) key)
+              nil)))
+  "Get the value associated with KEY in ALIST, or nil if not found.")
+
 ;; MISCELLANEOUS
 
 (macro set-docstring (x string)

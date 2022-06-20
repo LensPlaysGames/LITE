@@ -6,6 +6,25 @@ typedef struct Atom Atom;
 
 typedef const char symbol_t;
 
+// TYPES
+
+extern symbol_t         *builtin_nilp_docstring;
+int builtin_nilp        (Atom arguments, Atom *result);
+extern symbol_t         *builtin_pairp_docstring;
+int builtin_pairp       (Atom arguments, Atom *result);
+extern symbol_t         *builtin_symbolp_docstring;
+int builtin_symbolp     (Atom arguments, Atom *result);
+extern symbol_t         *builtin_integerp_docstring;
+int builtin_integerp    (Atom arguments, Atom *result);
+extern symbol_t         *builtin_builtinp_docstring;
+int builtin_builtinp    (Atom arguments, Atom *result);
+extern symbol_t         *builtin_closurep_docstring;
+int builtin_closurep    (Atom arguments, Atom *result);
+extern symbol_t         *builtin_macrop_docstring;
+int builtin_macrop      (Atom arguments, Atom *result);
+extern symbol_t         *builtin_stringp_docstring;
+int builtin_stringp     (Atom arguments, Atom *result);
+
 // PAIRS
 
 extern symbol_t         *builtin_cons_docstring;
@@ -14,8 +33,6 @@ extern symbol_t         *builtin_car_docstring;
 int builtin_car         (Atom arguments, Atom *result);
 extern symbol_t         *builtin_cdr_docstring;
 int builtin_cdr         (Atom arguments, Atom *result);
-extern symbol_t         *builtin_pairp_docstring;
-int builtin_pairp       (Atom arguments, Atom *result);
 
 // LOGICAL
 

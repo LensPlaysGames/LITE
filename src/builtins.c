@@ -6,6 +6,66 @@
 #include <string.h>
 #include <types.h>
 
+int typep(Atom arguments, enum AtomType type, Atom *result) {
+  if (nilp(arguments) || !nilp(cdr(arguments))) {
+    return ERROR_ARGUMENTS;
+  }
+  *result = car(arguments).type == type ? make_sym("T") : nil;
+  return ERROR_NONE;
+}
+
+symbol_t *builtin_nilp_docstring =
+  "Return 'T' iff ARG has a type of 'NIL', otherwise return nil.";
+int builtin_nilp(Atom arguments, Atom *result) {
+  if (!nilp(cdr(arguments))) {
+    return ERROR_ARGUMENTS;
+  }
+  *result = car(arguments).type == ATOM_TYPE_NIL ? make_sym("T") : nil;
+  return ERROR_NONE;
+}
+
+symbol_t *builtin_pairp_docstring =
+  "Return 'T' iff ARG has a type of 'PAIR', otherwise return nil.";
+int builtin_pairp(Atom arguments, Atom *result) {
+  return typep(arguments, ATOM_TYPE_PAIR, result);
+}
+
+symbol_t *builtin_symbolp_docstring =
+  "Return 'T' iff ARG has a type of 'SYMBOL', otherwise return nil.";
+int builtin_symbolp(Atom arguments, Atom *result) {
+  return typep(arguments, ATOM_TYPE_SYMBOL, result);
+}
+
+symbol_t *builtin_integerp_docstring =
+  "Return 'T' iff ARG has a type of 'INTEGER', otherwise return nil.";
+int builtin_integerp(Atom arguments, Atom *result) {
+  return typep(arguments, ATOM_TYPE_INTEGER, result);
+}
+
+symbol_t *builtin_builtinp_docstring =
+  "Return 'T' iff ARG has a type of 'BUILTIN', otherwise return nil.";
+int builtin_builtinp(Atom arguments, Atom *result) {
+  return typep(arguments, ATOM_TYPE_BUILTIN, result);
+}
+
+symbol_t *builtin_closurep_docstring =
+  "Return 'T' iff ARG has a type of 'CLOSURE', otherwise return nil.";
+int builtin_closurep(Atom arguments, Atom *result) {
+  return typep(arguments, ATOM_TYPE_CLOSURE, result);
+}
+
+symbol_t *builtin_macrop_docstring =
+  "Return 'T' iff ARG has a type of 'MACRO', otherwise return nil.";
+int builtin_macrop(Atom arguments, Atom *result) {
+  return typep(arguments, ATOM_TYPE_MACRO, result);
+}
+
+symbol_t *builtin_stringp_docstring =
+  "Return 'T' iff ARG has a type of 'STRING', otherwise return nil.";
+int builtin_stringp(Atom arguments, Atom *result) {
+  return typep(arguments, ATOM_TYPE_STRING, result);
+}
+
 symbol_t *builtin_not_docstring =
   "Given ARG is nil, return 'T', otherwise return nil.";
 int builtin_not(Atom arguments, Atom *result) {
@@ -258,16 +318,6 @@ int builtin_apply(Atom arguments, Atom *result) {
     if (err.type) { return err.type; }
     body = cdr(body);
   }
-  return ERROR_NONE;
-}
-
-symbol_t *builtin_pairp_docstring =
-  "Return 'T' iff ARG has a type of 'PAIR', otherwise return nil.";
-int builtin_pairp(Atom arguments, Atom *result) {
-  if (nilp(arguments) || !nilp(cdr(arguments))) {
-    return ERROR_ARGUMENTS;
-  }
-  *result = car(arguments).type == ATOM_TYPE_PAIR ? make_sym("T") : nil;
   return ERROR_NONE;
 }
 

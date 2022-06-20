@@ -69,7 +69,7 @@ Error parse_simple(const char *beg, const char *end, Atom *result) {
     ++beg;
   }
   *p = '\0';
-  if (memcmp(buffer, "NIL", 3) == 0) {
+  if (strcmp(buffer, "NIL") == 0) {
     *result = nil;
   } else {
     *result = make_sym(buffer);

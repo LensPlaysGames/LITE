@@ -509,6 +509,26 @@ Error evaluate_expression(Atom expr, Atom environment, Atom *result) {
             return err;
           }
           *result = environment;
+        } else if (strcmp(operator.value.symbol, "ERROR") == 0) {
+          const char *usage_error = "Usage: (ERROR \"message\")";
+          if (nilp(arguments) || !nilp(cdr(arguments))) {
+            PREP_ERROR(err, ERROR_ARGUMENTS
+                       , arguments
+                       , "ERROR: Only a single string argument is accepted."
+                       , usage_error);
+            return err;
+          }
+          Atom message = car(arguments);
+          if (!stringp(message)) {
+            PREP_ERROR(err, ERROR_TYPE
+                       , arguments
+                       , "ERROR: Only a single *string* argument is accepted."
+                       , usage_error);
+            return err;
+          }
+          printf("LISP ERROR: %s\n", message.value.symbol);
+          *result = make_string(message.value.symbol);
+          break;
         } else {
           // Evaluate operator before application.
           stack = make_frame(stack, environment, arguments);
