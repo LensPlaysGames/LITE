@@ -152,11 +152,19 @@ LISP evaluation environment, including the symbol table."));
           ("When non-nil, display debug information concerning macros, \
 including what each expansion step looks like."));
 
-  // TODO: Give docstrings to "DEBUG/MEMORY" and "DEBUG/WHILE".
+  env_set(environment, make_sym("DEBUG/MEMORY"), nil_with_docstring
+          ("When non-nil, display debug information concerning allocated memory, \
+including when garbage collections happen and data upon program exit."));
+
+  env_set(environment, make_sym("DEBUG/WHILE"), nil_with_docstring
+          ("When non-nil, display debug information concerning 'WHILE', \
+including data output at each iteration of the loop."));
 
   env_set(environment, make_sym("WHILE-RECURSE-LIMIT"), make_int_with_docstring
           (10000
-           , "This is the maximum amount of times a while loop may loop.\n\nUsed to prevent infinite loops."));
+           , "This is the maximum amount of times a while loop may loop.\n"
+           "\n"
+           "Used to prevent infinite loops."));
 
   env_set(environment, make_sym("SHIFT-CONVERSION-ALIST"), default_shift_conversion_alist());
 

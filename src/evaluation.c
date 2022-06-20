@@ -375,6 +375,8 @@ Error evaluate_expression(Atom expr, Atom environment, Atom *result) {
           stack = make_frame(stack, environment, cdr(arguments));
           list_set(stack, 2, operator);
           expr = car(arguments);
+          // Evaluate condition of IF.
+          // Result handled in `evaluate_return_value()`
           continue;
         } else if (strcmp(operator.value.symbol, "WHILE") == 0) {
           const char* usage_while = "Usage: (WHILE <condition> <body>)";
@@ -393,7 +395,7 @@ Error evaluate_expression(Atom expr, Atom environment, Atom *result) {
           stack = make_frame(stack, environment, arguments);
           // Stack operator set to WHILE.
           list_set(stack, 2, operator);
-          // Evaluate condition of while loop.
+          // Evaluate condition of WHILE loop.
           // Result handled in `evaluate_return_value()`
           expr = car(arguments);
           continue;
@@ -431,13 +433,12 @@ Error evaluate_expression(Atom expr, Atom environment, Atom *result) {
                              , car(cdr(arguments))
                              , cdr(cdr(cdr(arguments)))
                              , &macro);
-          if (!err.type) {
-            macro.type = ATOM_TYPE_MACRO;
-            // FIXME: These docstrings are leaked!
-            macro.docstring = strdup(docstring.value.symbol);
-            (void)env_set(environment, name, macro);
-            *result = name;
-          }
+          if (err.type) { return err; }
+          macro.type = ATOM_TYPE_MACRO;
+          // FIXME: These docstrings are leaked!
+          macro.docstring = strdup(docstring.value.symbol);
+          (void)env_set(environment, name, macro);
+          *result = name;
         } else if (strcmp(operator.value.symbol, "DOCSTRING") == 0) {
           const char *usage_docstring = "(DOCSTRING <symbol>)";
           if (nilp(arguments) || !nilp(cdr(arguments))) {
