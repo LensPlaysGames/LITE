@@ -16,52 +16,133 @@ listed here are a few that are especially significant.
 The goal of LITE is to create a modern, cross-platform tool
 for text editing and general scripting that is *easy to port*.
 
-Initially, development followed [[https://www.lwh.jp/lisp/][this LISP interpreter tutorial]].
-If you are wanting to do this for yourself, and make your own LISP (interpreter),
-there are many tutorials out there: pick one that makes sense to you.
+Initially, development followed [[https://www.lwh.jp/lisp/][this LISP interpreter tutorial]] ([[https://web.archive.org/web/20220617192957/https://www.lwh.jp/lisp][archive]]).
 
 *** Usage
 
-Enter the REPL by running the executable from a terminal.
+All shell commands expect a working directory of the base of this repository.
 
-Any arguments given are treated as source files, and
-are loaded into the environment before entring the REPL.
+**** LITE REPL
 
-It is recommended to include the standard LITE LISP
-library at ~std.lt~ in the ~lisp~ subdirectory.
-: bin/LITE lisp/std.lt
+By default, LITE builds a terminal-only "read, evaluate, print, loop" program (a /REPL/). \\
+To enter the REPL, run the following:
+#+begin_src shell
+  bin/LITE lisp/std.lt
+#+end_src
 
-Or on Windows:
-: .\bin\LITE.exe .\lisp\std.lt
+On Windows:
+#+begin_src shell
+  .\bin\LITE .\lisp\std.lt
+#+end_src
+
+Any and all arguments are treated as file paths and are attempted to be loaded as LITE LISP source files.
+It is recommended to include the standard library, as shown.
+
+**** LITE GFX
+
+LITE may be compiled with GFX, resulting in an executable GUI application.
+
+Run it the way that you would normally run a graphical application on your OS.
+Most of the time this means double-clicking the executable from a file explorer.
+
+The executable may be obtained by building from local source.
+# or [[https://github.com/LensPlaysGames/LITE/releases/latest][downloading]] the latest pre-built release.
 
 *** Building
 
+NOTE: Any and all shell commands assume a working directory of the base of this repository.
+
 [[https://cmake.org/][CMake]] is used as the cross-platform build system.
 
-First, generate a local build tree:
-#+begin_src sh
-  cmake -G <GENERATOR> -S . -B bld -DCMAKE_BUILD_TYPE=Release
+To see a list of available build systems, use the following command:
+#+begin_src shell
+  cmake -G
 #+end_src
 
-Replace =<GENERATOR>= with your choice of build system,
-being Unix Makefiles, Ninja, or otherwise. Don't include the angled brackets.
-To see a list of available generators, invoke CMake
-with just the ~-G~ option, no other arguments.
+I recommend [[https://www.ninja-build.org][Ninja]], it is modern, fast, and
+designed for use in conjunction with CMake.
+
+First, generate an out-of-source build tree:
+#+begin_src sh
+  cmake -G <build system> -S . -B bld -DCMAKE_BUILD_TYPE=Release
+#+end_src
+Replace ~<build system>~ with one of the available build systems.
 
 Once the build tree is generated, invoke it to generate an executable.
 #+begin_src sh
   cmake --build bld
 #+end_src
 
-The ~bin~ subdirectory should now be populated with the LITE executable.
+If no fatal errors occur, the ~bin~ subdirectory of the
+repository will be populated with the LITE executable.
 
 ** LITE LISP
 LITE LISP is the language that LITE interprets.
 
-*** Types
+*** Basic Syntax
 
-Everything in LISP is an object called an ~Atom~.
-An Atom has a type, a value, and a docstring.
+Every LISP program is made up of /atoms/.
+An atom is nearly any sequence of bytes, except for whitespace, commas, or backslashes.
+Atoms are *NOT case sensitive*.
+
+Here are some valid LITE LISP atoms.
+#+begin_example
+foo-bar
+foo/bar
+*foobar*
+<*-/im-an-atom/-*>
+-420
+69
+interrupt80
+#+end_example
+
+A /list/ is a sequence of atoms and/or other lists surrounded by parentheses.
+#+begin_example
+(foo-bar foo/bar *foobar*)
+(   im a    list (in a list ))
+(sun mon tue wed thu fri sat)
+#+end_example
+
+Strings are any sequence of bytes surrounded by double quotes.
+#+begin_example
+"I am a string."
+" al;sdn  (!*^(*%)#!^)  \033  \n  lasnk  \ a     \a   \t \f "
+"Information is easy to fake but hard to smell."
+#+end_example
+
+Comments begin with a semi-colon and stop at the first newline.
+#+begin_example
+; I'm a comment
+;;;; And I as well!
+
+(print "hello, friends!") ; print to stdout
+#+end_example
+
+Function calls are represented as a list with a symbol as the first element,
+and any arguments passed are subsequent elements.
+#+begin_example
+(print "hello friends!")
+(abs -69420)
+(define foo 42)
+#+end_example
+
+*** Atoms
+
+Every object in LISP is called an ~Atom~. Every Atom has a type, a value,
+a docstring, and a generic allocation pointer associated with it.
+
+The value is a union with multiple value types, and the type field designates
+which value within the union to use, and how to treat it.
+
+The docstring is a string containing information about the atom, i.e. /documenting/ it. \\
+This could range from a function's usage to a variables meaning. \\
+Access docstrings using the docstring special form: ~(docstring <atom>)~.
+
+The generic allocation pointer is a linked list of allocated memory that
+may be freed when the atom is garbage collected. This allows the LITE interpreter
+to allocate memory as needed and ensure it is freed */after/* using it.
+
+*** Types
 
 Here are the different types an Atom may have in LITE LISP:
 - Nil -- This is the definition of false, nothing, etc.
@@ -73,20 +154,23 @@ Here are the different types an Atom may have in LITE LISP:
   A list is a pair with a value on the left,
   and another pair, or nil, on the right.
 
-- Symbol -- A string that may be bound in the environment.
-- Integer -- An integer number.
-- BuiltIn -- A function implemented in the source code that is called from LISP.
-- Closure -- A function that is able to be called from LISP; a lambda.
-- Macro -- A function whose body returns an expression that is then evaluated.
-- String -- A sequence of bytes, usually denoting human readable text.
+- Symbol  -- A sequence of bytes that may be bound in the environment.
 
-More about docstrings in the section about variables.
+  All symbols are located in the /symbol table/ with no duplicates.
 
-*** Variables
+- String  -- A sequence of bytes, usually denoting human readable text.
+- Integer -- An integer number, like ~1~, ~-420~, or ~69~.
+- BuiltIn -- A function implemented in LITE source code that is able to be called from LITE LISP.
+- Closure -- A function implemented in LITE LISP; a lambda.
+- Macro   -- A closure with unevaluated arguments that creates an expression that is then evaluated.
 
-Variables are stored globally, and are stored in the /environment/.
-The environment is like a key-value dictionary, where the keys are
-some symbol (a string), and the values are LISP objects (an 'Atom').
+*** Environment, Variables, and QUOTE
+
+Variables are stored in an /environment/.
+The environment is a key/value dictionary, where the keys
+are a symbol, and the values are atomic LISP objects.
+
+Currently, there is only one global environment (this will change).
 
 To create a new variable, use the ~DEFINE~ operator.
 #+begin_src lisp
@@ -94,27 +178,19 @@ To create a new variable, use the ~DEFINE~ operator.
 #+end_src
 
 ~new-variable~ is now a symbol bound in the environment.
-It has an integer value of =42=.
-
-You can see the value a symbol has by evaluating it.
-#+begin_src lisp
-  new-variable
-#+end_src
-The output will be =42=, as the symbol was evaluated.
-Evaluating a symbol means it is replaced with
-the corresponding value from the environment.
+Following occurences of the bound symbol will be evaluated to the defined value, ~42~.
 
 Sometimes, it is useful to *not* evaluate a variable.
 This can be done using the ~QUOTE~ operator.
 #+begin_src lisp
-  (quote new-variable)
+  (quote new-variable) ; returns the symbol "new-variable"
 #+end_src
 
-As this is a very common necessity in LISP, there is
+As quoting is a very common necessity in LISP, there is
 a special short-hand for it: a preceding single-quote.
 This short-hand means the following to be equivalent to the ~QUOTE~ just above.
 #+begin_src lisp
-  'new-variable
+  'new-variable ; returns the symbol "new-variable"
 #+end_src
 
 When defining any variable, it is possible to define
@@ -123,25 +199,50 @@ a docstring for it by specifying it as a third argument:
   (define new-variable 42 "The meaning of life, the universe, and everything.")
 #+end_src
 
-The docstring may be accessed using the ~DOCSTRING~ operator, like so:
+The docstring may be accessed like so:
 #+begin_src lisp
   (docstring new-variable)
 #+end_src
 
+The standard library includes a macro to help re-define a docstring:
+#+begin_src lisp
+  (set-docstring new-variable "The meaning of your mom.")
+#+end_src
+
 This allows for everything in LITE LISP to self-document it's use.
 
-*** Lambda
+*** Functions
 
-If you are not familiar, a lambda is just a function with no name.
-
-Currently, lambdas have the following syntax:
+The standard library includes the ~DEFUN~ macro to help define named functions.
 #+begin_src lisp
-  (lambda (ARGUMENT ...) BODY-EXPRESSION)
+  (defun <name> <args> <docstring> <body>)
+#+end_src
+
+Here is a simple factorial implementation:
+#+begin_src lisp
+  (defun fact (x) "Get the factorial of integer X." (if (= x 0) 1 (* x (fact (- x 1)))))
+#+end_src
+
+**** Lambda/Closure
+
+A lambda is a function with no name.
+
+Currently, lambdas may be defined with the following syntax:
+#+begin_src lisp
+  (lambda ARGUMENT BODY)
+#+end_src
+
+This means the identity lambda looks as follows:
+#+begin_src lisp
+  (lambda (x) x)
+#+end_src
+
+As a real world example, here is the factorial implementation from above written as a lambda:
+#+begin_src lisp
+  (lambda (x) (if (= x 0) 1 (* x (fact (- x 1)))))
 #+end_src
 
 There is also support for variadic arguments using an /improper list/.
-Improper lists have not ~NIL~ at the end, but a value.
-
 The syntax for an improper list is as follows:
 : (1 2 3 . 4)
 
@@ -150,22 +251,8 @@ a function with a varying number of arguments.
 #+begin_src lisp
   (lambda (argument1 argument2 . the-rest) BODY-EXPRESSION)
 #+end_src
-
 After all fixed arguments are given, the rest are
 converted to a list and passed to the function.
-
-As a real-world example, here is a factorial implementation in LITE LISP:
-#+begin_src lisp
-  (define fact (lambda (x) (if (= x 0) 1 (* x (fact (- x 1))))))
-#+end_src
-
-The standard library includes a macro to ease the definition of a function: ~DEFUN~.
-This macro requires a docstring, so as to encourage best practices.
-Here is the factorial example seen just above defined using it.
-#+begin_src lisp
-  (defun fact (x) "Get the factorial of integer X." (if (= x 0) 1 (* x (fact (- x 1)))))
-#+end_src
-
 
 *** Macros
 
@@ -174,14 +261,8 @@ A macro is like a lambda, except it will return the result of evaluating
 it's return value, rather than it's return value being the result.
 This allows for commands and arguments to be built programatically in LISP.
 
-Macros require a docstring, so as to ensure each one is well-documented.
-The docstring may be accessed using the ~DOCSTRING~ operator, like so:
-#+begin_src lisp
-  (docstring quasiquote)
-#+end_src
-
 In order to ease the making of macros, there is /quasiquotation/.
-It is similar to quote, but it is possible to unquote specific
+It is similar to regular quotation, but it is possible to unquote specific
 pieces so as to evaluate them before calling the built expression.
 
 While it is possible to call the quasiquotation operators
@@ -200,47 +281,46 @@ A simple example that mimics the ~QUOTE~ operator:
 
 The QUASIQUOTE special-form at the beginning will cause
 the QUOTE symbol to pass through without being evaluated.
-The UNQUOTE special-form before the ~X~ symbol will
-cause it to be evaluated.
+The UNQUOTE special-form before the ~X~ symbol will cause
+it to be evaluated, replacing ~,x~ with the passed argument.
 
 For example, calling ~(my-quote a)~ will expand to ~(QUOTE A)~,
 which will result in the symbol ~A~ being returned.
-The quasiquotation prevents QUOTE from being evaluated,
-but UNQUOTE causes the given expression to be evaluated
-(in this case, the argument variable ~x~ evaluates to ~42~).
 
-When including the standard library, ~DEFMACRO~ operates the same as ~MACRO~.
+When including the standard library, ~DEFMACRO~ operates exactly the same as ~MACRO~.
 
 When the environment variable ~DEBUG/MACRO~ is non-nil,
 extra output concerning macros is produced.
 
-*** Comments
-
-Comments are delimited with the ';' character, per line.
-
-#+begin_src lisp
-  ;; This is a comment
-  ;; It begins with a ';', and ends upon encountering a newline.
-  (define length 42069) ; They work at the end of lines, as well.
-#+end_src
-
 *** Misc
-
-- Environment
-
-  Get the current environment by using the ~ENV~ operator.
-
-  Alternatively, visualize the environment using by
-  setting ~DEBUG/ENVIRONMENT~ to any non-nil value.
 
 - Symbol Table
 
   Get the current symbol table with the ~SYM~ operator.
 
-  Alternatively, visualize the environment using by
-  setting ~DEBUG/ENVIRONMENT~ to any non-nil value.
+  Alternatively, visualize the environment by setting
+  ~DEBUG/ENVIRONMENT~ to any non-nil value.
+
+- Environment
+
+  Get the current environment by using the ~ENV~ operator.
+
+  Alternatively, visualize the environment by setting
+  ~DEBUG/ENVIRONMENT~ to any non-nil value.
 
 - Closure environment syntax
 
   Currently, closures are stored in the environment with the following syntax:
   : (ENVIRONMENT (ARGUMENT ...) BODY-EXPRESSION)
+
+- Debug environment variables
+
+  There are environment variables that cause LITE to report output extra
+  information regarding the topic the variable pertains to when non-nil.
+
+  Here is a list of debug variables that are currently valid.
+   - ~DEBUG/ENVIRONMENT~
+   - ~DEBUG/EVALUATE~
+   - ~DEBUG/MACRO~
+   - ~DEBUG/MEMORY~
+   - ~DEBUG/WHILE~

@@ -17,6 +17,16 @@ set(EXECUTABLE_OUTPUT_PATH ${CMAKE_SOURCE_DIR}/bin)
 
 project(LITE VERSION ${LITE_VERSION} LANGUAGES ${LITE_LANGUAGES})
 
+option(
+  LITE_GFX
+  "Should LITE be built with graphical abilities (GUI)?"
+  ON
+)
+
+if (${LITE_GFX})
+  add_subdirectory(gfx)
+endif ()
+
 add_executable(
   LITE
   src/builtins.c
@@ -25,10 +35,30 @@ add_executable(
   src/evaluation.c
   src/main.c
   src/repl.c
+  src/rope.c
   src/parser.c
   src/types.c
 )
+target_compile_definitions(
+  LITE
+  PRIVATE
+  $<$<BOOL:${LITE_GFX}>:LITE_GFX>
+)
 target_include_directories(
   LITE
-  PRIVATE src/
+  PRIVATE
+  src/
 )
+if (LITE_GFX)
+  target_include_directories(
+    LITE
+    PRIVATE
+    gfx/
+  )
+  target_link_libraries(
+    LITE
+    PRIVATE
+    SDL_LIB
+  )
+endif()
+

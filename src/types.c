@@ -1,5 +1,6 @@
 #include <types.h>
 
+#include <builtins.h>
 #include <error.h>
 #include <stdarg.h>
 #include <stddef.h>
@@ -291,6 +292,13 @@ Atom list_get(Atom list, int k) {
   return car(list);
 }
 
+Atom list_get_past(Atom list, int k) {
+  while (k--) {
+    list = cdr(list);
+  }
+  return list;
+}
+
 void list_set(Atom list, int k, Atom value) {
   while (k--) {
     list = cdr(list);
@@ -298,7 +306,17 @@ void list_set(Atom list, int k, Atom value) {
   car(list) = value;
 }
 
+void list_push(Atom *list, Atom value) {
+  if (!list) {
+    return;
+  }
+  *list = cons(value, *list);
+}
+
 void list_reverse(Atom *list) {
+  if (!list) {
+    return;
+  }
   Atom tail = nil;
   while (!nilp(*list)) {
     Atom p = cdr(*list);
@@ -322,6 +340,68 @@ Atom copy_list(Atom list) {
     list = cdr(list);
   }
   return newlist;
+}
+
+int alistp(Atom expr) {
+  while (!nilp(expr)) {
+    if (expr.type != ATOM_TYPE_PAIR
+        || car(expr).type != ATOM_TYPE_PAIR)
+      {
+        return 0;
+      }
+    expr = cdr(expr);
+  }
+  return 1;
+}
+
+Atom make_empty_alist() {
+  return cons(nil, nil);
+}
+
+Atom make_alist(Atom key, Atom value) {
+  return cons(cons(key, value), nil);
+}
+
+Atom alist_get(Atom alist, Atom key) {
+  if (!alistp(alist) || nilp(key)) {
+    return nil;
+  }
+  size_t i = 0;
+  Atom list;
+  Atom item;
+  while (1) {
+    list = list_get_past(alist, i);
+    item = car(list);
+    // Every item within an association list needs to be a pair!
+    if (!pairp(item)) {
+      return nil;
+    }
+    // Test if key matches.
+    Atom is_match = nil;
+    Error err;
+    err.type = builtin_eq(cons(key, cons(car(item), nil)), &is_match);
+    if (err.type) {
+      printf("alist_get() ");
+      print_error(err);
+      return nil;
+    }
+    // Return value if key matched.
+    if (!nilp(is_match)) {
+      return cdr(item);
+    }
+    // Don't extend past end of alist.
+    if (nilp(cdr(list))) {
+      return nil;
+    }
+    i++;
+  }
+}
+
+void alist_set(Atom *alist, Atom key, Atom value) {
+  if (!alist || !alistp(*alist)) {
+    return;
+  }
+  list_push(alist, cons(key, value));
 }
 
 void print_atom(Atom atom) {
@@ -430,7 +510,7 @@ char *atom_string(Atom atom, char *buffer) {
     snprintf(buffer+length, to_add, "\"%s\"", atom.value.symbol);
     break;
   case ATOM_TYPE_INTEGER:
-    // FIXME: Format only works when interger_t is long long int
+    // FIXME: Format only works when integer_t is long long int
     to_add = format_bufsz("%lli", atom.value.integer);
     buffer = realloc(buffer, length+to_add);
     if (!buffer) { return NULL; }

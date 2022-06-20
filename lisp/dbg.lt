@@ -4,3 +4,4 @@
 (define debug/evaluate t)
 (define debug/macro t)
 (define debug/memory t)
+(define debug/while t)

@@ -3,6 +3,7 @@
 #include <error.h>
 #include <environment.h>
 #include <evaluation.h>
+#include <string.h>
 #include <types.h>
 
 symbol_t *builtin_not_docstring =
@@ -292,6 +293,9 @@ int builtin_eq(Atom arguments, Atom *result) {
     case ATOM_TYPE_SYMBOL:
       equal = (a.value.symbol == b.value.symbol);
       break;
+    case ATOM_TYPE_STRING:
+      equal = (strcmp(a.value.symbol, b.value.symbol) == 0);
+      break;
     case ATOM_TYPE_INTEGER:
       equal = (a.value.integer == b.value.integer);
       break;
@@ -304,6 +308,16 @@ int builtin_eq(Atom arguments, Atom *result) {
     }
   }
   *result = equal ? make_sym("T") : nil;
+  return ERROR_NONE;
+}
+
+symbol_t *builtin_symbol_table_docstring =
+  "Return the LISP symbol table.";
+int builtin_symbol_table(Atom arguments, Atom *result) {
+  if (!nilp(arguments)) {
+    return ERROR_ARGUMENTS;
+  }
+  *result = *sym_table();
   return ERROR_NONE;
 }
 

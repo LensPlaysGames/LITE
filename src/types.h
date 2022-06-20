@@ -34,7 +34,7 @@ typedef struct Atom {
   struct GenericAllocation *galloc;
 } Atom;
 struct Pair {
-  struct Atom atom[2];
+  Atom atom[2];
 };
 
 static const Atom nil = { ATOM_TYPE_NIL, 0, NULL, NULL };
@@ -96,12 +96,27 @@ Atom cons(Atom car_atom, Atom cdr_atom);
 
 /// Returns boolean-like value, 0 = false.
 int listp(Atom expr);
-
+/// Get a single element in a list from a given index.
 Atom list_get(Atom list, int k);
+/// Get all elements in a list past a given index.
+Atom list_get_past(Atom list, int k);
+/// Set an elements value from a given index.
 void list_set(Atom list, int k, Atom value);
+/// Push a value on to the beginning of a list.
+void list_push(Atom *list, Atom value);
 void list_reverse(Atom *list);
-
 Atom copy_list(Atom list);
+
+/// Returns boolean-like value, 0 = false.
+int alistp(Atom expr);
+/// Make a valid association list with only a nil entry.
+Atom make_empty_alist();
+/// Make an association list with a given initial key/value pair.
+Atom make_alist(Atom key, Atom value);
+/// Get the value associated with a key, otherwise return NIL.
+Atom alist_get(Atom alist, Atom key);
+/// Set the value associated with a key in a given alist.
+void alist_set(Atom *alist, Atom key, Atom value);
 
 Atom nil_with_docstring(symbol_t *docstring);
 Atom make_int(integer_t value);
