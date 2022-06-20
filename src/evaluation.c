@@ -201,7 +201,6 @@ Error evaluate_return_value(Atom *stack, Atom *expr, Atom *environment, Atom *re
       // If result is nil, or maximum recursion limit has been reached, exit the loop.
       if (nilp(*result) || recurse_count.value.integer >= recurse_maximum.value.integer) {
         if (debug_while) { printf("  Loop ending.\n"); }
-        // WHILE stack frame handled.
         *stack = car(*stack);
         return ok;
       }
