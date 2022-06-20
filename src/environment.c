@@ -114,8 +114,22 @@ Atom default_shift_conversion_alist() {
   return shift_map_alist;
 }
 
+Atom default_keymap() {
+  // Only the first character of the string is used for now.
+  Atom keymap = make_empty_alist();
+  alist_set(&keymap, make_string("CTRL"), nil);
+  alist_set(&keymap, make_string("LEFT-CONTROL"), make_string("CTRL"));
+  alist_set(&keymap, make_string("RIGHT-CONTROL"), make_string("CTRL"));
+  alist_set(&keymap, make_string("SHFT"), default_shift_conversion_alist());
+  alist_set(&keymap, make_string("LEFT-SHIFT"), make_string("SHFT"));
+  alist_set(&keymap, make_string("RIGHT-SHIFT"), make_string("SHFT"));
+  return keymap;
+}
+
 Atom default_environment() {
   Atom environment = env_create(nil);
+  Atom keymap = default_keymap();
+  env_set(environment, make_sym("KEYMAP"),   keymap);
   env_set(environment, make_sym("T"),        make_sym("T"));
   env_set(environment, make_sym("CAR"),      make_builtin(builtin_car,          builtin_car_docstring));
   env_set(environment, make_sym("CDR"),      make_builtin(builtin_cdr,          builtin_cdr_docstring));
@@ -155,6 +169,10 @@ LISP evaluation environment, including the symbol table."));
 
   env_set(environment, make_sym("DEBUG/EVALUATE"), nil_with_docstring
           ("When non-nil, display debug information concerning the evaluation of expressions."));
+
+  env_set(environment, make_sym("DEBUG/KEYBINDING"), nil_with_docstring
+          ("When non-nil, display debug information concerning keybindings, \
+including information about keymaps on every button press."));
 
   env_set(environment, make_sym("DEBUG/MACRO"), nil_with_docstring
           ("When non-nil, display debug information concerning macros, \

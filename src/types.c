@@ -343,6 +343,9 @@ Atom copy_list(Atom list) {
 }
 
 int alistp(Atom expr) {
+  if (nilp(expr)) {
+    return 0;
+  }
   while (!nilp(expr)) {
     if (expr.type != ATOM_TYPE_PAIR
         || car(expr).type != ATOM_TYPE_PAIR)
@@ -355,7 +358,7 @@ int alistp(Atom expr) {
 }
 
 Atom make_empty_alist() {
-  return cons(nil, nil);
+  return cons(cons(nil, nil), nil);
 }
 
 Atom make_alist(Atom key, Atom value) {
