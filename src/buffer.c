@@ -5,6 +5,7 @@
 #include <rope.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
 
 Buffer *buffer_create(char *path) {
