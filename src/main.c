@@ -5,9 +5,11 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <buffer.h>
 #include <environment.h>
 #include <evaluation.h>
 #include <error.h>
+#include <file_io.h>
 #include <parser.h>
 #include <repl.h>
 #include <rope.h>
@@ -17,67 +19,6 @@
 #include <api.h>
 #include <gui.h>
 #endif
-
-//================================================================ BEG file_io
-size_t file_size(FILE *file) {
-  if (!file) {
-    return 0;
-  }
-  fseek(file, 0, SEEK_END);
-  size_t length = ftell(file);
-  fseek(file, 0, SEEK_SET);
-  return length;
-}
-
-/// Returns a heap-allocated buffer containing the
-/// contents of the file found at the given path.
-char *file_contents(const char* path) {
-  char *buffer = NULL;
-  FILE *file = fopen(path, "r");
-  if (!file) {
-    printf("Couldn't open file at %s\n", path);
-    return NULL;
-  }
-  size_t size = file_size(file);
-  if (size == 0) {
-    printf("File has zero size at %s\n", path);
-    return NULL;
-  }
-  buffer = malloc(size + 1);
-  if (!buffer) {
-    printf("Could not allocate buffer for file at %s\n", path);
-    return NULL;
-  }
-  fread(buffer, 1, size, file);
-  buffer[size] = 0;
-  fclose(file);
-  return buffer;
-}
-
-Error load_file(Atom environment, const char* path) {
-  char *input = file_contents(path);
-  Error err;
-  if (!input) {
-    PREP_ERROR(err, ERROR_ARGUMENTS, nil
-               , "Could not get contents of file."
-               , path)
-    return err;
-  }
-  const char* source = input;
-  Atom expr;
-  while (parse_expr(source, &source, &expr).type == ERROR_NONE) {
-    Atom result;
-    err = evaluate_expression(expr, environment, &result);
-    if (err.type) { return err; }
-    print_atom(result);
-    putchar('\n');
-  }
-  free(input);
-  return ok;
-}
-
-//================================================================ END file_io
-
 
 #ifdef LITE_GFX
 char *allocate_string(const char *string) {
@@ -174,6 +115,7 @@ void handle_newline() {
                                    , make_sym("DEBUG/MEMORY"));
     // Garbage collection with no marking means free everything.
     gcol();
+    free_buffer_table();
     if (debug_memory) {
       print_gcol_data();
     }
@@ -291,6 +233,8 @@ void handle_character_dn(uint64_t c) {
             current_keymap = lctrl_bind;
           } else {
             // TODO: What keybind is undefined???
+            // I guess we need to keep track of how we got here.
+            // This could be done by saving keys of each keybind.
             update_footline(gctx, allocate_string("Undefined keybinding!"));
             // Discard character if no ctrl keybind was found.
             return;
@@ -339,7 +283,6 @@ void handle_character_dn(uint64_t c) {
           if (alistp(ralt_bind)) {
             current_keymap = ralt_bind;
           } else {
-            // TODO: What keybind is undefined???
             update_footline(gctx, allocate_string("Undefined keybinding!"));
             // Discard character if no keybind was found.
             return;
@@ -357,8 +300,8 @@ void handle_character_dn(uint64_t c) {
           }
           if (alistp(lshift_bind)) {
             current_keymap = lshift_bind;
+            env_set(*genv, make_sym("CURRENT-KEYMAP"), current_keymap);
           }
-          env_set(*genv, make_sym("CURRENT-KEYMAP"), current_keymap);
         } else if (modkey_state(GUI_MODKEY_RSHIFT)) {
           Atom rshift_bind = alist_get(current_keymap, make_string("RIGHT-SHIFT"));
           if (stringp(rshift_bind)) {
@@ -367,8 +310,8 @@ void handle_character_dn(uint64_t c) {
           }
           if (alistp(rshift_bind)) {
             current_keymap = rshift_bind;
+            env_set(*genv, make_sym("CURRENT-KEYMAP"), current_keymap);
           }
-          env_set(*genv, make_sym("CURRENT-KEYMAP"), current_keymap);
         }
 
         while (c && keybind_recurse_count < keybind_recurse_limit) {
@@ -632,6 +575,14 @@ int main(int argc, char **argv) {
     }
   }
 
+  Atom buffer = make_buffer
+    (env_create(nil), allocate_string("LITE_SHINES_UPON_US.txt"));
+  if (nilp(buffer)) {
+    return 1;
+  }
+
+  env_set(environment, make_sym("CURRENT-BUFFER"), buffer);
+
 #ifdef LITE_GFX
   genv = &environment;
   enter_lite_gui();
@@ -642,6 +593,7 @@ int main(int argc, char **argv) {
   int debug_memory = env_non_nil(environment, make_sym("DEBUG/MEMORY"));
   // Garbage collection with no marking means free everything.
   gcol();
+  free_buffer_table();
   if (debug_memory) {
     print_gcol_data();
   }

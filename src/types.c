@@ -1,5 +1,6 @@
 #include <types.h>
 
+#include <buffer.h>
 #include <builtins.h>
 #include <error.h>
 #include <stdarg.h>
@@ -8,8 +9,11 @@
 #include <stdlib.h>
 #include <string.h>
 
-static Atom symbol_table = { ATOM_TYPE_NIL, 0, NULL };
+static Atom symbol_table = { ATOM_TYPE_NIL, 0, NULL, NULL };
 Atom *sym_table() { return &symbol_table; }
+
+static Atom buffer_table = { ATOM_TYPE_NIL, 0, NULL, NULL };
+Atom *buf_table() { return &buffer_table; }
 
 //================================================================ BEG garbage_collection
 
@@ -275,6 +279,49 @@ Error make_closure(Atom environment, Atom arguments, Atom body, Atom *result) {
   return ok;
 }
 
+Atom make_buffer(Atom environment, char *path) {
+  if (!path) {
+    MAKE_ERROR(args, ERROR_ARGUMENTS, nil
+               , "make_buffer: PATH must not be NULL."
+               , NULL);
+    print_error(args);
+    return nil;
+  }
+  // Attempt to find existing buffer in buffer table.
+  Atom buffer_table_it = buffer_table;
+  while (!nilp(buffer_table_it)) {
+    Atom a = car(buffer_table_it);
+    if (strcmp(a.value.buffer->path, path) == 0) {
+      return a;
+    }
+    buffer_table_it = cdr(buffer_table_it);
+  }
+  // Create new buffer and add it to buffer table.
+  Buffer *buffer = buffer_create(path);
+  if (!buffer) {
+    MAKE_ERROR(err, ERROR_MEMORY, nil
+               , "make_buffer: `buffer_create(path)` failed!."
+               , NULL);
+    print_error(err);
+    return nil;
+  }
+  buffer->environment = environment;
+  Atom result = nil;
+  result.type = ATOM_TYPE_BUFFER;
+  result.value.buffer = buffer;
+  buffer_table = cons(result, buffer_table);
+  return result;
+}
+
+void free_buffer_table() {
+  size_t buffer_count = 0;
+  while (!nilp(buffer_table)) {
+    buffer_free(car(buffer_table).value.buffer);
+    buffer_table = cdr(buffer_table);
+    buffer_count += 1;
+  }
+}
+
 int listp(Atom expr) {
   while (!nilp(expr)) {
     if (expr.type != ATOM_TYPE_PAIR) {
@@ -450,6 +497,9 @@ void print_atom(Atom atom) {
   case ATOM_TYPE_STRING:
     printf("\"%s\"", atom.value.symbol);
     break;
+  case ATOM_TYPE_BUFFER:
+    printf("#<BUFFER>:%p", atom.value.buffer);
+    break;
   }
 }
 
@@ -493,6 +543,14 @@ char *atom_string(Atom atom, char *buffer) {
   size_t rightlen;
   size_t length = buffer ? strlen(buffer) : 0;
   size_t to_add = 0;
+  const char *symbol_format  = "%s";
+  const char *string_format  = "\"%s\"";
+  const char *lr_format      = "(%s%s)";
+  const char *l_format       = "(%s)";
+  const char *builtin_format = "#<BUILTIN>:%p";
+  const char *closure_format = "#<CLOSURE>:%p";
+  const char *macro_format   = "#<MACRO>:%p";
+  const char *buffer_format  = "#<BUFFER>:%p";
   switch (atom.type) {
   case ATOM_TYPE_NIL:
     to_add = 4;
@@ -501,16 +559,16 @@ char *atom_string(Atom atom, char *buffer) {
     memmove(buffer+length, "NIL", to_add);
     break;
   case ATOM_TYPE_SYMBOL:
-    to_add = format_bufsz("%s", atom.value.symbol);
+    to_add = format_bufsz(symbol_format, atom.value.symbol);
     buffer = realloc(buffer, length+to_add);
     if (!buffer) { return NULL; }
-    snprintf(buffer+length, to_add, "%s", atom.value.symbol);
+    snprintf(buffer+length, to_add, symbol_format, atom.value.symbol);
     break;
   case ATOM_TYPE_STRING:
-    to_add = format_bufsz("\"%s\"", atom.value.symbol);
+    to_add = format_bufsz(string_format, atom.value.symbol);
     buffer = realloc(buffer, length+to_add);
     if (!buffer) { return NULL; }
-    snprintf(buffer+length, to_add, "\"%s\"", atom.value.symbol);
+    snprintf(buffer+length, to_add, string_format, atom.value.symbol);
     break;
   case ATOM_TYPE_INTEGER:
     // FIXME: Format only works when integer_t is long long int
@@ -565,37 +623,43 @@ char *atom_string(Atom atom, char *buffer) {
       }
     }
     if (left && right) {
-      to_add = format_bufsz("(%s%s)", left, right);
+      to_add = format_bufsz(lr_format, left, right);
       buffer = realloc(buffer, length+to_add);
       if (!buffer) { return NULL; }
-      snprintf(buffer+length, to_add, "(%s%s)", left, right);
+      snprintf(buffer+length, to_add, lr_format, left, right);
       free(left);
       free(right);
     } else if (left) {
-      to_add = format_bufsz("(%s)", left);
+      to_add = format_bufsz(l_format, left);
       buffer = realloc(buffer, length+to_add);
       if (!buffer) { return NULL; }
-      snprintf(buffer+length, to_add, "(%s)", left);
+      snprintf(buffer+length, to_add, l_format, left);
       free(left);
     }
     break;
   case ATOM_TYPE_BUILTIN:
-    to_add = format_bufsz("#<BUILTIN>:%p", atom.value.builtin);
+    to_add = format_bufsz(builtin_format, atom.value.builtin);
     buffer = realloc(buffer, length+to_add);
     if (!buffer) { return NULL; }
-    snprintf(buffer+length, to_add, "#<BUILTIN>:%p", atom.value.builtin);
+    snprintf(buffer+length, to_add, builtin_format, atom.value.builtin);
     break;
   case ATOM_TYPE_CLOSURE:
-    to_add = format_bufsz("#<CLOSURE>:%p", atom.value.builtin);
+    to_add = format_bufsz(closure_format, atom.value.builtin);
     buffer = realloc(buffer, length+to_add);
     if (!buffer) { return NULL; }
-    snprintf(buffer+length, to_add, "#<CLOSURE>:%p", atom.value.builtin);
+    snprintf(buffer+length, to_add, closure_format, atom.value.builtin);
     break;
   case ATOM_TYPE_MACRO:
-    to_add = format_bufsz("#<MACRO>:%p", atom.value.builtin);
+    to_add = format_bufsz(macro_format, atom.value.builtin);
     buffer = realloc(buffer, length+to_add);
     if (!buffer) { return NULL; }
-    snprintf(buffer+length, to_add, "#<MACRO>:%p", atom.value.builtin);
+    snprintf(buffer+length, to_add, macro_format, atom.value.builtin);
+    break;
+  case ATOM_TYPE_BUFFER:
+    to_add = format_bufsz(buffer_format, atom.value.buffer);
+    buffer = realloc(buffer, length+to_add);
+    if (!buffer) { return NULL; }
+    snprintf(buffer+length, to_add, buffer_format, atom.value.builtin);
     break;
   }
   return buffer;

@@ -7,11 +7,13 @@ struct Atom;
 /// All C functions that are to be called from LISP will have this prototype.
 typedef int (*BuiltIn)(struct Atom arguments, struct Atom *result);
 
+typedef struct Buffer Buffer;
+
 typedef struct Error Error;
 
 struct GenericAllocation;
 
-typedef long long integer_t;
+typedef long long int integer_t;
 typedef const char symbol_t;
 typedef struct Atom {
   enum AtomType {
@@ -23,12 +25,14 @@ typedef struct Atom {
     ATOM_TYPE_CLOSURE,
     ATOM_TYPE_MACRO,
     ATOM_TYPE_STRING,
+    ATOM_TYPE_BUFFER,
   } type;
   union {
     struct Pair *pair;
     symbol_t *symbol;
-    integer_t integer;
+    Buffer *buffer;
     BuiltIn builtin;
+    integer_t integer;
   } value;
   symbol_t *docstring;
   struct GenericAllocation *galloc;
@@ -47,6 +51,7 @@ static const Atom nil = { ATOM_TYPE_NIL, 0, NULL, NULL };
 #define closurep(a) ((a).type == ATOM_TYPE_CLOSURE)
 #define macrop(a)   ((a).type == ATOM_TYPE_MACRO)
 #define stringp(a)  ((a).type == ATOM_TYPE_STRING)
+#define bufferp(a)  ((a).type == ATOM_TYPE_BUFFER)
 
 #define car(a) ((a).value.pair->atom[0])
 #define cdr(a) ((a).value.pair->atom[1])
@@ -124,11 +129,13 @@ Atom make_int_with_docstring(integer_t value, symbol_t *docstring);
 Atom make_sym(symbol_t *value);
 Atom make_string(symbol_t *value);
 Atom make_builtin(BuiltIn function, symbol_t *docstring);
-typedef struct Error Error;
 Error make_closure(Atom environment, Atom arguments, Atom body, Atom *result);
+Atom make_buffer(Atom environment, char *path);
 
 Atom *sym_table();
-void free_symbol_table();
+
+Atom *buf_table();
+void free_buffer_table();
 
 char *atom_string(Atom atom, char *str);
 

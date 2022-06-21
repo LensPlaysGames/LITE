@@ -154,9 +154,11 @@ Atom default_environment() {
   env_set(environment, make_sym(">"),        make_builtin(builtin_numgt,        builtin_numgt_docstring));
   env_set(environment, make_sym(">="),       make_builtin(builtin_numgt_or_eq,  builtin_numgt_or_eq_docstring));
   env_set(environment, make_sym("EQ"),       make_builtin(builtin_eq,           builtin_eq_docstring));
+  env_set(environment, make_sym("SAVE"),     make_builtin(builtin_save,         builtin_save_docstring));
   env_set(environment, make_sym("APPLY"),    make_builtin(builtin_apply,        builtin_apply_docstring));
   env_set(environment, make_sym("PRINT"),    make_builtin(builtin_print,        builtin_print_docstring));
   env_set(environment, make_sym("SYM"),      make_builtin(builtin_symbol_table, builtin_symbol_table_docstring));
+  env_set(environment, make_sym("BUF"),      make_builtin(builtin_buffer_table, builtin_buffer_table_docstring));
 
   // FIXME: It's always best to keep docstrings out of here and where they belong.
   env_set(environment, make_sym("GARBAGE-COLLECTOR-ITERATIONS-THRESHOLD"), make_int_with_docstring

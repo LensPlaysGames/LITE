@@ -1,6 +1,7 @@
 #ifndef LITE_ERROR_H
 #define LITE_ERROR_H
 
+#include <stddef.h>
 #include <stdio.h>
 
 #include <types.h>
@@ -26,6 +27,13 @@ typedef struct Error {
   (n).message = (msg);                          \
   (n).suggestion = (sugg);                      \
   (n).ref = (refer);
+
+#define MAKE_ERROR_NONE(n)                      \
+  Error (n);                                    \
+  (n).type = ERROR_NONE;                        \
+  (n).message = NULL;                           \
+  (n).suggestion = NULL;                        \
+  (n).ref = nil;
 
 #define PREP_ERROR(err, t, refer, msg, sugg)    \
   (err).type = (t);                             \

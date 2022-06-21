@@ -24,6 +24,8 @@ extern symbol_t         *builtin_macrop_docstring;
 int builtin_macrop      (Atom arguments, Atom *result);
 extern symbol_t         *builtin_stringp_docstring;
 int builtin_stringp     (Atom arguments, Atom *result);
+extern symbol_t         *builtin_bufferp_docbuffer;
+int builtin_bufferp     (Atom arguments, Atom *result);
 
 // PAIRS
 
@@ -67,10 +69,14 @@ int builtin_divide      (Atom arguments, Atom *result);
 
 // OTHER
 
+extern symbol_t         *builtin_save_docstring;
+int builtin_save        (Atom arguments, Atom *result);
 extern symbol_t         *builtin_apply_docstring;
 int builtin_apply       (Atom arguments, Atom *result);
 extern symbol_t         *builtin_symbol_table_docstring;
 int builtin_symbol_table(Atom arguments, Atom *result);
+extern symbol_t         *builtin_buffer_table_docstring;
+int builtin_buffer_table(Atom arguments, Atom *result);
 extern symbol_t         *builtin_print_docstring;
 int builtin_print       (Atom arguments, Atom *result);
 

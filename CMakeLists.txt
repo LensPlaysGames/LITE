@@ -30,9 +30,11 @@ endif ()
 add_executable(
   LITE
   src/builtins.c
+  src/buffer.c
   src/error.c
   src/environment.c
   src/evaluation.c
+  src/file_io.c
   src/main.c
   src/repl.c
   src/rope.c

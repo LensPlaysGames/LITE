@@ -1,5 +1,6 @@
 #include <builtins.h>
 
+#include <buffer.h>
 #include <error.h>
 #include <environment.h>
 #include <evaluation.h>
@@ -64,6 +65,12 @@ symbol_t *builtin_stringp_docstring =
   "Return 'T' iff ARG has a type of 'STRING', otherwise return nil.";
 int builtin_stringp(Atom arguments, Atom *result) {
   return typep(arguments, ATOM_TYPE_STRING, result);
+}
+
+symbol_t *builtin_bufferp_docstring =
+  "Return 'T' iff ARG has a type of 'BUFFER', otherwise return nil.";
+int builtin_bufferp(Atom arguments, Atom *result) {
+  return typep(arguments, ATOM_TYPE_BUFFER, result);
 }
 
 symbol_t *builtin_not_docstring =
@@ -271,6 +278,24 @@ int builtin_numgt_or_eq(Atom arguments, Atom *result) {
   return ERROR_NONE;
 }
 
+symbol_t *builtin_save_docstring =
+  "Save BUFFER.";
+int builtin_save(Atom arguments, Atom *result) {
+  if (nilp(arguments) || !nilp(cdr(arguments))) {
+    return ERROR_ARGUMENTS;
+  }
+  Atom buffer = car(arguments);
+  if (!bufferp(buffer)) {
+    return ERROR_TYPE;
+  }
+  Error err = buffer_save(*buffer.value.buffer);
+  if (err.type) {
+    print_error(err);
+    return err.type;
+  }
+  return ERROR_NONE;
+}
+
 symbol_t *builtin_apply_docstring =
   "Call FUNCTION with the given ARGUMENTS and return the result.";
 int builtin_apply(Atom arguments, Atom *result) {
@@ -368,6 +393,16 @@ int builtin_symbol_table(Atom arguments, Atom *result) {
     return ERROR_ARGUMENTS;
   }
   *result = *sym_table();
+  return ERROR_NONE;
+}
+
+symbol_t *builtin_buffer_table_docstring =
+  "Return the LISP buffer table.";
+int builtin_buffer_table(Atom arguments, Atom *result) {
+  if (!nilp(arguments)) {
+    return ERROR_ARGUMENTS;
+  }
+  *result = *buf_table();
   return ERROR_NONE;
 }
 
