@@ -515,7 +515,7 @@ Rope *rope_remove_from_beginning(Rope *rope, size_t length) {
     }
   }
 
-  if (length >= current_rope->weight) {
+  if (rope->weight > 1 && length >= current_rope->weight) {
     // Remove node and call self with amount - current_rope->weight.
 
     // No parent rope means given rope is a string node, and we
@@ -528,11 +528,19 @@ Rope *rope_remove_from_beginning(Rope *rope, size_t length) {
     // TODO: Less code duplication with Rope **.
     if (left_right == 0) {
       // `current_rope` is equal to `parent_rope->left`.
+      if (!parent_rope->right) {
+        rope_free(rope);
+        return rope_create("");
+      }
       Rope *removed = parent_rope->left;
       *parent_rope = *parent_rope->right;
       rope_free(removed);
     } else {
       // `current_rope` is equal to `parent_rope->right`.
+      if (!parent_rope->left) {
+        rope_free(rope);
+        return rope_create("");
+      }
       Rope *removed = parent_rope->right;
       *parent_rope = *parent_rope->left;
       rope_free(removed);
@@ -558,6 +566,9 @@ Rope *rope_remove_from_beginning(Rope *rope, size_t length) {
 }
 
 Rope *rope_remove_from_end(Rope *rope, size_t length) {
+  if (!rope || !rope->weight) {
+    return NULL;
+  }
   // Find right-most string-containing node.
   int left_right = 0; // 0 if child is left, 1 if child is right of parent.
   Rope *parent_rope = NULL;
@@ -575,7 +586,7 @@ Rope *rope_remove_from_end(Rope *rope, size_t length) {
     }
   }
 
-  if (length >= current_rope->weight) {
+  if (rope->weight > 1 && length >= current_rope->weight) {
     // Remove node and call self with amount - current_rope->weight.
 
     if (!parent_rope) {
@@ -583,10 +594,18 @@ Rope *rope_remove_from_end(Rope *rope, size_t length) {
     }
 
     if (left_right == 0) {
+      if (!parent_rope->right) {
+        rope_free(rope);
+        return rope_create("");
+      }
       Rope *removed = parent_rope->left;
       *parent_rope = *parent_rope->right;
       rope_free(removed);
     } else {
+      if (!parent_rope->left) {
+        rope_free(rope);
+        return rope_create("");
+      }
       Rope *removed = parent_rope->right;
       *parent_rope = *parent_rope->left;
       rope_free(removed);

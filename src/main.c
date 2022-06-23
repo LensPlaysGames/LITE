@@ -167,14 +167,6 @@ void handle_newline() {
   free(input);
 }
 
-void reverse_memcpy(void *restrict destination, void *restrict source, size_t byte_count) {
-  char *dst = destination;
-  char *src = source;
-  for (size_t i = 0; i < byte_count; ++i) {
-    dst[byte_count - 1 - i] = src[i];
-  }
-}
-
 void handle_character_dn(uint64_t c) {
   // TODO: Use LISP env. variables to determine a buffer
   // to insert into, at what offset (point/cursor), etc.
