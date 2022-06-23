@@ -95,81 +95,110 @@ int modkey_state(GUIModifierKey key) {
 
 // All these global variables may be bad :^|
 
-Rope *ginput = NULL;
-
 Atom *genv = NULL;
 
 GUIContext *gctx = NULL;
 
-// Currently factored out due to REPL-like behaviour.
-// Eventually this will be handled the same as all other characters.
-void handle_newline() {
-  char *input = rope_string(NULL, ginput, NULL);
-  if (!input) { return; }
-  rope_free(ginput);
-  ginput = rope_create("");
-  const char *source = input;
-  size_t source_len = strlen(source);
-  if (source_len >= 4 && memcmp(source, "quit", 4) == 0) {
-    int debug_memory = env_non_nil(genv ? *genv : default_environment()
-                                   , make_sym("DEBUG/MEMORY"));
-    // Garbage collection with no marking means free everything.
-    gcol();
-    free_buffer_table();
-    if (debug_memory) {
-      print_gcol_data();
+/// This will set the environment variable `CURRENT-KEYMAP` based on modifiers
+/// that are currently being held down. This is to be used in `handle_character_dn()`.
+void handle_character_dn_modifiers(Atom current_keymap, size_t *keybind_recurse_count) {
+  // HANDLE MODIFIER KEYMAPS
+
+  if (modkey_state(GUI_MODKEY_LCTRL)) {
+    Atom lctrl_bind = alist_get(current_keymap, make_string("LEFT-CONTROL"));
+    // Allow string-rebinding of ctrl to another character.
+    // Mostly, this is used to rebind to 'CTRL', the generic L/R ctrl keymap.
+    if (stringp(lctrl_bind)) {
+      lctrl_bind = alist_get(current_keymap, lctrl_bind);
+      *keybind_recurse_count += 1;
     }
-    destroy_gui();
-    exit(0);
+    if (alistp(lctrl_bind)) {
+      current_keymap = lctrl_bind;
+    } else {
+      // TODO: What keybind is undefined???
+      // I guess we need to keep track of how we got here.
+      // This could be done by saving keys of each keybind.
+      update_footline(gctx, allocate_string("Undefined keybinding!"));
+      // Discard character if no ctrl keybind was found.
+      return;
+    }
+    env_set(*genv, make_sym("CURRENT-KEYMAP"), current_keymap);
+  } else if (modkey_state(GUI_MODKEY_RCTRL)) {
+    Atom rctrl_bind = alist_get(current_keymap, make_string("RIGHT-CONTROL"));
+    if (stringp(rctrl_bind)) {
+      rctrl_bind = alist_get(current_keymap, rctrl_bind);
+      *keybind_recurse_count += 1;
+    }
+    if (alistp(rctrl_bind)) {
+      current_keymap = rctrl_bind;
+    } else {
+      // TODO: What keybind is undefined???
+      update_footline(gctx, allocate_string("Undefined keybinding!"));
+      // Discard character if no ctrl keybind was found.
+      return;
+    }
+    env_set(*genv, make_sym("CURRENT-KEYMAP"), current_keymap);
   }
-  // PARSE
-  Atom expr;
-  const char *expected_end = source + source_len;
-  Error err = parse_expr(source, &source, &expr);
-  if (err.type) {
-    printf("\nPARSER ");
-    print_error(err);
-    return;
+
+  if (modkey_state(GUI_MODKEY_LALT)) {
+    Atom lalt_bind = alist_get(current_keymap, make_string("LEFT-ALT"));
+    // Allow string-rebinding of ctrl to another character.
+    // Mostly, this is used to rebind to 'CTRL', the generic L/R ctrl keymap.
+    if (stringp(lalt_bind)) {
+      lalt_bind = alist_get(current_keymap, lalt_bind);
+      *keybind_recurse_count += 1;
+    }
+    if (alistp(lalt_bind)) {
+      current_keymap = lalt_bind;
+    } else {
+      // TODO: What keybind is undefined???
+      update_footline(gctx, allocate_string("Undefined keybinding!"));
+      // Discard character if no alt keybind was found.
+      return;
+    }
+    env_set(*genv, make_sym("CURRENT-KEYMAP"), current_keymap);
+  } else if (modkey_state(GUI_MODKEY_RALT)) {
+    Atom ralt_bind = alist_get(current_keymap, make_string("RIGHT-ALT"));
+    if (stringp(ralt_bind)) {
+      ralt_bind = alist_get(current_keymap, ralt_bind);
+      *keybind_recurse_count += 1;
+    }
+    if (alistp(ralt_bind)) {
+      current_keymap = ralt_bind;
+    } else {
+      update_footline(gctx, allocate_string("Undefined keybinding!"));
+      // Discard character if no keybind was found.
+      return;
+    }
+    env_set(*genv, make_sym("CURRENT-KEYMAP"), current_keymap);
   }
-  const char *ws = " \t\n";
-  size_t span = 0;
-  while ((span = strspn(source, ws))) {
-    source += span;
+
+  if (modkey_state(GUI_MODKEY_LSHIFT)) {
+    Atom lshift_bind = alist_get(current_keymap, make_string("LEFT-SHIFT"));
+    // Allow string-rebinding of shift to another character.
+    // Mostly, this is used to rebind to 'SHFT', the generic L/R shift keymap.
+    if (stringp(lshift_bind)) {
+      lshift_bind = alist_get(current_keymap, lshift_bind);
+      *keybind_recurse_count += 1;
+    }
+    if (alistp(lshift_bind)) {
+      current_keymap = lshift_bind;
+      env_set(*genv, make_sym("CURRENT-KEYMAP"), current_keymap);
+    }
+  } else if (modkey_state(GUI_MODKEY_RSHIFT)) {
+    Atom rshift_bind = alist_get(current_keymap, make_string("RIGHT-SHIFT"));
+    if (stringp(rshift_bind)) {
+      rshift_bind = alist_get(current_keymap, rshift_bind);
+      *keybind_recurse_count += 1;
+    }
+    if (alistp(rshift_bind)) {
+      current_keymap = rshift_bind;
+      env_set(*genv, make_sym("CURRENT-KEYMAP"), current_keymap);
+    }
   }
-  if (source < expected_end) {
-    printf("ERROR: Too much input: %s\n", source);
-    return;
-  }
-  // EVALUATE
-  Atom result;
-  err = evaluate_expression
-    (expr
-     , genv ? *genv : default_environment()
-     , &result
-     );
-  // DISPLAY
-  switch (err.type) {
-  case ERROR_NONE:
-    update_footline(gctx, atom_string(result, NULL));
-    break;
-  default:
-    // FIXME: This is awful!
-    // We need `error_string()`!!
-    update_footline(gctx, allocate_string("ERROR!"));
-    printf("\nEVALUATION ");
-    print_error(err);
-    printf("Faulting Expression: ");
-    print_atom(expr);
-    putchar('\n');
-    break;
-  }
-  // LOOP
-  free(input);
 }
 
 void handle_character_dn(uint64_t c) {
-  // TODO: Use LISP env. variables to determine a buffer
-  // to insert into, at what offset (point/cursor), etc.
   const char *ignored_bytes = "\e\f\v";
   if (strchr(ignored_bytes, (unsigned char)c)) {
     return;
@@ -184,12 +213,20 @@ void handle_character_dn(uint64_t c) {
     }
   }
 
-  // TODO: Figure out how input could be handled better.
-  if (ginput) {
-    if (c == '\r' || c == '\n') {
-      handle_newline();
-    } else if (c == '\b') {
-      rope_remove_from_end(ginput, 1);
+  Atom current_buffer = nil;
+  if (genv) {
+    env_get(*genv, make_sym("CURRENT-BUFFER"), &current_buffer);
+  }
+
+  if (bufferp(current_buffer)) {
+    if (c == '\b') {
+      if (bufferp(current_buffer)) {
+        Error err = buffer_remove_byte(current_buffer.value.buffer);
+        if (err.type) {
+          print_error(err);
+          return;
+        }
+      }
     } else if (c == '\a') {
       // TODO: It would be cool to have `gui.h` include a `visual_beep()` and `audio_beep()`.
     } else if (c == '\t') {
@@ -211,100 +248,7 @@ void handle_character_dn(uint64_t c) {
           putchar('\n');
         }
 
-        // HANDLE MODIFIER KEYMAPS
-
-        if (modkey_state(GUI_MODKEY_LCTRL)) {
-          Atom lctrl_bind = alist_get(current_keymap, make_string("LEFT-CONTROL"));
-          // Allow string-rebinding of ctrl to another character.
-          // Mostly, this is used to rebind to 'CTRL', the generic L/R ctrl keymap.
-          if (stringp(lctrl_bind)) {
-            lctrl_bind = alist_get(current_keymap, lctrl_bind);
-            keybind_recurse_count += 1;
-          }
-          if (alistp(lctrl_bind)) {
-            current_keymap = lctrl_bind;
-          } else {
-            // TODO: What keybind is undefined???
-            // I guess we need to keep track of how we got here.
-            // This could be done by saving keys of each keybind.
-            update_footline(gctx, allocate_string("Undefined keybinding!"));
-            // Discard character if no ctrl keybind was found.
-            return;
-          }
-          env_set(*genv, make_sym("CURRENT-KEYMAP"), current_keymap);
-        } else if (modkey_state(GUI_MODKEY_RCTRL)) {
-          Atom rctrl_bind = alist_get(current_keymap, make_string("RIGHT-CONTROL"));
-          if (stringp(rctrl_bind)) {
-            rctrl_bind = alist_get(current_keymap, rctrl_bind);
-            keybind_recurse_count += 1;
-          }
-          if (alistp(rctrl_bind)) {
-            current_keymap = rctrl_bind;
-          } else {
-            // TODO: What keybind is undefined???
-            update_footline(gctx, allocate_string("Undefined keybinding!"));
-            // Discard character if no ctrl keybind was found.
-            return;
-          }
-          env_set(*genv, make_sym("CURRENT-KEYMAP"), current_keymap);
-        }
-
-        if (modkey_state(GUI_MODKEY_LALT)) {
-          Atom lalt_bind = alist_get(current_keymap, make_string("LEFT-ALT"));
-          // Allow string-rebinding of ctrl to another character.
-          // Mostly, this is used to rebind to 'CTRL', the generic L/R ctrl keymap.
-          if (stringp(lalt_bind)) {
-            lalt_bind = alist_get(current_keymap, lalt_bind);
-            keybind_recurse_count += 1;
-          }
-          if (alistp(lalt_bind)) {
-            current_keymap = lalt_bind;
-          } else {
-            // TODO: What keybind is undefined???
-            update_footline(gctx, allocate_string("Undefined keybinding!"));
-            // Discard character if no alt keybind was found.
-            return;
-          }
-          env_set(*genv, make_sym("CURRENT-KEYMAP"), current_keymap);
-        } else if (modkey_state(GUI_MODKEY_RALT)) {
-          Atom ralt_bind = alist_get(current_keymap, make_string("RIGHT-ALT"));
-          if (stringp(ralt_bind)) {
-            ralt_bind = alist_get(current_keymap, ralt_bind);
-            keybind_recurse_count += 1;
-          }
-          if (alistp(ralt_bind)) {
-            current_keymap = ralt_bind;
-          } else {
-            update_footline(gctx, allocate_string("Undefined keybinding!"));
-            // Discard character if no keybind was found.
-            return;
-          }
-          env_set(*genv, make_sym("CURRENT-KEYMAP"), current_keymap);
-        }
-
-        if (modkey_state(GUI_MODKEY_LSHIFT)) {
-          Atom lshift_bind = alist_get(current_keymap, make_string("LEFT-SHIFT"));
-          // Allow string-rebinding of shift to another character.
-          // Mostly, this is used to rebind to 'SHFT', the generic L/R shift keymap.
-          if (stringp(lshift_bind)) {
-            lshift_bind = alist_get(current_keymap, lshift_bind);
-            keybind_recurse_count += 1;
-          }
-          if (alistp(lshift_bind)) {
-            current_keymap = lshift_bind;
-            env_set(*genv, make_sym("CURRENT-KEYMAP"), current_keymap);
-          }
-        } else if (modkey_state(GUI_MODKEY_RSHIFT)) {
-          Atom rshift_bind = alist_get(current_keymap, make_string("RIGHT-SHIFT"));
-          if (stringp(rshift_bind)) {
-            rshift_bind = alist_get(current_keymap, rshift_bind);
-            keybind_recurse_count += 1;
-          }
-          if (alistp(rshift_bind)) {
-            current_keymap = rshift_bind;
-            env_set(*genv, make_sym("CURRENT-KEYMAP"), current_keymap);
-          }
-        }
+        handle_character_dn_modifiers(current_keymap, &keybind_recurse_count);
 
         while (c && keybind_recurse_count < keybind_recurse_limit) {
           env_get(*genv, make_sym("CURRENT-KEYMAP"), &current_keymap);
@@ -347,7 +291,14 @@ void handle_character_dn(uint64_t c) {
                   }
                   // Default behaviour of un-bound input, just insert it.
                   // Maybe this should change? I'm not certain.
-                  rope_append_byte(ginput, (char)c);
+                  if (bufferp(current_buffer)) {
+                    // FIXME: This assumes one-byte content.
+                    Error err = buffer_insert_byte(current_buffer.value.buffer, (char)c);
+                    if (err.type) {
+                      print_error(err);
+                      return;
+                    }
+                  }
                   return;
                 }
               env_set(*genv, make_sym("CURRENT-KEYMAP"), root_keymap);
@@ -362,7 +313,14 @@ void handle_character_dn(uint64_t c) {
               // Explicitly insert characters with 'SELF-INSERT-CHAR' symbol.
               if (keybind.value.symbol && strlen(keybind.value.symbol)) {
                 if (strcmp(keybind.value.symbol, "SELF-INSERT-CHAR") == 0) {
-                  rope_append_byte(ginput, (char)c);
+                  if (bufferp(current_buffer)) {
+                    // FIXME: This assumes one-byte content.
+                    Error err = buffer_insert_byte(current_buffer.value.buffer, (char)c);
+                    if (err.type) {
+                      print_error(err);
+                      return;
+                    }
+                  }
                 }
               }
             } else if (stringp(keybind)) {
@@ -540,15 +498,19 @@ int enter_lite_gui() {
   if (!gctx) {
     return 2;
   }
-  Rope *input = rope_create("");
-  if (!input) { return 1; }
-  ginput = input;
   while (open) {
-    // TODO: Use LISP environment variable to get current buffer,
-    // then convert that rope into a string and display it.
-    update_contents(gctx, rope_string(NULL, ginput, NULL));
+    char *new_contents = NULL;
+    if (genv) {
+      Atom current_buffer = nil;
+      env_get(*genv, make_sym("CURRENT-BUFFER"), &current_buffer);
+      if (bufferp(current_buffer)) {
+        new_contents = buffer_string(*current_buffer.value.buffer);
+      }
+    }
+    update_contents(gctx, new_contents);
     do_gui(&open, gctx);
     // Only update GUI every 10 milliseconds.
+    // TODO: Make this LISP extensible.
     SLEEP(10);
   }
   destroy_gui();

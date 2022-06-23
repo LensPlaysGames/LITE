@@ -143,6 +143,33 @@ Error buffer_append_byte(Buffer *buffer, char byte) {
   return buffer_insert_byte_indexed(buffer, SIZE_MAX, byte);
 }
 
+Error buffer_remove_bytes(Buffer *buffer, size_t count) {
+  if (!buffer || !buffer->rope) {
+    MAKE_ERROR(err, ERROR_ARGUMENTS, nil
+               , "Can not remove bytes from NULL buffer."
+               , NULL);
+    return err;
+  }
+  if (count == 0) {
+    MAKE_ERROR(err, ERROR_ARGUMENTS, nil
+               , "Can not remove zero bytes from buffer."
+               , NULL);
+    return err;
+  }
+  if (buffer->point_byte >= count){
+    buffer->point_byte -= count;
+  } else {
+    count = buffer->point_byte;
+    buffer->point_byte = 0;
+  }
+  buffer->rope = rope_remove_span(buffer->rope, buffer->point_byte, count);
+  return ok;
+}
+
+Error buffer_remove_byte(Buffer *buffer) {
+  return buffer_remove_bytes(buffer, 1);
+}
+
 char *buffer_string(Buffer buffer) {
   return rope_string(NULL, buffer.rope, NULL);
 }

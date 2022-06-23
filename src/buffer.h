@@ -30,6 +30,9 @@ Error buffer_insert_byte_indexed(Buffer *buffer, size_t byte_index
 Error buffer_prepend_byte(Buffer *buffer, char byte);
 Error buffer_append_byte(Buffer *buffer, char byte);
 
+Error buffer_remove_bytes(Buffer *buffer, size_t count);
+Error buffer_remove_byte(Buffer *buffer);
+
 char *buffer_string(Buffer buffer);
 void buffer_print(Buffer buffer);
 
