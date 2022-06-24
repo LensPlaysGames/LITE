@@ -67,6 +67,15 @@ int builtin_multiply    (Atom arguments, Atom *result);
 extern symbol_t         *builtin_divide_docstring;
 int builtin_divide      (Atom arguments, Atom *result);
 
+// BUFFERS
+
+extern symbol_t          *builtin_buffer_table_docstring;
+int builtin_buffer_table (Atom arguments, Atom *result);
+extern symbol_t          *builtin_buffer_insert_docstring;
+int builtin_buffer_insert(Atom arguments, Atom *result);
+extern symbol_t          *builtin_buffer_remove_docstring;
+int builtin_buffer_remove(Atom arguments, Atom *result);
+
 // OTHER
 
 extern symbol_t         *builtin_save_docstring;
@@ -75,8 +84,6 @@ extern symbol_t         *builtin_apply_docstring;
 int builtin_apply       (Atom arguments, Atom *result);
 extern symbol_t         *builtin_symbol_table_docstring;
 int builtin_symbol_table(Atom arguments, Atom *result);
-extern symbol_t         *builtin_buffer_table_docstring;
-int builtin_buffer_table(Atom arguments, Atom *result);
 extern symbol_t         *builtin_print_docstring;
 int builtin_print       (Atom arguments, Atom *result);
 

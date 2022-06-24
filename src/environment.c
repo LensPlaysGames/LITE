@@ -159,6 +159,8 @@ Atom default_environment() {
   env_set(environment, make_sym("PRINT"),    make_builtin(builtin_print,        builtin_print_docstring));
   env_set(environment, make_sym("SYM"),      make_builtin(builtin_symbol_table, builtin_symbol_table_docstring));
   env_set(environment, make_sym("BUF"),      make_builtin(builtin_buffer_table, builtin_buffer_table_docstring));
+  env_set(environment, make_sym("BUFFER-INSERT"), make_builtin(builtin_buffer_insert, builtin_buffer_insert_docstring));
+  env_set(environment, make_sym("BUFFER-REMOVE"), make_builtin(builtin_buffer_remove, builtin_buffer_remove_docstring));
 
   // FIXME: It's always best to keep docstrings out of here and where they belong.
   env_set(environment, make_sym("GARBAGE-COLLECTOR-ITERATIONS-THRESHOLD"), make_int_with_docstring

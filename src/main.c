@@ -101,7 +101,8 @@ GUIContext *gctx = NULL;
 
 /// This will set the environment variable `CURRENT-KEYMAP` based on modifiers
 /// that are currently being held down. This is to be used in `handle_character_dn()`.
-void handle_character_dn_modifiers(Atom current_keymap, size_t *keybind_recurse_count) {
+/// Returns boolean-like value (0 == discard keypress, 1 == use keypress)
+int handle_character_dn_modifiers(Atom current_keymap, size_t *keybind_recurse_count) {
   // HANDLE MODIFIER KEYMAPS
 
   if (modkey_state(GUI_MODKEY_LCTRL)) {
@@ -120,7 +121,7 @@ void handle_character_dn_modifiers(Atom current_keymap, size_t *keybind_recurse_
       // This could be done by saving keys of each keybind.
       update_footline(gctx, allocate_string("Undefined keybinding!"));
       // Discard character if no ctrl keybind was found.
-      return;
+      return 0;
     }
     env_set(*genv, make_sym("CURRENT-KEYMAP"), current_keymap);
   } else if (modkey_state(GUI_MODKEY_RCTRL)) {
@@ -135,7 +136,7 @@ void handle_character_dn_modifiers(Atom current_keymap, size_t *keybind_recurse_
       // TODO: What keybind is undefined???
       update_footline(gctx, allocate_string("Undefined keybinding!"));
       // Discard character if no ctrl keybind was found.
-      return;
+      return 0;
     }
     env_set(*genv, make_sym("CURRENT-KEYMAP"), current_keymap);
   }
@@ -154,7 +155,7 @@ void handle_character_dn_modifiers(Atom current_keymap, size_t *keybind_recurse_
       // TODO: What keybind is undefined???
       update_footline(gctx, allocate_string("Undefined keybinding!"));
       // Discard character if no alt keybind was found.
-      return;
+      return 0;
     }
     env_set(*genv, make_sym("CURRENT-KEYMAP"), current_keymap);
   } else if (modkey_state(GUI_MODKEY_RALT)) {
@@ -168,7 +169,7 @@ void handle_character_dn_modifiers(Atom current_keymap, size_t *keybind_recurse_
     } else {
       update_footline(gctx, allocate_string("Undefined keybinding!"));
       // Discard character if no keybind was found.
-      return;
+      return 0;
     }
     env_set(*genv, make_sym("CURRENT-KEYMAP"), current_keymap);
   }
@@ -196,6 +197,7 @@ void handle_character_dn_modifiers(Atom current_keymap, size_t *keybind_recurse_
       env_set(*genv, make_sym("CURRENT-KEYMAP"), current_keymap);
     }
   }
+  return 1;
 }
 
 void handle_character_dn(uint64_t c) {
@@ -248,7 +250,9 @@ void handle_character_dn(uint64_t c) {
           putchar('\n');
         }
 
-        handle_character_dn_modifiers(current_keymap, &keybind_recurse_count);
+        if (!handle_character_dn_modifiers(current_keymap, &keybind_recurse_count)) {
+          return;
+        }
 
         while (c && keybind_recurse_count < keybind_recurse_limit) {
           env_get(*genv, make_sym("CURRENT-KEYMAP"), &current_keymap);

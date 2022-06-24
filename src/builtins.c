@@ -188,8 +188,72 @@ int builtin_divide(Atom arguments, Atom *result) {
   return ERROR_NONE;
 }
 
+symbol_t *builtin_buffer_table_docstring =
+  "Return the LISP buffer table.";
+int builtin_buffer_table(Atom arguments, Atom *result) {
+  if (!nilp(arguments)) {
+    return ERROR_ARGUMENTS;
+  }
+  *result = *buf_table();
+  return ERROR_NONE;
+}
+
+symbol_t *builtin_buffer_insert_docstring =
+  "(buffer-insert BUFFER STRING) \
+\
+Insert STRING into BUFFER at point.";
+int builtin_buffer_insert(Atom arguments, Atom *result) {
+  if (nilp(arguments)
+      || nilp(cdr(arguments))
+      || !nilp(cdr(cdr(arguments))))
+    {
+      return ERROR_ARGUMENTS;
+    }
+  Atom buffer = car(arguments);
+  Atom string = car(cdr(arguments));
+  if (!bufferp(buffer) || !stringp(string)) {
+    return ERROR_TYPE;
+  }
+  Error err = buffer_insert(buffer.value.buffer
+                            , (char *)string.value.symbol);
+  if (err.type) {
+    print_error(err);
+    return err.type;
+  }
+  *result = buffer;
+  return ERROR_NONE;
+}
+
+symbol_t *builtin_buffer_remove_docstring =
+  "(buffer-remove BUFFER COUNT) \
+\
+Backspace COUNT bytes from BUFFER at point.";
+int builtin_buffer_remove(Atom arguments, Atom *result) {
+  if (nilp(arguments)
+      || nilp(cdr(arguments))
+      || !nilp(cdr(cdr(arguments))))
+    {
+      return ERROR_ARGUMENTS;
+    }
+  Atom buffer = car(arguments);
+  Atom count = car(cdr(arguments));
+  if (!bufferp(buffer) || !integerp(count)) {
+    return ERROR_TYPE;
+  }
+  Error err = buffer_remove_bytes(buffer.value.buffer
+                                  , count.value.integer);
+  if (err.type) {
+    print_error(err);
+    return err.type;
+  }
+  *result = buffer;
+  return ERROR_NONE;
+}
+
 symbol_t *builtin_numeq_docstring =
-  "Return 'T' iff the two given arguments have the same integer value.";
+  "(= ARG1 ARG2) \
+\
+Return 'T' iff the two given arguments have the same integer value.";
 int builtin_numeq(Atom arguments, Atom *result) {
   if (nilp (arguments) || nilp(cdr(arguments)) || !nilp(cdr(cdr(arguments)))) {
     return ERROR_ARGUMENTS;
@@ -204,7 +268,9 @@ int builtin_numeq(Atom arguments, Atom *result) {
 }
 
 symbol_t *builtin_numnoteq_docstring =
-  "Return 'T' iff the two given arguments *do not* have the same integer value.";
+  "(!= ARG1 ARG2) \
+\
+Return 'T' iff the two given arguments *do not* have the same integer value.";
 int builtin_numnoteq(Atom arguments, Atom *result) {
   if (nilp (arguments) || nilp(cdr(arguments)) || !nilp(cdr(cdr(arguments)))) {
     return ERROR_ARGUMENTS;
@@ -219,7 +285,9 @@ int builtin_numnoteq(Atom arguments, Atom *result) {
 }
 
 symbol_t *builtin_numlt_docstring =
-  "Return 'T' iff integer A is less than integer B.";
+  "(< INT-A INT-B) \
+\
+Return 'T' iff integer A is less than integer B.";
 int builtin_numlt(Atom arguments, Atom *result) {
   if (nilp (arguments) || nilp(cdr(arguments)) || !nilp(cdr(cdr(arguments)))) {
     return ERROR_ARGUMENTS;
@@ -234,7 +302,9 @@ int builtin_numlt(Atom arguments, Atom *result) {
 }
 
 symbol_t *builtin_numlt_or_eq_docstring =
-  "Return 'T' iff integer A is less than or equal to integer B.";
+  "(<= INT-A INT-B) \
+\
+Return 'T' iff integer A is less than or equal to integer B.";
 int builtin_numlt_or_eq(Atom arguments, Atom *result) {
   if (nilp (arguments) || nilp(cdr(arguments)) || !nilp(cdr(cdr(arguments)))) {
     return ERROR_ARGUMENTS;
@@ -249,7 +319,9 @@ int builtin_numlt_or_eq(Atom arguments, Atom *result) {
 }
 
 symbol_t *builtin_numgt_docstring =
-  "Return 'T' iff integer A is greater than integer B.";
+  "(> INT-A INT-B) \
+\
+Return 'T' iff integer A is greater than integer B.";
 int builtin_numgt(Atom arguments, Atom *result) {
   if (nilp (arguments) || nilp(cdr(arguments)) || !nilp(cdr(cdr(arguments)))) {
     return ERROR_ARGUMENTS;
@@ -264,7 +336,9 @@ int builtin_numgt(Atom arguments, Atom *result) {
 }
 
 symbol_t *builtin_numgt_or_eq_docstring =
-  "Return 'T' iff integer A is greater than or equal to integer B.";
+  "(>= INT-A INT-B) \
+\
+Return 'T' iff integer A is greater than or equal to integer B.";
 int builtin_numgt_or_eq(Atom arguments, Atom *result) {
   if (nilp (arguments) || nilp(cdr(arguments)) || !nilp(cdr(cdr(arguments)))) {
     return ERROR_ARGUMENTS;
@@ -279,7 +353,9 @@ int builtin_numgt_or_eq(Atom arguments, Atom *result) {
 }
 
 symbol_t *builtin_save_docstring =
-  "Save BUFFER.";
+  "(save BUFFER) \
+\
+Save the given BUFFER to a file.";
 int builtin_save(Atom arguments, Atom *result) {
   if (nilp(arguments) || !nilp(cdr(arguments))) {
     return ERROR_ARGUMENTS;
@@ -393,16 +469,6 @@ int builtin_symbol_table(Atom arguments, Atom *result) {
     return ERROR_ARGUMENTS;
   }
   *result = *sym_table();
-  return ERROR_NONE;
-}
-
-symbol_t *builtin_buffer_table_docstring =
-  "Return the LISP buffer table.";
-int builtin_buffer_table(Atom arguments, Atom *result) {
-  if (!nilp(arguments)) {
-    return ERROR_ARGUMENTS;
-  }
-  *result = *buf_table();
   return ERROR_NONE;
 }
 
