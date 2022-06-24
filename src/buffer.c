@@ -174,6 +174,62 @@ char *buffer_string(Buffer buffer) {
   return rope_string(NULL, buffer.rope, NULL);
 }
 
+char *buffer_lines(Buffer buffer, size_t line_number, size_t line_count) {
+  return rope_lines(buffer.rope, line_number, line_count);
+}
+
+char *buffer_line(Buffer buffer, size_t line_number) {
+  return buffer_lines(buffer, line_number, 1);
+}
+
+char *buffer_current_line(Buffer buffer) {
+  if (!buffer.rope) { return NULL; }
+  // Initial idea: Just convert to string
+  // and do some basic loop searching.
+  char *contents = rope_string(NULL, buffer.rope, NULL);
+  if (!contents) { return NULL; }
+  // Search backward for newline, or point_byte of zero.
+  char *beg = contents + buffer.point_byte;
+  size_t point = buffer.point_byte;
+  while (point && *beg != '\n') {
+    beg -= 1;
+    point -= 1;
+  }
+  char *current_line = NULL;
+  size_t line_length = 0;
+  if (*beg != '\n') {
+    // Return span from beginning of contents up until point_byte.
+    line_length = buffer.point_byte;
+    current_line = malloc(line_length + 1);
+    if (!current_line) {
+      free(contents);
+      return NULL;
+    }
+    strncpy(current_line, contents, line_length);
+    current_line[line_length] = '\0';
+    free(contents);
+    return current_line;
+  }
+
+  // At this point, `beg` refers to the address of a newline within
+  // contents. Search forward for newline or end of string from `beg`.
+  char *end = beg;
+  while (*end != '\0' && *end != '\n' && point < buffer.rope->weight) {
+    end += 1;
+    point += 1;
+  }
+  line_length = end - beg;
+  current_line = malloc(line_length + 1);
+  if (!current_line) {
+    free(contents);
+    return NULL;
+  }
+  strncpy(current_line, beg, line_length);
+  current_line[line_length] = '\0';
+  free(contents);
+  return current_line;
+}
+
 void buffer_print(Buffer buffer) {
   char *contents = buffer_string(buffer);
   printf("Buffer:\n"

@@ -34,6 +34,12 @@ Error buffer_remove_bytes(Buffer *buffer, size_t count);
 Error buffer_remove_byte(Buffer *buffer);
 
 char *buffer_string(Buffer buffer);
+char *buffer_lines(Buffer buffer, size_t line_number
+                   , size_t line_count);
+char *buffer_line(Buffer buffer, size_t line_number);
+/// Return the line surrounding `point_byte`
+char *buffer_current_line(Buffer buffer);
+
 void buffer_print(Buffer buffer);
 
 Error buffer_save(Buffer buffer);
