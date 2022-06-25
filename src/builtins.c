@@ -267,6 +267,27 @@ int builtin_buffer_remove(Atom arguments, Atom *result) {
   return ERROR_NONE;
 }
 
+symbol_t *builtin_buffer_remove_forward_docstring =
+  "(buffer-remove-forward BUFFER COUNT) \
+\
+Remove COUNT bytes from BUFFER following point.";
+int builtin_buffer_remove_forward(Atom arguments, Atom *result) {
+  BUILTIN_ENSURE_TWO_ARGUMENTS(arguments);
+  Atom buffer = car(arguments);
+  Atom count = car(cdr(arguments));
+  if (!bufferp(buffer) || !integerp(count)) {
+    return ERROR_TYPE;
+  }
+  Error err = buffer_remove_bytes_forward(buffer.value.buffer
+                                          , count.value.integer);
+  if (err.type) {
+    print_error(err);
+    return err.type;
+  }
+  *result = buffer;
+  return ERROR_NONE;
+}
+
 symbol_t *builtin_buffer_string_docstring =
   "(buffer-string BUFFER) \
 \

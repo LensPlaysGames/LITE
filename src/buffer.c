@@ -116,7 +116,14 @@ Error buffer_insert_byte(Buffer *buffer, char byte) {
                , NULL);
     return args;
   }
-  buffer->rope = rope_insert_byte(buffer->rope, buffer->point_byte, byte);
+  Rope *rope = rope_insert_byte(buffer->rope, buffer->point_byte, byte);
+  if (!rope) {
+    MAKE_ERROR(args, ERROR_ARGUMENTS, nil
+               , "buffer_insert_byte: Could not insert byte into buffer rope."
+               , NULL);
+    return args;
+  }
+  buffer->rope = rope;
   buffer->point_byte += 1;
   return ok;
 }
@@ -162,12 +169,67 @@ Error buffer_remove_bytes(Buffer *buffer, size_t count) {
     count = buffer->point_byte;
     buffer->point_byte = 0;
   }
-  buffer->rope = rope_remove_span(buffer->rope, buffer->point_byte, count);
+  Rope *rope = rope_remove_span(buffer->rope, buffer->point_byte, count);
+  if (!rope) {
+    MAKE_ERROR(err, ERROR_TODO, nil
+               , "Failed to remove span from buffer rope."
+               , NULL);
+    return err;
+  }
+  buffer->rope = rope;
   return ok;
 }
 
 Error buffer_remove_byte(Buffer *buffer) {
   return buffer_remove_bytes(buffer, 1);
+}
+
+size_t buffer_size(Buffer buffer) {
+  if (!buffer.rope) {
+    return 0;
+  }
+  return buffer.rope->weight;
+}
+
+Error buffer_remove_bytes_forward(Buffer *buffer, size_t count) {
+  if (!buffer || !buffer->rope) {
+    MAKE_ERROR(err, ERROR_ARGUMENTS, nil
+               , "Can not remove bytes from NULL buffer."
+               , NULL);
+    return err;
+  }
+  if (count == 0) {
+    MAKE_ERROR(err, ERROR_ARGUMENTS, nil
+               , "Can not remove zero bytes from buffer."
+               , NULL);
+    return err;
+  }
+  size_t size = buffer_size(*buffer);
+  if (!size) {
+    MAKE_ERROR(err, ERROR_TODO, nil
+               , "Can not remove from empty buffer."
+               , NULL);
+    return err;
+  }
+  if (buffer->point_byte + count >= size) {
+    count = size - buffer->point_byte;
+    if (count == 0) {
+      return ok;
+    }
+  }
+  Rope *rope = rope_remove_span(buffer->rope, buffer->point_byte, count);
+  if (!rope) {
+    MAKE_ERROR(err, ERROR_TODO, nil
+               , "Failed to remove span from buffer rope."
+               , NULL);
+    return err;
+  }
+  buffer->rope = rope;
+  return ok;
+}
+
+Error buffer_remove_byte_forward(Buffer *buffer) {
+  return buffer_remove_bytes_forward(buffer, 1);
 }
 
 char *buffer_string(Buffer buffer) {
@@ -184,20 +246,22 @@ char *buffer_line(Buffer buffer, size_t line_number) {
 
 char *buffer_current_line(Buffer buffer) {
   if (!buffer.rope) { return NULL; }
-  // Initial idea: Just convert to string
-  // and do some basic loop searching.
+  printf("buffer:\n"
+         "  point byte: %zu\n",
+         buffer.point_byte
+         );
   char *contents = rope_string(NULL, buffer.rope, NULL);
   if (!contents) { return NULL; }
   // Search backward for newline, or point_byte of zero.
   char *beg = contents + buffer.point_byte;
-  size_t point = buffer.point_byte;
-  while (point && *beg != '\n') {
+  size_t point = buffer.point_byte + 1;
+  while (point && *beg != '\r' && *beg != '\n') {
     beg -= 1;
     point -= 1;
   }
   char *current_line = NULL;
   size_t line_length = 0;
-  if (*beg != '\n') {
+  if (*beg != '\r' && *beg != '\n') {
     // Return span from beginning of contents up until point_byte.
     line_length = buffer.point_byte;
     current_line = malloc(line_length + 1);

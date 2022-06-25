@@ -24,12 +24,17 @@ typedef struct GUIContext {
 
 /// Returns 0 upon success.
 int create_gui();
-
 void destroy_gui();
 
 /// Render a single frame based on graphical context.
 void draw_gui(GUIContext *ctx);
 
+/// Handle pending events (user input, quit, etc).
+/// Returns boolean-like value denoting whether
+/// execution should continue or not (0 == HALT).
+int handle_events();
+
+/// Do one iteration of the GUI based on graphical context.
 void do_gui(int *open, GUIContext *ctx);
 
 #endif /* GUI_H */

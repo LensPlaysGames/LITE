@@ -62,6 +62,15 @@ int boundp(Atom environment, Atom symbol) {
   return !(env_get(environment, symbol, &bind).type);
 }
 
+Atom default_control_keymap() {
+  // Only the first byte of the key's "string" is used for now.
+  Atom control_map_alist = make_alist(make_string("d")
+                                      , cons(make_sym("BUFFER-REMOVE-FORWARD")
+                                             , cons(make_sym("CURRENT-BUFFER")
+                                                    , cons(make_int(1), nil))));
+  return control_map_alist;
+}
+
 Atom default_shift_conversion_alist() {
   // Only the first character of the string is used for now.
   Atom shift_map_alist = make_alist(make_string("q"), make_string("Q"));
@@ -117,7 +126,11 @@ Atom default_shift_conversion_alist() {
 Atom default_keymap() {
   // Only the first character of the string is used for now.
   Atom keymap = make_empty_alist();
-  alist_set(&keymap, make_string("CTRL"), nil);
+  alist_set(&keymap, make_string("\b"),
+            cons(make_sym("BUFFER-REMOVE")
+                 , cons(make_sym("CURRENT-BUFFER")
+                        , cons(make_int(1), nil))));
+  alist_set(&keymap, make_string("CTRL"), default_control_keymap());
   alist_set(&keymap, make_string("LEFT-CONTROL"), make_string("CTRL"));
   alist_set(&keymap, make_string("RIGHT-CONTROL"), make_string("CTRL"));
   alist_set(&keymap, make_string("SHFT"), default_shift_conversion_alist());
@@ -165,6 +178,8 @@ Atom default_environment() {
           , make_builtin(builtin_buffer_insert, builtin_buffer_insert_docstring));
   env_set(environment, make_sym("BUFFER-REMOVE")
           , make_builtin(builtin_buffer_remove, builtin_buffer_remove_docstring));
+  env_set(environment, make_sym("BUFFER-REMOVE-FORWARD")
+          , make_builtin(builtin_buffer_remove_forward, builtin_buffer_remove_forward_docstring));
   env_set(environment, make_sym("BUFFER-STRING")
           , make_builtin(builtin_buffer_string, builtin_buffer_string_docstring));
   env_set(environment, make_sym("BUFFER-LINES")

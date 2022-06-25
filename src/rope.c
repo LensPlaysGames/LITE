@@ -792,7 +792,6 @@ Rope *rope_remove_span(Rope *rope, size_t offset, size_t length) {
 
     } else if (length >= current_rope->weight - current_index) {
       // Remove everything after current_index, then continue removing recursively.
-
       size_t newstr_len = current_index + 1;
       char *newstr = malloc(newstr_len + 1);
       if (!newstr) { return NULL; }

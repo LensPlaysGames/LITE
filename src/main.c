@@ -205,19 +205,10 @@ void handle_character_dn(uint64_t c) {
       printf("Keydown: %c\n", (char)c);
     }
   }
-
   Atom current_buffer = nil;
   env_get(genv(), make_sym("CURRENT-BUFFER"), &current_buffer);
   if (bufferp(current_buffer)) {
-    if (c == '\b') {
-      if (bufferp(current_buffer)) {
-        Error err = buffer_remove_byte(current_buffer.value.buffer);
-        if (err.type) {
-          print_error(err);
-          return;
-        }
-      }
-    } else if (c == '\a') {
+    if (c == '\a') {
       // TODO: It would be cool to have `gui.h` include a `visual_beep()` and `audio_beep()`.
     } else if (c == '\t') {
       // TODO: Handle tabs (LISP environment variable to deal with spaces conversion).
@@ -282,13 +273,12 @@ void handle_character_dn(uint64_t c) {
                 }
                 // Default behaviour of un-bound input, just insert it.
                 // Maybe this should change? I'm not certain.
-                if (bufferp(current_buffer)) {
-                  // FIXME: This assumes one-byte content.
-                  Error err = buffer_insert_byte(current_buffer.value.buffer, (char)c);
-                  if (err.type) {
-                    print_error(err);
-                    return;
-                  }
+                // FIXME: This assumes one-byte content.
+                Error err = buffer_insert_byte(current_buffer.value.buffer, (char)c);
+                if (err.type) {
+                  print_error(err);
+                  update_footline(gctx, error_string(err));
+                  return;
                 }
                 return;
               }
@@ -304,13 +294,12 @@ void handle_character_dn(uint64_t c) {
             // Explicitly insert characters with 'SELF-INSERT-CHAR' symbol.
             if (keybind.value.symbol && strlen(keybind.value.symbol)) {
               if (strcmp(keybind.value.symbol, "SELF-INSERT-CHAR") == 0) {
-                if (bufferp(current_buffer)) {
-                  // FIXME: This assumes one-byte content.
-                  Error err = buffer_insert_byte(current_buffer.value.buffer, (char)c);
-                  if (err.type) {
-                    print_error(err);
-                    return;
-                  }
+                // FIXME: This assumes one-byte content.
+                Error err = buffer_insert_byte(current_buffer.value.buffer, (char)c);
+                if (err.type) {
+                  print_error(err);
+                  update_footline(gctx, error_string(err));
+                  return;
                 }
               }
             }

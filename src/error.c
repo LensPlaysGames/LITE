@@ -67,7 +67,6 @@ static void append_error_string(char* str) {
   error_string_point += len;
   error_string_buffer[error_string_point + 1] = '\0';
 }
-
 char *error_string(Error e) {
   if (e.type == ERROR_NONE) {
     return NULL;

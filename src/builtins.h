@@ -78,6 +78,8 @@ extern symbol_t          *builtin_buffer_insert_docstring;
 int builtin_buffer_insert(Atom arguments, Atom *result);
 extern symbol_t          *builtin_buffer_remove_docstring;
 int builtin_buffer_remove(Atom arguments, Atom *result);
+extern symbol_t          *builtin_buffer_remove_forward_docstring;
+int builtin_buffer_remove_forward(Atom arguments, Atom *result);
 
 extern symbol_t          *builtin_buffer_string_docstring;
 int builtin_buffer_string(Atom arguments, Atom *result);

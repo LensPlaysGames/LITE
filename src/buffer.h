@@ -14,6 +14,9 @@ typedef struct Buffer {
 /// Open file or create new if one doesn't exist.
 Buffer *buffer_create(char *path);
 
+/// Return the buffer's size in bytes.
+size_t buffer_size(Buffer buffer);
+
 /// Use `point_byte` to determine insertion point.
 Error buffer_insert(Buffer *buffer, char *string);
 
@@ -32,6 +35,9 @@ Error buffer_append_byte(Buffer *buffer, char byte);
 
 Error buffer_remove_bytes(Buffer *buffer, size_t count);
 Error buffer_remove_byte(Buffer *buffer);
+
+Error buffer_remove_bytes_forward(Buffer *buffer, size_t count);
+Error buffer_remove_byte_forward(Buffer *buffer);
 
 char *buffer_string(Buffer buffer);
 char *buffer_lines(Buffer buffer, size_t line_number

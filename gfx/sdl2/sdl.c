@@ -161,10 +161,7 @@ void draw_gui(GUIContext *ctx) {
   }
   if (ctx->contents && ctx->contents[0] != '\0') {
     SDL_Surface *contents = NULL;
-    // TODO: Display each line on a newline!
     // TODO: Wrapped text vs unwrapped text.
-    //       SDL_ttf V2.0.18 introduced _Wrapped functions to all
-    //       of these functions, which is very, very handy!
     contents = TTF_RenderUTF8_Blended_Wrapped(font, ctx->contents, fg, width);
     if (contents) {
       SDL_BlitSurface(contents, NULL, surface, &rect_contents);
@@ -192,11 +189,7 @@ void draw_gui(GUIContext *ctx) {
   SDL_RenderPresent(grender);
 }
 
-// Returns a boolean-like integer value (0 is false).
-void do_gui(int *open, GUIContext *ctx) {
-  if (!open || *open == 0 || !ctx) {
-    return;
-  }
+int handle_events() {
   SDL_Event event;
   GUIModifierKey mod;
   while (SDL_PollEvent(&event)) {
@@ -221,10 +214,19 @@ void do_gui(int *open, GUIContext *ctx) {
       }
       break;
     case SDL_QUIT:
-      *open = 0;
-      return;
+      return 0;
     }
   }
+  return 1;
+}
+
+// Returns a boolean-like integer value (0 is false).
+void do_gui(int *open, GUIContext *ctx) {
+  if (!open || *open == 0 || !ctx) {
+    return;
+  }
+  *open = handle_events();
+  if (*open == 0) { return; }
   draw_gui(ctx);
 }
 
