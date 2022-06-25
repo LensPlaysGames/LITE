@@ -159,8 +159,23 @@ Atom default_environment() {
   env_set(environment, make_sym("PRINT"),    make_builtin(builtin_print,        builtin_print_docstring));
   env_set(environment, make_sym("SYM"),      make_builtin(builtin_symbol_table, builtin_symbol_table_docstring));
   env_set(environment, make_sym("BUF"),      make_builtin(builtin_buffer_table, builtin_buffer_table_docstring));
-  env_set(environment, make_sym("BUFFER-INSERT"), make_builtin(builtin_buffer_insert, builtin_buffer_insert_docstring));
-  env_set(environment, make_sym("BUFFER-REMOVE"), make_builtin(builtin_buffer_remove, builtin_buffer_remove_docstring));
+  env_set(environment, make_sym("OPEN-BUFFER")
+          , make_builtin(builtin_open_buffer, builtin_open_buffer_docstring));
+  env_set(environment, make_sym("BUFFER-INSERT")
+          , make_builtin(builtin_buffer_insert, builtin_buffer_insert_docstring));
+  env_set(environment, make_sym("BUFFER-REMOVE")
+          , make_builtin(builtin_buffer_remove, builtin_buffer_remove_docstring));
+  env_set(environment, make_sym("BUFFER-STRING")
+          , make_builtin(builtin_buffer_string, builtin_buffer_string_docstring));
+  env_set(environment, make_sym("BUFFER-LINES")
+          , make_builtin(builtin_buffer_lines, builtin_buffer_lines_docstring));
+  env_set(environment, make_sym("BUFFER-LINE")
+          , make_builtin(builtin_buffer_line, builtin_buffer_line_docstring));
+  env_set(environment, make_sym("BUFFER-CURRENT-LINE")
+          , make_builtin(builtin_buffer_current_line, builtin_buffer_current_line_docstring));
+
+  env_set(environment, make_sym("EVALUATE-STRING")
+          , make_builtin(builtin_evaluate_string, builtin_evaluate_string_docstring));
 
   env_set(environment, make_sym("WHILE-RECURSE-LIMIT"), make_int_with_docstring
           (10000

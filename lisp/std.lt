@@ -155,8 +155,8 @@ also known as the absolute value.")
 ;; also known as ALISTS
 
 (macro alist-set (alist key value)
-       "Associate VALUE with KEY in ALIST."
-       `(define ,alist (cons (cons ,key ,value) ,alist)))
+       "Return ALIST with KEY associated to VALUE."
+       `(cons (cons ,key ,value) ,alist))
 
 (define alist-get
     (lambda (alist key)
@@ -174,3 +174,24 @@ also known as the absolute value.")
 (macro set-docstring (x string)
        "Set the docstring of X to STRING and return it."
        `(define ,x ,x ,string))
+
+;; STANDARD KEYBINDINGS
+
+(define keymap
+    (alist-set
+     keymap "CTRL"
+     (alist-set
+      (alist-get keymap "CTRL")
+      "e"
+      '(evaluate-string
+        (buffer-current-line current-buffer)))))
+
+(define keymap
+    (alist-set
+     keymap "LEFT-ALT"
+     (alist-set
+      (alist-get keymap "LEFT-ALT")
+      "e"
+      '(evaluate-string
+        (buffer-string current-buffer)))))
+

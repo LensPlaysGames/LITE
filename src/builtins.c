@@ -4,6 +4,7 @@
 #include <error.h>
 #include <environment.h>
 #include <evaluation.h>
+#include <parser.h>
 #include <string.h>
 #include <types.h>
 
@@ -201,6 +202,21 @@ int builtin_divide(Atom arguments, Atom *result) {
   return ERROR_NONE;
 }
 
+symbol_t *builtin_open_buffer_docstring =
+  "(open-buffer PATH) \
+\
+Return a buffer visiting PATH.";
+int builtin_open_buffer(Atom arguments, Atom *result) {
+  BUILTIN_ENSURE_ONE_ARGUMENT(arguments);
+  Atom path = car(arguments);
+  if (!stringp(path) || !path.value.symbol) {
+    return ERROR_TYPE;
+  }
+  // TODO: Buffer-local environment should go here.
+  *result = make_buffer(env_create(nil), (char *)path.value.symbol);
+  return ERROR_NONE;
+}
+
 symbol_t *builtin_buffer_table_docstring =
   "Return the LISP buffer table.";
 int builtin_buffer_table(Atom arguments, Atom *result) {
@@ -248,6 +264,79 @@ int builtin_buffer_remove(Atom arguments, Atom *result) {
     return err.type;
   }
   *result = buffer;
+  return ERROR_NONE;
+}
+
+symbol_t *builtin_buffer_string_docstring =
+  "(buffer-string BUFFER) \
+\
+Get the contents of BUFFER as a string. \
+Be careful on large files, please.";
+int builtin_buffer_string(Atom arguments, Atom *result) {
+  BUILTIN_ENSURE_ONE_ARGUMENT(arguments);
+  Atom buffer = car(arguments);
+  if (!bufferp(buffer) || !buffer.value.buffer) {
+    return ERROR_TYPE;
+  }
+  *result = make_string(buffer_string(*buffer.value.buffer));
+  return ERROR_NONE;
+}
+
+symbol_t *builtin_buffer_lines_docstring =
+  "(buffer-lines BUFFER START-LINE LINE-COUNT) \
+\
+Get LINE-COUNT lines";
+int builtin_buffer_lines (Atom arguments, Atom *result) {
+  BUILTIN_ENSURE_THREE_ARGUMENTS(arguments);
+  Atom buffer = car(arguments);
+  if (!bufferp(buffer) || !buffer.value.buffer) {
+    return ERROR_TYPE;
+  }
+  Atom start_line = car(cdr(arguments));
+  if (!integerp(start_line)) {
+    return ERROR_TYPE;
+  }
+  Atom line_count = car(cdr(cdr(arguments)));
+  if (!integerp(line_count)) {
+    return ERROR_TYPE;
+  }
+  *result = make_string
+    (buffer_lines(*buffer.value.buffer
+                  , start_line.value.integer
+                  , line_count.value.integer));
+  return ERROR_NONE;
+}
+
+symbol_t *builtin_buffer_line_docstring =
+  "(buffer-line BUFFER LINE-NUMBER) \
+\
+Get line LINE-NUMBER from BUFFER contents as string.";
+int builtin_buffer_line  (Atom arguments, Atom *result) {
+  BUILTIN_ENSURE_TWO_ARGUMENTS(arguments);
+  Atom buffer = car(arguments);
+  if (!bufferp(buffer) || !buffer.value.buffer) {
+    return ERROR_TYPE;
+  }
+  Atom line_count = car(cdr(arguments));
+  if (!integerp(line_count)) {
+    return ERROR_TYPE;
+  }
+  *result = make_string(buffer_line(*buffer.value.buffer
+                                    , line_count.value.integer));
+  return ERROR_NONE;
+}
+
+symbol_t *builtin_buffer_current_line_docstring =
+  "(buffer-current-line BUFFER) \
+\
+Get line surrounding point in BUFFER as string.";
+int builtin_buffer_current_line(Atom arguments, Atom *result) {
+  BUILTIN_ENSURE_ONE_ARGUMENT(arguments);
+  Atom buffer = car(arguments);
+  if (!bufferp(buffer) || !buffer.value.buffer) {
+    return ERROR_TYPE;
+  }
+  *result = make_string(buffer_current_line(*buffer.value.buffer));
   return ERROR_NONE;
 }
 
@@ -338,6 +427,32 @@ int builtin_numgt_or_eq(Atom arguments, Atom *result) {
     return ERROR_TYPE;
   }
   *result = lhs.value.integer >= rhs.value.integer ? make_sym("T") : nil;
+  return ERROR_NONE;
+}
+
+symbol_t *builtin_evaluate_string_docstring =
+  "(evaluate-string STRING) \
+\
+Evaluate STRING as a LITE LISP expression.";
+int builtin_evaluate_string(Atom arguments, Atom *result) {
+  BUILTIN_ENSURE_ONE_ARGUMENT(arguments);
+  Atom input = car(arguments);
+  if (!stringp(input) || !input.value.symbol) {
+    return ERROR_TYPE;
+  }
+  Atom expr = nil;
+  Error err = parse_expr(input.value.symbol, &input.value.symbol, &expr);
+  if (err.type) {
+    printf("EVALUATE-STRING PARSING ");
+    print_error(err);
+    return err.type;
+  }
+  err = evaluate_expression(expr, genv(), result);
+  if (err.type) {
+    printf("EVALUATE-STRING EVALUATION ");
+    print_error(err);
+    return err.type;
+  }
   return ERROR_NONE;
 }
 
