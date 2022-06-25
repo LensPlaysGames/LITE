@@ -95,8 +95,6 @@ int modkey_state(GUIModifierKey key) {
 
 // All these global variables may be bad :^|
 
-Atom *genv = NULL;
-
 GUIContext *gctx = NULL;
 
 /// This will set the environment variable `CURRENT-KEYMAP` based on modifiers
@@ -123,7 +121,6 @@ int handle_character_dn_modifiers(Atom current_keymap, size_t *keybind_recurse_c
       // Discard character if no ctrl keybind was found.
       return 0;
     }
-    env_set(*genv, make_sym("CURRENT-KEYMAP"), current_keymap);
   } else if (modkey_state(GUI_MODKEY_RCTRL)) {
     Atom rctrl_bind = alist_get(current_keymap, make_string("RIGHT-CONTROL"));
     if (stringp(rctrl_bind)) {
@@ -138,9 +135,7 @@ int handle_character_dn_modifiers(Atom current_keymap, size_t *keybind_recurse_c
       // Discard character if no ctrl keybind was found.
       return 0;
     }
-    env_set(*genv, make_sym("CURRENT-KEYMAP"), current_keymap);
   }
-
   if (modkey_state(GUI_MODKEY_LALT)) {
     Atom lalt_bind = alist_get(current_keymap, make_string("LEFT-ALT"));
     // Allow string-rebinding of ctrl to another character.
@@ -157,7 +152,6 @@ int handle_character_dn_modifiers(Atom current_keymap, size_t *keybind_recurse_c
       // Discard character if no alt keybind was found.
       return 0;
     }
-    env_set(*genv, make_sym("CURRENT-KEYMAP"), current_keymap);
   } else if (modkey_state(GUI_MODKEY_RALT)) {
     Atom ralt_bind = alist_get(current_keymap, make_string("RIGHT-ALT"));
     if (stringp(ralt_bind)) {
@@ -171,9 +165,7 @@ int handle_character_dn_modifiers(Atom current_keymap, size_t *keybind_recurse_c
       // Discard character if no keybind was found.
       return 0;
     }
-    env_set(*genv, make_sym("CURRENT-KEYMAP"), current_keymap);
   }
-
   if (modkey_state(GUI_MODKEY_LSHIFT)) {
     Atom lshift_bind = alist_get(current_keymap, make_string("LEFT-SHIFT"));
     // Allow string-rebinding of shift to another character.
@@ -184,7 +176,6 @@ int handle_character_dn_modifiers(Atom current_keymap, size_t *keybind_recurse_c
     }
     if (alistp(lshift_bind)) {
       current_keymap = lshift_bind;
-      env_set(*genv, make_sym("CURRENT-KEYMAP"), current_keymap);
     }
   } else if (modkey_state(GUI_MODKEY_RSHIFT)) {
     Atom rshift_bind = alist_get(current_keymap, make_string("RIGHT-SHIFT"));
@@ -194,9 +185,9 @@ int handle_character_dn_modifiers(Atom current_keymap, size_t *keybind_recurse_c
     }
     if (alistp(rshift_bind)) {
       current_keymap = rshift_bind;
-      env_set(*genv, make_sym("CURRENT-KEYMAP"), current_keymap);
     }
   }
+  env_set(genv(), make_sym("CURRENT-KEYMAP"), current_keymap);
   return 1;
 }
 
@@ -206,7 +197,7 @@ void handle_character_dn(uint64_t c) {
     return;
   }
 
-  int debug_keybinding = env_non_nil(*genv, make_sym("DEBUG/KEYBINDING"));
+  int debug_keybinding = env_non_nil(genv(), make_sym("DEBUG/KEYBINDING"));
   if (debug_keybinding) {
     if (c > 255) {
       printf("Keydown: %llu\n", c);
@@ -216,10 +207,7 @@ void handle_character_dn(uint64_t c) {
   }
 
   Atom current_buffer = nil;
-  if (genv) {
-    env_get(*genv, make_sym("CURRENT-BUFFER"), &current_buffer);
-  }
-
+  env_get(genv(), make_sym("CURRENT-BUFFER"), &current_buffer);
   if (bufferp(current_buffer)) {
     if (c == '\b') {
       if (bufferp(current_buffer)) {
@@ -235,149 +223,146 @@ void handle_character_dn(uint64_t c) {
       // TODO: Handle tabs (LISP environment variable to deal with spaces conversion).
     } else {
       // If no special handling is required, it's up to the keymap!
-      if (genv) {
-        const size_t keybind_recurse_limit = 256;
-        size_t keybind_recurse_count = 0;
-        // Get current keymap from LISP environment.
-        Atom current_keymap = nil;
-        env_get(*genv, make_sym("CURRENT-KEYMAP"), &current_keymap);
-        if (nilp(current_keymap)) {
-          env_get(*genv, make_sym("KEYMAP"), &current_keymap);
-        }
+      const size_t keybind_recurse_limit = 256;
+      size_t keybind_recurse_count = 0;
+      // Get current keymap from LISP environment.
+      Atom current_keymap = nil;
+      env_get(genv(), make_sym("CURRENT-KEYMAP"), &current_keymap);
+      if (nilp(current_keymap)) {
+        env_get(genv(), make_sym("KEYMAP"), &current_keymap);
+      }
+      if (debug_keybinding) {
+        printf("Current keymap: ");
+        pretty_print_atom(current_keymap);
+        putchar('\n');
+      }
+
+      if (!handle_character_dn_modifiers(current_keymap, &keybind_recurse_count)) {
+        return;
+      }
+
+      while (c && keybind_recurse_count < keybind_recurse_limit) {
+        env_get(genv(), make_sym("CURRENT-KEYMAP"), &current_keymap);
         if (debug_keybinding) {
           printf("Current keymap: ");
           pretty_print_atom(current_keymap);
           putchar('\n');
         }
 
-        if (!handle_character_dn_modifiers(current_keymap, &keybind_recurse_count)) {
-          return;
+        const size_t tmp_str_sz = 2;
+        char *tmp_str = malloc(tmp_str_sz);
+        memset(tmp_str, '\0', tmp_str_sz);
+        // TODO+FIXME: This falsely assumes one-byte character.
+        tmp_str[0] = (char)c;
+        Atom keybind = alist_get(current_keymap, make_string(tmp_str));
+        free(tmp_str);
+
+        if (debug_keybinding) {
+          printf("Got keybind: ");
+          pretty_print_atom(keybind);
+          putchar('\n');
         }
 
-        while (c && keybind_recurse_count < keybind_recurse_limit) {
-          env_get(*genv, make_sym("CURRENT-KEYMAP"), &current_keymap);
+        if (alistp(keybind)) {
+          // Nested keymap, rebind current keymap.
           if (debug_keybinding) {
-            printf("Current keymap: ");
-            pretty_print_atom(current_keymap);
-            putchar('\n');
+            printf("Nested keymap found, updating CURRENT-KEYMAP\n");
           }
-
-          const size_t tmp_str_sz = 2;
-          char *tmp_str = malloc(tmp_str_sz);
-          memset(tmp_str, '\0', tmp_str_sz);
-          // TODO+FIXME: This falsely assumes one-byte character.
-          tmp_str[0] = (char)c;
-          Atom keybind = alist_get(current_keymap, make_string(tmp_str));
-          free(tmp_str);
-
-          if (debug_keybinding) {
-            printf("Got keybind: ");
-            pretty_print_atom(keybind);
-            putchar('\n');
-          }
-
-          if (alistp(keybind)) {
-            // Nested keymap, rebind current keymap.
-            if (debug_keybinding) {
-              printf("Nested keymap found, updating CURRENT-KEYMAP\n");
-            }
-            env_set(*genv, make_sym("CURRENT-KEYMAP"), keybind);
-            c = 0;
-          } else {
-            Atom root_keymap = nil;
-            env_get(*genv, make_sym("KEYMAP"), &root_keymap);
-            if (nilp(keybind)) {
-              if (pairp(current_keymap) && pairp(root_keymap)
-                  && current_keymap.value.pair == root_keymap.value.pair)
-                {
-                  if (debug_keybinding) {
-                    printf("Key not bound: %c\n", (char)c);
-                  }
-                  // Default behaviour of un-bound input, just insert it.
-                  // Maybe this should change? I'm not certain.
-                  if (bufferp(current_buffer)) {
-                    // FIXME: This assumes one-byte content.
-                    Error err = buffer_insert_byte(current_buffer.value.buffer, (char)c);
-                    if (err.type) {
-                      print_error(err);
-                      return;
-                    }
-                  }
-                  return;
+          env_set(genv(), make_sym("CURRENT-KEYMAP"), keybind);
+          c = 0;
+        } else {
+          Atom root_keymap = nil;
+          env_get(genv(), make_sym("KEYMAP"), &root_keymap);
+          if (nilp(keybind)) {
+            if (pairp(current_keymap) && pairp(root_keymap)
+                && current_keymap.value.pair == root_keymap.value.pair)
+              {
+                if (debug_keybinding) {
+                  printf("Key not bound: %c\n", (char)c);
                 }
-              env_set(*genv, make_sym("CURRENT-KEYMAP"), root_keymap);
+                // Default behaviour of un-bound input, just insert it.
+                // Maybe this should change? I'm not certain.
+                if (bufferp(current_buffer)) {
+                  // FIXME: This assumes one-byte content.
+                  Error err = buffer_insert_byte(current_buffer.value.buffer, (char)c);
+                  if (err.type) {
+                    print_error(err);
+                    return;
+                  }
+                }
+                return;
+              }
+            env_set(genv(), make_sym("CURRENT-KEYMAP"), root_keymap);
+            keybind_recurse_count += 1;
+            if (debug_keybinding) {
+              printf("keybind_recurse_count: %zu\n", keybind_recurse_count);
+            }
+            continue;
+          }
+
+          if (symbolp(keybind)) {
+            // Explicitly insert characters with 'SELF-INSERT-CHAR' symbol.
+            if (keybind.value.symbol && strlen(keybind.value.symbol)) {
+              if (strcmp(keybind.value.symbol, "SELF-INSERT-CHAR") == 0) {
+                if (bufferp(current_buffer)) {
+                  // FIXME: This assumes one-byte content.
+                  Error err = buffer_insert_byte(current_buffer.value.buffer, (char)c);
+                  if (err.type) {
+                    print_error(err);
+                    return;
+                  }
+                }
+              }
+            }
+          } else if (stringp(keybind)) {
+            // Rebind characters (only one byte for now) using a string associated value.
+            if (keybind.value.symbol && strlen(keybind.value.symbol)) {
+              c = keybind.value.symbol[0];
+              // Go around again!
               keybind_recurse_count += 1;
               if (debug_keybinding) {
                 printf("keybind_recurse_count: %zu\n", keybind_recurse_count);
               }
               continue;
             }
-
-            if (symbolp(keybind)) {
-              // Explicitly insert characters with 'SELF-INSERT-CHAR' symbol.
-              if (keybind.value.symbol && strlen(keybind.value.symbol)) {
-                if (strcmp(keybind.value.symbol, "SELF-INSERT-CHAR") == 0) {
-                  if (bufferp(current_buffer)) {
-                    // FIXME: This assumes one-byte content.
-                    Error err = buffer_insert_byte(current_buffer.value.buffer, (char)c);
-                    if (err.type) {
-                      print_error(err);
-                      return;
-                    }
-                  }
-                }
-              }
-            } else if (stringp(keybind)) {
-              // Rebind characters (only one byte for now) using a string associated value.
-              if (keybind.value.symbol && strlen(keybind.value.symbol)) {
-                c = keybind.value.symbol[0];
-                // Go around again!
-                keybind_recurse_count += 1;
-                if (debug_keybinding) {
-                  printf("keybind_recurse_count: %zu\n", keybind_recurse_count);
-                }
-                continue;
-              }
-            } else {
-              if (debug_keybinding) {
-                printf("Attempting to evaluate keybind: ");
-                print_atom(keybind);
-                putchar('\n');
-              }
-
-              Atom result = nil;
-              Error err = evaluate_expression(cons(keybind, nil), *genv, &result);
-              if (err.type) {
-                printf("KEYBIND ");
-                print_error(err);
-                update_footline(gctx, allocate_string("ERROR! (keybind)"));
-                return;
-              }
-              if (debug_keybinding) {
-                printf("Result: ");
-                print_atom(result);
-                putchar('\n');
-              }
-              update_footline(gctx, atom_string(result, NULL));
-            }
-
-            // Reset current keymap
-            env_get(*genv, make_sym("KEYMAP"), &current_keymap);
-            env_set(*genv, make_sym("CURRENT-KEYMAP"), current_keymap);
-            if (debug_keybinding) {
-              printf("Keymap reset: ");
-              print_atom(current_keymap);
-              putchar('\n');
-            }
-
-            // End keybind loop.
-            c = 0;
           }
-          keybind_recurse_count += 1;
           if (debug_keybinding) {
-            printf("keybind_recurse_count: %zu\n", keybind_recurse_count);
+            printf("Attempting to evaluate keybind: ");
+            print_atom(keybind);
+            putchar('\n');
           }
+          Atom result = nil;
+          Error err = evaluate_expression(keybind, genv(), &result);
+          if (err.type) {
+            printf("KEYBIND ");
+            print_error(err);
+            update_footline(gctx, error_string(err));
+            env_set(genv(), make_sym("CURRENT-KEYMAP"), root_keymap);
+            return;
+          }
+          if (debug_keybinding) {
+            printf("Result: ");
+            print_atom(result);
+            putchar('\n');
+          }
+          update_footline(gctx, atom_string(result, NULL));
         }
+
+        // Reset current keymap
+        env_get(genv(), make_sym("KEYMAP"), &current_keymap);
+        env_set(genv(), make_sym("CURRENT-KEYMAP"), current_keymap);
+        if (debug_keybinding) {
+          printf("Keymap reset: ");
+          print_atom(current_keymap);
+          putchar('\n');
+        }
+
+        // End keybind loop.
+        c = 0;
+      }
+      keybind_recurse_count += 1;
+      if (debug_keybinding) {
+        printf("keybind_recurse_count: %zu\n", keybind_recurse_count);
       }
     }
   }
@@ -504,18 +489,22 @@ int enter_lite_gui() {
   }
   while (open) {
     char *new_contents = NULL;
-    if (genv) {
-      Atom current_buffer = nil;
-      env_get(*genv, make_sym("CURRENT-BUFFER"), &current_buffer);
-      if (bufferp(current_buffer)) {
-        new_contents = buffer_string(*current_buffer.value.buffer);
-      }
+    Atom current_buffer = nil;
+    // Maybe only redisplay on a change somehow?
+    env_get(genv(), make_sym("CURRENT-BUFFER"), &current_buffer);
+    if (bufferp(current_buffer)) {
+      new_contents = buffer_string(*current_buffer.value.buffer);
     }
     update_contents(gctx, new_contents);
     do_gui(&open, gctx);
     // Only update GUI every 10 milliseconds.
-    // TODO: Make this LISP extensible.
-    SLEEP(10);
+    Atom sleep_ms = nil;
+    env_get(genv(), make_sym("REDISPLAY-IDLE-MS"), &sleep_ms);
+    if (integerp(sleep_ms)) {
+      SLEEP(sleep_ms.value.integer);
+    } else {
+      SLEEP(10);
+    }
   }
   destroy_gui();
   return 0;
@@ -525,11 +514,10 @@ int enter_lite_gui() {
 int main(int argc, char **argv) {
   printf("LITE will guide the way through the darkness.\n");
 
-  Atom environment = default_environment();
   // Treat every given argument as a file to load, for now.
   if (argc > 1) {
     for (size_t i = 1; i < argc; ++i) {
-      load_file(environment, argv[i]);
+      load_file(genv(), argv[i]);
     }
   }
 
@@ -539,16 +527,15 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  env_set(environment, make_sym("CURRENT-BUFFER"), buffer);
+  env_set(genv(), make_sym("CURRENT-BUFFER"), buffer);
 
 #ifdef LITE_GFX
-  genv = &environment;
   enter_lite_gui();
 #else
-  enter_repl(environment);
+  enter_repl(genv());
 #endif
 
-  int debug_memory = env_non_nil(environment, make_sym("DEBUG/MEMORY"));
+  int debug_memory = env_non_nil(genv(), make_sym("DEBUG/MEMORY"));
   // Garbage collection with no marking means free everything.
   gcol();
   free_buffer_table();

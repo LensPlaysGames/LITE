@@ -162,6 +162,12 @@ Atom default_environment() {
   env_set(environment, make_sym("BUFFER-INSERT"), make_builtin(builtin_buffer_insert, builtin_buffer_insert_docstring));
   env_set(environment, make_sym("BUFFER-REMOVE"), make_builtin(builtin_buffer_remove, builtin_buffer_remove_docstring));
 
+  env_set(environment, make_sym("WHILE-RECURSE-LIMIT"), make_int_with_docstring
+          (10000
+           , "This is the maximum amount of times a while loop may loop.\n"
+           "\n"
+           "Used to prevent infinite loops."));
+
   // FIXME: It's always best to keep docstrings out of here and where they belong.
   env_set(environment, make_sym("GARBAGE-COLLECTOR-ITERATIONS-THRESHOLD"), make_int_with_docstring
           (100000, "This number corresponds to the amount of evaluation operations before \
@@ -190,13 +196,14 @@ including when garbage collections happen and data upon program exit."));
           ("When non-nil, display debug information concerning 'WHILE', \
 including data output at each iteration of the loop."));
 
-  env_set(environment, make_sym("WHILE-RECURSE-LIMIT"), make_int_with_docstring
-          (10000
-           , "This is the maximum amount of times a while loop may loop.\n"
-           "\n"
-           "Used to prevent infinite loops."));
-
-  env_set(environment, make_sym("SHIFT-CONVERSION-ALIST"), default_shift_conversion_alist());
-
   return environment;
+}
+
+static Atom global_environment = { ATOM_TYPE_NIL, 0, NULL, NULL };
+Atom genv() {
+  if (nilp(global_environment)) {
+    printf("Recreating global environment from defaults...\n");
+    global_environment = default_environment();
+  }
+  return global_environment;
 }
