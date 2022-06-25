@@ -43,6 +43,8 @@ typedef struct Error {
 
 void print_error(Error e);
 
+char *error_string(Error e);
+
 extern Error ok;
 
 #endif /* LITE_ERROR_H */
