@@ -27,11 +27,11 @@ Buffer *buffer_create(char *path) {
   }
   buffer->path = path;
   buffer->point_byte = 0;
-  char *contents = file_contents(path);
   Rope *rope = NULL;
-  if (contents) {
-    rope = rope_create(contents);
-    free(contents);
+  SimpleFile file = get_file(path);
+  if (file.flags & SMPL_FILE_FLAG_OK) {
+    rope = rope_from_buffer(file.contents, file.size);
+    free_file(file);
   } else {
     rope = rope_create("\n");
   }

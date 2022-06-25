@@ -2,6 +2,7 @@
 #define LITE_ROPE_H
 
 #include <stddef.h>
+#include <stdint.h>
 
 typedef struct Rope {
   size_t weight;
@@ -16,6 +17,9 @@ size_t rope_length(Rope *);
 /// Get the byte at index.
 char rope_index(Rope *rope, size_t index);
 
+/// Create a new rope with contents of byte buffer.
+/// Be sure to rope_free() when done!!
+Rope *rope_from_buffer(uint8_t *buffer, size_t length);
 /// Create a new rope with contents of string.
 /// Be sure to rope_free() when done!!
 Rope *rope_create(const char *string);

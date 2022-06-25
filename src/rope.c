@@ -39,6 +39,60 @@ char rope_index(Rope *rope, size_t index) {
   return current_rope->string[current_index];
 }
 
+Rope *rope_from_buffer(uint8_t *bytes, size_t length) {
+  if (!bytes || length == 0) {
+    return NULL;
+  }
+
+  // FIXME: This doesn't feel right, but I can't write all the
+  // buffer + length versions functions right now...
+  // Replace null terminators with space for now.
+  // Otherwise `rope_string()` seriously breaks (among other things).
+  uint8_t *it = bytes;
+  size_t count = 0;
+  while (count < length) {
+    if (*it == '\0') {
+      *it = ' ';
+    }
+    it += 1;
+    count += 1;
+  }
+
+  // Copy input string to heap.
+  char *newstr = malloc(length + 1);
+  if (!newstr) {
+    return NULL;
+  }
+  memcpy(newstr, bytes, length);
+  newstr[length] = '\0';
+
+  // Allocate new rope nodes on heap.
+  Rope *rope = malloc(sizeof(Rope));
+  if (!rope) {
+    free(newstr);
+    return NULL;
+  }
+  Rope *left = malloc(sizeof(Rope));
+  if (!left) {
+    free(newstr);
+    free(rope);
+    return NULL;
+  }
+
+  // Initialize nodes.
+  left->weight = length;
+  left->string = newstr;
+  left->right = NULL;
+  left->left = NULL;
+
+  rope->weight = length;
+  rope->string = NULL;
+  rope->right = NULL;
+  rope->left = left;
+
+  return rope;
+}
+
 Rope *rope_create(const char *str) {
   if (!str) {
     return NULL;

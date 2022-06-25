@@ -5,6 +5,7 @@
 #include <evaluation.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <types.h>
 
 size_t file_size(FILE *file) {
@@ -37,9 +38,60 @@ char *file_contents(const char* path) {
     return NULL;
   }
   fread(buffer, 1, size, file);
-  buffer[size] = 0;
+  buffer[size] = '\0';
   fclose(file);
   return buffer;
+}
+
+const SimpleFile get_file(char* path) {
+  SimpleFile smpl;
+  smpl.flags = SMPL_FILE_FLAG_INVALID;
+  if (!path) {
+    return smpl;
+  }
+  smpl.path = path;
+
+  FILE *file = fopen(path, "r");
+  if (!file) {
+    fclose(file);
+    printf("get_file(): Couldn't open file at %s\n", path);
+    return smpl;
+  }
+
+  size_t size = file_size(file);
+  if (size == 0) {
+    fclose(file);
+    printf("get_file(): File has zero size at %s\n", path);
+    return smpl;
+  }
+  smpl.size = size;
+
+  uint8_t *buffer = NULL;
+  buffer = malloc(size);
+  if (!buffer) {
+    fclose(file);
+    printf("get_file(): Could not allocate buffer for file at %s\n", path);
+    return smpl;
+  }
+  memset(buffer, 0, size);
+  fread(buffer, 1, size, file);
+  smpl.contents = buffer;
+  fclose(file);
+
+  smpl.flags = SMPL_FILE_FLAG_OK;
+  return smpl;
+}
+
+void free_file(SimpleFile file) {
+  if (!(file.flags & SMPL_FILE_FLAG_OK) || file.size == 0) {
+    return;
+  }
+  if (file.path) {
+    free(file.path);
+  }
+  if (file.contents) {
+    free(file.contents);
+  }
 }
 
 Error load_file(Atom environment, const char* path) {
