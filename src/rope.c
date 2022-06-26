@@ -472,15 +472,19 @@ Rope *rope_insert_byte(Rope *rope, size_t index, char c) {
 
   char *newstr = malloc(current_rope->weight + 2);
   if (!newstr) { return NULL; }
-  strncpy(newstr, current_rope->string, current_index);
-  strncpy(newstr + current_index + 1
-          , current_rope->string + current_index
-          , current_rope->weight - current_index);
-  newstr[current_index] = c;
+  memcpy(newstr, current_rope->string, current_index - 1);
+  newstr[current_index - 1] = c;
+  // Copy right side of current_rope->string to newstr after current_index
+  memcpy(newstr + current_index
+         , current_rope->string + current_index - 1
+         , current_rope->weight - current_index + 2
+         );
   newstr[current_rope->weight + 1] = '\0';
+
   current_rope->weight += 1;
   rope_set_string(current_rope, newstr);
   rope_update_weights(rope);
+
   return rope;
 }
 
@@ -721,8 +725,7 @@ Rope *rope_remove_span(Rope *rope, size_t offset, size_t length) {
   } else {
     // Remove from middle.
 
-    size_t initial_index = offset + 1;
-    size_t current_index = initial_index;
+    size_t current_index = offset + 1;
     int left_right = 0; // 0 if child is left, 1 if child is right of parent.
     Rope *parent_rope = NULL;
     Rope *current_rope = rope;
@@ -818,10 +821,10 @@ Rope *rope_remove_span(Rope *rope, size_t offset, size_t length) {
       size_t newstr_len = current_rope->weight - length;
       char *newstr = malloc(newstr_len + 1);
       if (!newstr) { return NULL; }
-      strncpy(newstr, current_rope->string, current_index);
-      strncpy(newstr + current_index
-              , current_rope->string + current_index + length
-              , newstr_len - current_index + 1);
+      memcpy(newstr, current_rope->string, current_index - 1);
+      memcpy(newstr + current_index - 1
+             , current_rope->string + current_index - 1 + length
+             , newstr_len - current_index + 1);
       newstr[newstr_len] = '\0';
       current_rope->weight = newstr_len;
       rope_set_string(current_rope, newstr);

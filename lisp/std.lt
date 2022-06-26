@@ -188,6 +188,15 @@ also known as the absolute value.")
 
 (define keymap
     (alist-set
+     keymap "CTRL"
+     (alist-set
+      (alist-get keymap "CTRL")
+      "0"
+      '(evaluate-string
+        (buffer-line current-buffer 0)))))
+
+(define keymap
+    (alist-set
      keymap "LEFT-ALT"
      (alist-set
       (alist-get keymap "LEFT-ALT")
