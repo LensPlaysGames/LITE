@@ -45,7 +45,10 @@ char *file_contents(const char* path) {
 
 const SimpleFile get_file(char* path) {
   SimpleFile smpl;
+  smpl.path = NULL;
+  smpl.contents = NULL;
   smpl.flags = SMPL_FILE_FLAG_INVALID;
+  smpl.size = 0;
   if (!path) {
     return smpl;
   }
@@ -78,7 +81,8 @@ const SimpleFile get_file(char* path) {
   smpl.contents = buffer;
   fclose(file);
 
-  smpl.flags = SMPL_FILE_FLAG_OK;
+  smpl.flags &= ~SMPL_FILE_FLAG_INVALID;
+  smpl.flags |= SMPL_FILE_FLAG_OK;
   return smpl;
 }
 

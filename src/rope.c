@@ -383,23 +383,20 @@ Rope *rope_insert_byte(Rope *rope, size_t index, char c) {
       if (current_rope->left) {
         current_rope = current_rope->left;
       } else if (current_rope->right) {
-        // Update weights as we go.
-        current_rope->weight += 1;
         current_rope = current_rope->right;
       } else {
         return NULL;
       }
     }
-
     // Re-allocate string.
     char *newstr = malloc(current_rope->weight + 2);
     if (!newstr) { return NULL; }
     strncpy(newstr + 1, current_rope->string, current_rope->weight);
     newstr[0] = c;
     newstr[current_rope->weight + 1] = '\0';
-    rope_set_string(current_rope, newstr);
     current_rope->weight += 1;
-
+    rope_set_string(current_rope, newstr);
+    rope_update_weights(rope);
     return rope;
 
   } else if (index >= rope->weight) {
@@ -411,8 +408,6 @@ Rope *rope_insert_byte(Rope *rope, size_t index, char c) {
       if (current_rope->right) {
         current_rope = current_rope->right;
       } else if (current_rope->left) {
-        // Update weights as we go.
-        current_rope->weight += 1;
         current_rope = current_rope->left;
       } else {
         return NULL;
@@ -424,9 +419,9 @@ Rope *rope_insert_byte(Rope *rope, size_t index, char c) {
     strncpy(newstr, current_rope->string, current_rope->weight);
     newstr[current_rope->weight] = c;
     newstr[current_rope->weight + 1] = '\0';
-    rope_set_string(current_rope, newstr);
     current_rope->weight += 1;
-
+    rope_set_string(current_rope, newstr);
+    rope_update_weights(rope);
     return rope;
   }
 
@@ -438,15 +433,11 @@ Rope *rope_insert_byte(Rope *rope, size_t index, char c) {
       current_index -= current_rope->weight;
       current_rope = current_rope->right;
     } else {
-      // Update weights as we find the string to change.
-      current_rope->weight += 1;
       current_rope = current_rope->left;
     }
   }
 
-  current_index -= 1;
-
-  if (current_index == 0) {
+  if (current_index - 1 == 0) {
     // Prepend
     char *newstr = malloc(current_rope->weight + 2);
     if (!newstr) { return NULL; }
@@ -455,7 +446,9 @@ Rope *rope_insert_byte(Rope *rope, size_t index, char c) {
             , current_rope->string
             , current_rope->weight);
     newstr[current_rope->weight + 1] = '\0';
+    current_rope->weight += 1;
     rope_set_string(current_rope, newstr);
+    rope_update_weights(rope);
     return rope;
   }
 
@@ -485,17 +478,18 @@ Rope *rope_insert_byte(Rope *rope, size_t index, char c) {
           , current_rope->weight - current_index);
   newstr[current_index] = c;
   newstr[current_rope->weight + 1] = '\0';
-  rope_set_string(current_rope, newstr);
   current_rope->weight += 1;
+  rope_set_string(current_rope, newstr);
+  rope_update_weights(rope);
   return rope;
 }
 
 Rope *rope_prepend_byte(Rope *rope, char c) {
-  rope_insert_byte(rope, 0, c);
+  return rope_insert_byte(rope, 0, c);
 }
 
 Rope *rope_append_byte(Rope *rope, char c) {
-  rope_insert_byte(rope, SIZE_MAX, c);
+  return rope_insert_byte(rope, SIZE_MAX, c);
 }
 
 // Either create a new string or append to existing.
@@ -596,7 +590,7 @@ Rope *rope_remove_from_beginning(Rope *rope, size_t length) {
     }
   }
 
-  if (rope->weight > 1 && length >= current_rope->weight) {
+  if (length >= current_rope->weight) {
     // Remove node and call self with amount - current_rope->weight.
 
     // No parent rope means given rope is a string node, and we
@@ -604,6 +598,8 @@ Rope *rope_remove_from_beginning(Rope *rope, size_t length) {
     if (!parent_rope) {
       return NULL;
     }
+
+    size_t current_rope_weight = current_rope->weight;
 
     // Shuffle nodes around.
     // TODO: Less code duplication with Rope **.
@@ -627,12 +623,14 @@ Rope *rope_remove_from_beginning(Rope *rope, size_t length) {
       rope_free(removed);
     }
 
+    rope_update_weights(rope);
+
     // If node contained perfect length, we are all done.
-    if (length - current_rope->weight == 0) {
+    if (length - current_rope_weight == 0) {
       return rope;
     }
     // Else, we must continue removing.
-    return rope_remove_from_beginning(rope, length - current_rope->weight);
+    return rope_remove_from_beginning(rope, length - current_rope_weight);
   }
 
   // Make smaller string from right side of current string.
@@ -667,12 +665,14 @@ Rope *rope_remove_from_end(Rope *rope, size_t length) {
     }
   }
 
-  if (rope->weight > 1 && length >= current_rope->weight) {
+  if (length >= current_rope->weight) {
     // Remove node and call self with amount - current_rope->weight.
 
     if (!parent_rope) {
       return NULL;
     }
+
+    size_t current_rope_weight = current_rope->weight;
 
     if (left_right == 0) {
       if (!parent_rope->right) {
@@ -692,10 +692,10 @@ Rope *rope_remove_from_end(Rope *rope, size_t length) {
       rope_free(removed);
     }
 
-    if (length - current_rope->weight == 0) {
+    if (length - current_rope_weight == 0) {
       return rope;
     }
-    return rope_remove_from_end(rope, length - current_rope->weight);
+    return rope_remove_from_end(rope, length - current_rope_weight);
   }
 
   // Re-allocate smaller string for node.
@@ -721,7 +721,8 @@ Rope *rope_remove_span(Rope *rope, size_t offset, size_t length) {
   } else {
     // Remove from middle.
 
-    size_t current_index = offset + 1;
+    size_t initial_index = offset + 1;
+    size_t current_index = initial_index;
     int left_right = 0; // 0 if child is left, 1 if child is right of parent.
     Rope *parent_rope = NULL;
     Rope *current_rope = rope;
@@ -736,7 +737,8 @@ Rope *rope_remove_span(Rope *rope, size_t offset, size_t length) {
         left_right = 0;
       }
     }
-    if (current_index <= 1) {
+    size_t current_offset = current_index - 1;
+    if (current_offset == 0) {
       // Remove from beginning of `current_rope`.
       if (length >= current_rope->weight) {
         // Remove node and call self with amount - current_rope->weight.
@@ -746,6 +748,8 @@ Rope *rope_remove_span(Rope *rope, size_t offset, size_t length) {
         if (!parent_rope) {
           return NULL;
         }
+
+        size_t current_rope_weight = current_rope->weight;
 
         // Shuffle nodes around.
         // TODO: Less code duplication with Rope **.
@@ -769,14 +773,13 @@ Rope *rope_remove_span(Rope *rope, size_t offset, size_t length) {
           rope_free(removed);
         }
 
-        rope_update_weights(rope);
-
         // If node contained perfect length, we are all done.
-        if (length - current_rope->weight == 0) {
+        if (length - current_rope_weight == 0) {
+          rope_update_weights(rope);
           return rope;
         }
         // Else, we must continue removing.
-        return rope_remove_span(rope, offset, length - current_rope->weight);
+        return rope_remove_span(rope, offset, length - current_rope_weight);
       }
 
       // Make smaller string from right side of current string.
@@ -792,7 +795,9 @@ Rope *rope_remove_span(Rope *rope, size_t offset, size_t length) {
 
     } else if (length >= current_rope->weight - current_index) {
       // Remove everything after current_index, then continue removing recursively.
-      size_t newstr_len = current_index + 1;
+      current_index -= 1;
+      size_t rope_weight = current_rope->weight;
+      size_t newstr_len = current_index;
       char *newstr = malloc(newstr_len + 1);
       if (!newstr) { return NULL; }
       strncpy(newstr, current_rope->string, newstr_len);
@@ -802,7 +807,7 @@ Rope *rope_remove_span(Rope *rope, size_t offset, size_t length) {
       rope_update_weights(rope);
 
       // Perfect match for removal length and length of node.
-      size_t remove_length = current_rope->weight - current_index;
+      size_t remove_length = rope_weight - current_index;
       if (remove_length == 0) {
         return rope;
       }
@@ -810,22 +815,20 @@ Rope *rope_remove_span(Rope *rope, size_t offset, size_t length) {
 
     } else {
       // Remove a span inside of string of current_rope.
-      current_index -= 1;
       size_t newstr_len = current_rope->weight - length;
       char *newstr = malloc(newstr_len + 1);
       if (!newstr) { return NULL; }
       strncpy(newstr, current_rope->string, current_index);
       strncpy(newstr + current_index
               , current_rope->string + current_index + length
-              , newstr_len - current_index);
+              , newstr_len - current_index + 1);
       newstr[newstr_len] = '\0';
       current_rope->weight = newstr_len;
       rope_set_string(current_rope, newstr);
-      rope_update_weights(rope);
     }
+    rope_update_weights(rope);
     return rope;
   }
-
   return NULL;
 }
 

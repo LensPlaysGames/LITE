@@ -33,7 +33,7 @@ Buffer *buffer_create(char *path) {
     rope = rope_from_buffer(file.contents, file.size);
     free_file(file);
   } else {
-    rope = rope_create("\n");
+    rope = rope_create("");
   }
   if (!rope) {
     free(buffer);

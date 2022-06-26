@@ -274,7 +274,7 @@ void handle_character_dn(uint64_t c) {
                 update_footline(gctx, error_string(err));
                 return;
               }
-              return;
+              c = 0;
             }
           env_set(genv(), make_sym("CURRENT-KEYMAP"), root_keymap);
           keybind_recurse_count += 1;
@@ -295,6 +295,7 @@ void handle_character_dn(uint64_t c) {
                 update_footline(gctx, error_string(err));
                 return;
               }
+              c = 0;
             }
           }
         } else if (stringp(keybind)) {
@@ -508,7 +509,6 @@ int main(int argc, char **argv) {
   if (nilp(buffer)) {
     return 1;
   }
-
   env_set(genv(), make_sym("CURRENT-BUFFER"), buffer);
 
 #ifdef LITE_GFX
