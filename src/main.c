@@ -492,12 +492,23 @@ GUIContext *initialize_lite_gui_ctx() {
   if (!ctx) { return NULL; }
   memset(ctx, 0, sizeof(GUIContext));
   ctx->title = "LITE GFX";
-  update_headline(ctx, allocate_string("LITE Headline\nmore\nand more"));
+  update_headline(ctx, allocate_string("LITE Headline"));
   update_contents(ctx, allocate_string("LITE Contents"));
   update_footline(ctx, allocate_string("LITE Footline"));
   if (!ctx->headline.string || !ctx->contents.string || !ctx->footline.string) {
     return NULL;
   }
+
+  ctx->default_property.fg.r = UINT8_MAX;
+  ctx->default_property.fg.g = UINT8_MAX;
+  ctx->default_property.fg.b = UINT8_MAX;
+  ctx->default_property.fg.a = UINT8_MAX;
+
+  ctx->default_property.bg.r = 24;
+  ctx->default_property.bg.g = 24;
+  ctx->default_property.bg.b = 24;
+  ctx->default_property.bg.a = UINT8_MAX;
+
   return ctx;
 }
 
@@ -512,30 +523,21 @@ int enter_lite_gui() {
     return 2;
   }
 
-  GUIStringProperty *headline_invert_one = malloc(sizeof(GUIStringProperty));
-  if (!headline_invert_one) {
-    return 1;
-  }
-  headline_invert_one->next = NULL;
-  headline_invert_one->offset = 1;
-  headline_invert_one->length = 1;
-
   GUIColor headline_invert_one_fg;
   headline_invert_one_fg.a = 255;
   headline_invert_one_fg.r = 0;
   headline_invert_one_fg.g = 0;
   headline_invert_one_fg.b = 0;
-
   GUIColor headline_invert_one_bg;
   headline_invert_one_bg.a = 255;
   headline_invert_one_bg.r = 255;
   headline_invert_one_bg.g = 255;
   headline_invert_one_bg.b = 255;
-
-  headline_invert_one->fg = headline_invert_one_fg;
-  headline_invert_one->bg = headline_invert_one_bg;
-
-  add_property(&gctx->headline, headline_invert_one);
+  GUIStringProperty *headline_invert_one =
+    string_property(1,1, headline_invert_one_fg, headline_invert_one_bg);
+  if (!add_property(&gctx->headline, headline_invert_one)) {
+    return 1;
+  }
 
   while (open) {
     char *new_contents = NULL;

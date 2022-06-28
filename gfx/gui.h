@@ -42,6 +42,7 @@ typedef struct GUIContext {
   GUIString headline;
   GUIString contents;
   GUIString footline;
+  GUIStringProperty default_property;
 } GUIContext;
 
 /// Returns 0 upon success.
