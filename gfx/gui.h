@@ -12,14 +12,36 @@
 #ifndef GUI_H
 #define GUI_H
 
+#include <stdint.h>
+
+typedef struct GUIColor {
+  uint8_t r;
+  uint8_t g;
+  uint8_t b;
+  uint8_t a;
+} GUIColor;
+
+typedef struct GUIStringProperty {
+  size_t offset;
+  size_t length;
+  GUIColor fg;
+  GUIColor bg;
+  struct GUIStringProperty *next;
+} GUIStringProperty;
+
+typedef struct GUIString {
+  char *string;
+  GUIStringProperty *properties;
+} GUIString;
+
 // TODO: Extend GUIContext (maybe even make it extensible).
 //       Definitely split contents into a linked list of windows,
 //       each with their own string of contents (or something similar).
 typedef struct GUIContext {
   char *title; /// Graphical window title
-  char *headline;
-  char *contents;
-  char *footline;
+  GUIString headline;
+  GUIString contents;
+  GUIString footline;
 } GUIContext;
 
 /// Returns 0 upon success.

@@ -38,28 +38,70 @@ char *allocate_string(const char *string) {
   return out;
 }
 
+void free_properties(GUIString string) {
+  GUIStringProperty *it = string.properties;
+  while (it) {
+    GUIStringProperty *property_to_free = it;
+    it = it->next;
+    free(property_to_free);
+  }
+}
+
+void reset_properties(GUIString *string) {
+  if (!string) { return; }
+  free_properties(*string);
+  string->properties = NULL;
+}
+
 void update_headline(GUIContext *ctx, char *new_headline) {
   if (!ctx || !new_headline) { return; }
-  if (ctx->headline) {
-    free(ctx->headline);
+  if (ctx->headline.string) {
+    free(ctx->headline.string);
   }
-  ctx->headline = new_headline;
+  reset_properties(&ctx->headline);
+  ctx->headline.string = new_headline;
+  ctx->headline.properties = NULL;
 }
 
 void update_contents(GUIContext *ctx, char *new_contents) {
   if (!ctx || !new_contents) { return; }
-  if (ctx->contents) {
-    free(ctx->contents);
+  if (ctx->contents.string) {
+    free(ctx->contents.string);
   }
-  ctx->contents = new_contents;
+  reset_properties(&ctx->contents);
+  ctx->contents.string = new_contents;
+  ctx->contents.properties = NULL;
 }
 
 void update_footline(GUIContext *ctx, char *new_footline) {
   if (!ctx || !new_footline) { return; }
-  if (ctx->footline) {
-    free(ctx->footline);
+  if (ctx->footline.string) {
+    free(ctx->footline.string);
   }
-  ctx->footline = new_footline;
+  reset_properties(&ctx->footline);
+  ctx->footline.string = new_footline;
+  ctx->footline.properties = NULL;
+}
+
+/// Returns boolean-like value (0 == failure).
+int add_property(GUIString *string, GUIStringProperty *property) {
+  if (!string || !property) { return 0; }
+  property->next = string->properties;
+  string->properties = property;
+  return 1;
+}
+
+GUIStringProperty *string_property(size_t offset, size_t length
+                                   , GUIColor fg, GUIColor bg)
+{
+  GUIStringProperty *prop = malloc(sizeof(GUIStringProperty));
+  if (!prop) { return NULL; }
+  prop->next = NULL;
+  prop->offset = offset;
+  prop->length = length;
+  prop->fg = fg;
+  prop->bg = bg;
+  return prop;
 }
 
 #endif /* #ifdef LITE_GFX */
@@ -196,7 +238,6 @@ void handle_character_dn(uint64_t c) {
   if (strchr(ignored_bytes, (unsigned char)c)) {
     return;
   }
-
   int debug_keybinding = env_non_nil(genv(), make_sym("DEBUG/KEYBINDING"));
   if (debug_keybinding) {
     if (c > 255) {
@@ -451,10 +492,10 @@ GUIContext *initialize_lite_gui_ctx() {
   if (!ctx) { return NULL; }
   memset(ctx, 0, sizeof(GUIContext));
   ctx->title = "LITE GFX";
-  update_headline(ctx, allocate_string("LITE Headline"));
+  update_headline(ctx, allocate_string("LITE Headline\nmore\nand more"));
   update_contents(ctx, allocate_string("LITE Contents"));
   update_footline(ctx, allocate_string("LITE Footline"));
-  if (!ctx->headline || !ctx->contents || !ctx->footline) {
+  if (!ctx->headline.string || !ctx->contents.string || !ctx->footline.string) {
     return NULL;
   }
   return ctx;
@@ -470,6 +511,32 @@ int enter_lite_gui() {
   if (!gctx) {
     return 2;
   }
+
+  GUIStringProperty *headline_invert_one = malloc(sizeof(GUIStringProperty));
+  if (!headline_invert_one) {
+    return 1;
+  }
+  headline_invert_one->next = NULL;
+  headline_invert_one->offset = 1;
+  headline_invert_one->length = 1;
+
+  GUIColor headline_invert_one_fg;
+  headline_invert_one_fg.a = 255;
+  headline_invert_one_fg.r = 0;
+  headline_invert_one_fg.g = 0;
+  headline_invert_one_fg.b = 0;
+
+  GUIColor headline_invert_one_bg;
+  headline_invert_one_bg.a = 255;
+  headline_invert_one_bg.r = 255;
+  headline_invert_one_bg.g = 255;
+  headline_invert_one_bg.b = 255;
+
+  headline_invert_one->fg = headline_invert_one_fg;
+  headline_invert_one->bg = headline_invert_one_bg;
+
+  add_property(&gctx->headline, headline_invert_one);
+
   while (open) {
     char *new_contents = NULL;
     Atom current_buffer = nil;
