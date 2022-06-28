@@ -155,6 +155,7 @@ Atom default_environment() {
   env_set(environment, make_sym("CLOSUREP"), make_builtin(builtin_closurep,     builtin_closurep_docstring));
   env_set(environment, make_sym("MACROP"),   make_builtin(builtin_macrop,       builtin_macrop_docstring));
   env_set(environment, make_sym("STRINGP"),  make_builtin(builtin_stringp,      builtin_stringp_docstring));
+  env_set(environment, make_sym("BUFFERP"),  make_builtin(builtin_bufferp,      builtin_bufferp_docstring));
   env_set(environment, make_sym("+"),        make_builtin(builtin_add,          builtin_add_docstring));
   env_set(environment, make_sym("-"),        make_builtin(builtin_subtract,     builtin_subtract_docstring));
   env_set(environment, make_sym("*"),        make_builtin(builtin_multiply,     builtin_multiply_docstring));
@@ -188,6 +189,12 @@ Atom default_environment() {
           , make_builtin(builtin_buffer_line, builtin_buffer_line_docstring));
   env_set(environment, make_sym("BUFFER-CURRENT-LINE")
           , make_builtin(builtin_buffer_current_line, builtin_buffer_current_line_docstring));
+  env_set(environment, make_sym("BUFFER-SET-POINT")
+          , make_builtin(builtin_buffer_set_point, builtin_buffer_set_point_docstring));
+  env_set(environment, make_sym("BUFFER-POINT")
+          , make_builtin(builtin_buffer_point, builtin_buffer_point_docstring));
+  env_set(environment, make_sym("BUFFER-INDEX")
+          , make_builtin(builtin_buffer_index, builtin_buffer_index_docstring));
 
   env_set(environment, make_sym("EVALUATE-STRING")
           , make_builtin(builtin_evaluate_string, builtin_evaluate_string_docstring));

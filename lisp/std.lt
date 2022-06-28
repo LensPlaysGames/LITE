@@ -169,6 +169,26 @@ also known as the absolute value.")
               nil)))
   "Get the value associated with KEY in ALIST, or nil if not found.")
 
+;; BUFFERS
+
+;; Navigation
+
+(defun backward-bytes (n)
+  "Decrement point of `CURRENT-BUFFER` by N bytes."
+  (buffer-set-point current-buffer (- (buffer-point current-buffer) n)))
+
+(defun forward-bytes (n)
+  "Increment point of `CURRENT-BUFFER` by N bytes."
+  (buffer-set-point current-buffer (+ (buffer-point current-buffer) n)))
+
+(macro backward-byte ()
+  "Decrement point of `CURRENT-BUFFER` by one byte."
+  (backward-bytes 1))
+
+(macro forward-byte ()
+  "Increment point of `CURRENT-BUFFER` by one byte."
+  (forward-bytes 1))
+
 ;; MISCELLANEOUS
 
 (macro set-docstring (x string)
@@ -176,6 +196,22 @@ also known as the absolute value.")
        `(define ,x ,x ,string))
 
 ;; STANDARD KEYBINDINGS
+
+(define keymap
+    (alist-set
+     keymap "CTRL"
+     (alist-set
+      (alist-get keymap "CTRL")
+      "b"
+      '(backward-byte))))
+
+(define keymap
+    (alist-set
+     keymap "CTRL"
+     (alist-set
+      (alist-get keymap "CTRL")
+      "f"
+      '(forward-byte))))
 
 (define keymap
     (alist-set

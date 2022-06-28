@@ -5,6 +5,7 @@
 #include <environment.h>
 #include <evaluation.h>
 #include <parser.h>
+#include <rope.h>
 #include <string.h>
 #include <types.h>
 
@@ -46,6 +47,8 @@ int typep(Atom arguments, enum AtomType type, Atom *result) {
 }
 
 symbol_t *builtin_nilp_docstring =
+  "(nilp ARG)\n"
+  "\n"
   "Return 'T' iff ARG has a type of 'NIL', otherwise return nil.";
 int builtin_nilp(Atom arguments, Atom *result) {
   if (!nilp(cdr(arguments))) {
@@ -56,54 +59,72 @@ int builtin_nilp(Atom arguments, Atom *result) {
 }
 
 symbol_t *builtin_pairp_docstring =
+  "(pairp ARG)\n"
+  "\n"
   "Return 'T' iff ARG has a type of 'PAIR', otherwise return nil.";
 int builtin_pairp(Atom arguments, Atom *result) {
   return typep(arguments, ATOM_TYPE_PAIR, result);
 }
 
 symbol_t *builtin_symbolp_docstring =
+  "(symbolp ARG)\n"
+  "\n"
   "Return 'T' iff ARG has a type of 'SYMBOL', otherwise return nil.";
 int builtin_symbolp(Atom arguments, Atom *result) {
   return typep(arguments, ATOM_TYPE_SYMBOL, result);
 }
 
 symbol_t *builtin_integerp_docstring =
+  "(integerp ARG)\n"
+  "\n"
   "Return 'T' iff ARG has a type of 'INTEGER', otherwise return nil.";
 int builtin_integerp(Atom arguments, Atom *result) {
   return typep(arguments, ATOM_TYPE_INTEGER, result);
 }
 
 symbol_t *builtin_builtinp_docstring =
+  "(builtinp ARG)\n"
+  "\n"
   "Return 'T' iff ARG has a type of 'BUILTIN', otherwise return nil.";
 int builtin_builtinp(Atom arguments, Atom *result) {
   return typep(arguments, ATOM_TYPE_BUILTIN, result);
 }
 
 symbol_t *builtin_closurep_docstring =
+  "(closurep ARG)\n"
+  "\n"
   "Return 'T' iff ARG has a type of 'CLOSURE', otherwise return nil.";
 int builtin_closurep(Atom arguments, Atom *result) {
   return typep(arguments, ATOM_TYPE_CLOSURE, result);
 }
 
 symbol_t *builtin_macrop_docstring =
+  "(macrop ARG)\n"
+  "\n"
   "Return 'T' iff ARG has a type of 'MACRO', otherwise return nil.";
 int builtin_macrop(Atom arguments, Atom *result) {
   return typep(arguments, ATOM_TYPE_MACRO, result);
 }
 
 symbol_t *builtin_stringp_docstring =
+  "(stringp ARG)\n"
+  "\n"
   "Return 'T' iff ARG has a type of 'STRING', otherwise return nil.";
 int builtin_stringp(Atom arguments, Atom *result) {
   return typep(arguments, ATOM_TYPE_STRING, result);
 }
 
 symbol_t *builtin_bufferp_docstring =
+  "(bufferp ARG)\n"
+  "\n"
   "Return 'T' iff ARG has a type of 'BUFFER', otherwise return nil.";
 int builtin_bufferp(Atom arguments, Atom *result) {
   return typep(arguments, ATOM_TYPE_BUFFER, result);
 }
 
 symbol_t *builtin_not_docstring =
+  "(! ARG)\n"
+  "\n"
   "Given ARG is nil, return 'T', otherwise return nil.";
 int builtin_not(Atom arguments, Atom *result) {
   BUILTIN_ENSURE_ONE_ARGUMENT(arguments);
@@ -112,7 +133,10 @@ int builtin_not(Atom arguments, Atom *result) {
 }
 
 symbol_t *builtin_car_docstring =
-  "Given ARG is a pair, return the value on the left side.";
+  "(car ARG)\n"
+  "\n"
+  "Given ARG is a pair, return the value on the left side.\n"
+  "Otherwise, return nil.";
 int builtin_car(Atom arguments, Atom *result) {
   BUILTIN_ENSURE_ONE_ARGUMENT(arguments);
   if (nilp(car(arguments))) {
@@ -126,7 +150,10 @@ int builtin_car(Atom arguments, Atom *result) {
 }
 
 symbol_t *builtin_cdr_docstring =
-  "Given ARG is a pair, return the value on the right side.";
+  "(cdr ARG)\n"
+  "\n"
+  "Given ARG is a pair, return the value on the right side.\n"
+  "Otherwise, return nil.";
 int builtin_cdr(Atom arguments, Atom *result) {
   BUILTIN_ENSURE_ONE_ARGUMENT(arguments);
   if (nilp(car(arguments))) {
@@ -140,6 +167,8 @@ int builtin_cdr(Atom arguments, Atom *result) {
 }
 
 symbol_t *builtin_cons_docstring =
+  "(cons LEFT RIGHT)\n"
+  "\n"
   "Return a new pair, with LEFT and RIGHT on each side, respectively.";
 int builtin_cons(Atom arguments, Atom *result) {
   BUILTIN_ENSURE_TWO_ARGUMENTS(arguments);
@@ -148,6 +177,8 @@ int builtin_cons(Atom arguments, Atom *result) {
 }
 
 symbol_t *builtin_add_docstring =
+  "(+ A B)\n"
+  "\n"
   "Add two integer numbers A and B together, and return the computed result.";
 int builtin_add(Atom arguments, Atom *result) {
   BUILTIN_ENSURE_TWO_ARGUMENTS(arguments);
@@ -161,6 +192,8 @@ int builtin_add(Atom arguments, Atom *result) {
 }
 
 symbol_t *builtin_subtract_docstring =
+  "(- A B)\n"
+  "\n"
   "Subtract integer B from integer A and return the computed result.";
 int builtin_subtract(Atom arguments, Atom *result) {
   BUILTIN_ENSURE_TWO_ARGUMENTS(arguments);
@@ -174,6 +207,8 @@ int builtin_subtract(Atom arguments, Atom *result) {
 }
 
 symbol_t *builtin_multiply_docstring =
+  "(* A B)\n"
+  "\n"
   "Multiply integer numbers A and B together and return the computed result.";
 int builtin_multiply(Atom arguments, Atom *result) {
   BUILTIN_ENSURE_TWO_ARGUMENTS(arguments);
@@ -187,7 +222,10 @@ int builtin_multiply(Atom arguments, Atom *result) {
 }
 
 symbol_t *builtin_divide_docstring =
-  "Divide integer B out of integer A and return the computed result.";
+  "(/ A B)\n"
+  "\n"
+  "Divide integer B out of integer A and return the computed result.\n"
+  "`(/ 6 3)` == \"6 / 3\" == 2";
 int builtin_divide(Atom arguments, Atom *result) {
   BUILTIN_ENSURE_TWO_ARGUMENTS(arguments);
   Atom lhs = car(arguments);
@@ -203,9 +241,7 @@ int builtin_divide(Atom arguments, Atom *result) {
 }
 
 symbol_t *builtin_open_buffer_docstring =
-  "(open-buffer PATH) \
-\
-Return a buffer visiting PATH.";
+  "(open-buffer PATH)\n\nReturn a buffer visiting PATH.";
 int builtin_open_buffer(Atom arguments, Atom *result) {
   BUILTIN_ENSURE_ONE_ARGUMENT(arguments);
   Atom path = car(arguments);
@@ -218,7 +254,7 @@ int builtin_open_buffer(Atom arguments, Atom *result) {
 }
 
 symbol_t *builtin_buffer_table_docstring =
-  "Return the LISP buffer table.";
+  "(buf)\n\nReturn the LISP buffer table.";
 int builtin_buffer_table(Atom arguments, Atom *result) {
   BUILTIN_ENSURE_NO_ARGUMENTS(arguments);
   *result = *buf_table();
@@ -226,9 +262,9 @@ int builtin_buffer_table(Atom arguments, Atom *result) {
 }
 
 symbol_t *builtin_buffer_insert_docstring =
-  "(buffer-insert BUFFER STRING) \
-\
-Insert STRING into BUFFER at point.";
+  "(buffer-insert BUFFER STRING) \n"
+  "\n"
+  "Insert STRING into BUFFER at point.";
 int builtin_buffer_insert(Atom arguments, Atom *result) {
   BUILTIN_ENSURE_TWO_ARGUMENTS(arguments);
   Atom buffer = car(arguments);
@@ -247,9 +283,9 @@ int builtin_buffer_insert(Atom arguments, Atom *result) {
 }
 
 symbol_t *builtin_buffer_remove_docstring =
-  "(buffer-remove BUFFER COUNT) \
-\
-Backspace COUNT bytes from BUFFER at point.";
+  "(buffer-remove BUFFER COUNT) \n"
+  "\n"
+  "Backspace COUNT bytes from BUFFER at point.";
 int builtin_buffer_remove(Atom arguments, Atom *result) {
   BUILTIN_ENSURE_TWO_ARGUMENTS(arguments);
   Atom buffer = car(arguments);
@@ -268,9 +304,9 @@ int builtin_buffer_remove(Atom arguments, Atom *result) {
 }
 
 symbol_t *builtin_buffer_remove_forward_docstring =
-  "(buffer-remove-forward BUFFER COUNT) \
-\
-Remove COUNT bytes from BUFFER following point.";
+  "(buffer-remove-forward BUFFER COUNT) \n"
+  "\n"
+  "Remove COUNT bytes from BUFFER following point.";
 int builtin_buffer_remove_forward(Atom arguments, Atom *result) {
   BUILTIN_ENSURE_TWO_ARGUMENTS(arguments);
   Atom buffer = car(arguments);
@@ -288,11 +324,60 @@ int builtin_buffer_remove_forward(Atom arguments, Atom *result) {
   return ERROR_NONE;
 }
 
+symbol_t *builtin_buffer_set_point_docstring =
+  "(buffer-set-point BUFFER POINT) \n"
+  "\n"
+  "Set byte offset of cursor within BUFFER to POINT.";
+int builtin_buffer_set_point(Atom arguments, Atom *result) {
+  BUILTIN_ENSURE_TWO_ARGUMENTS(arguments);
+  Atom buffer = car(arguments);
+  Atom point = car(cdr(arguments));
+  if (!bufferp(buffer) || !integerp(point)) {
+    return ERROR_TYPE;
+  }
+  buffer.value.buffer->point_byte = point.value.integer;
+  *result = buffer;
+  return ERROR_NONE;
+}
+
+symbol_t *builtin_buffer_point_docstring =
+  "(buffer-point BUFFER) \n"
+  "\n"
+  "Get byte offset of cursor (point) within BUFFER.";
+int builtin_buffer_point (Atom arguments, Atom *result) {
+  BUILTIN_ENSURE_ONE_ARGUMENT(arguments);
+  Atom buffer = car(arguments);
+  if (!bufferp(buffer)) {
+    return ERROR_TYPE;
+  }
+  *result = make_int(buffer.value.buffer->point_byte);
+  return ERROR_NONE;
+}
+
+symbol_t *builtin_buffer_index_docstring =
+  "(buffer-index BUFFER INDEX)\n"
+  "\n"
+  "Get character from BUFFER at INDEX";
+int builtin_buffer_index (Atom arguments, Atom *result) {
+  BUILTIN_ENSURE_TWO_ARGUMENTS(arguments);
+  Atom buffer = car(arguments);
+  Atom index = car(cdr(arguments));
+  if (!bufferp(buffer) || !integerp(index)) {
+    return ERROR_TYPE;
+  }
+  char one_byte_string[2];
+  one_byte_string[0] = rope_index(buffer.value.buffer->rope
+                                  , index.value.integer);
+  one_byte_string[1] = '\0';
+  *result = make_string(&one_byte_string[0]);
+  return ERROR_NONE;
+}
+
 symbol_t *builtin_buffer_string_docstring =
-  "(buffer-string BUFFER) \
-\
-Get the contents of BUFFER as a string. \
-Be careful on large files, please.";
+  "(buffer-string BUFFER)\n"
+  "\n"
+  "Get the contents of BUFFER as a string. "
+  "Be careful with large files.";
 int builtin_buffer_string(Atom arguments, Atom *result) {
   BUILTIN_ENSURE_ONE_ARGUMENT(arguments);
   Atom buffer = car(arguments);
@@ -304,9 +389,9 @@ int builtin_buffer_string(Atom arguments, Atom *result) {
 }
 
 symbol_t *builtin_buffer_lines_docstring =
-  "(buffer-lines BUFFER START-LINE LINE-COUNT) \
-\
-Get LINE-COUNT lines";
+  "(buffer-lines BUFFER START-LINE LINE-COUNT)\n"
+  "\n"
+  "Get LINE-COUNT lines";
 int builtin_buffer_lines (Atom arguments, Atom *result) {
   BUILTIN_ENSURE_THREE_ARGUMENTS(arguments);
   Atom buffer = car(arguments);
@@ -329,9 +414,9 @@ int builtin_buffer_lines (Atom arguments, Atom *result) {
 }
 
 symbol_t *builtin_buffer_line_docstring =
-  "(buffer-line BUFFER LINE-NUMBER) \
-\
-Get line LINE-NUMBER from BUFFER contents as string.";
+  "(buffer-line BUFFER LINE-NUMBER)\n"
+  "\n"
+  "Get line LINE-NUMBER from BUFFER contents as string.";
 int builtin_buffer_line  (Atom arguments, Atom *result) {
   BUILTIN_ENSURE_TWO_ARGUMENTS(arguments);
   Atom buffer = car(arguments);
@@ -348,9 +433,9 @@ int builtin_buffer_line  (Atom arguments, Atom *result) {
 }
 
 symbol_t *builtin_buffer_current_line_docstring =
-  "(buffer-current-line BUFFER) \
-\
-Get line surrounding point in BUFFER as string.";
+  "(buffer-current-line BUFFER)\n"
+  "\n"
+  "Get line surrounding point in BUFFER as string.";
 int builtin_buffer_current_line(Atom arguments, Atom *result) {
   BUILTIN_ENSURE_ONE_ARGUMENT(arguments);
   Atom buffer = car(arguments);
@@ -362,9 +447,9 @@ int builtin_buffer_current_line(Atom arguments, Atom *result) {
 }
 
 symbol_t *builtin_numeq_docstring =
-  "(= ARG1 ARG2) \
-\
-Return 'T' iff the two given arguments have the same integer value.";
+  "(= ARG1 ARG2)\n"
+  "\n"
+  "Return 'T' iff the two given arguments have the same integer value.";
 int builtin_numeq(Atom arguments, Atom *result) {
   BUILTIN_ENSURE_TWO_ARGUMENTS(arguments);
   Atom lhs = car(arguments);
@@ -377,9 +462,9 @@ int builtin_numeq(Atom arguments, Atom *result) {
 }
 
 symbol_t *builtin_numnoteq_docstring =
-  "(!= ARG1 ARG2) \
-\
-Return 'T' iff the two given arguments *do not* have the same integer value.";
+  "(!= ARG1 ARG2) \n"
+  "\n"
+  "Return 'T' iff the two given arguments *do not* have the same integer value.";
 int builtin_numnoteq(Atom arguments, Atom *result) {
   BUILTIN_ENSURE_TWO_ARGUMENTS(arguments);
   Atom lhs = car(arguments);
@@ -392,9 +477,9 @@ int builtin_numnoteq(Atom arguments, Atom *result) {
 }
 
 symbol_t *builtin_numlt_docstring =
-  "(< INT-A INT-B) \
-\
-Return 'T' iff integer A is less than integer B.";
+  "(< INT-A INT-B)\n"
+  "\n"
+  "Return 'T' iff integer A is less than integer B.";
 int builtin_numlt(Atom arguments, Atom *result) {
   BUILTIN_ENSURE_TWO_ARGUMENTS(arguments);
   Atom lhs = car(arguments);
@@ -407,9 +492,9 @@ int builtin_numlt(Atom arguments, Atom *result) {
 }
 
 symbol_t *builtin_numlt_or_eq_docstring =
-  "(<= INT-A INT-B) \
-\
-Return 'T' iff integer A is less than or equal to integer B.";
+  "(<= INT-A INT-B)\n"
+  "\n"
+  "Return 'T' iff integer A is less than or equal to integer B.";
 int builtin_numlt_or_eq(Atom arguments, Atom *result) {
   BUILTIN_ENSURE_TWO_ARGUMENTS(arguments);
   Atom lhs = car(arguments);
@@ -422,9 +507,9 @@ int builtin_numlt_or_eq(Atom arguments, Atom *result) {
 }
 
 symbol_t *builtin_numgt_docstring =
-  "(> INT-A INT-B) \
-\
-Return 'T' iff integer A is greater than integer B.";
+  "(> INT-A INT-B)\n"
+  "\n"
+  "Return 'T' iff integer A is greater than integer B.";
 int builtin_numgt(Atom arguments, Atom *result) {
   BUILTIN_ENSURE_TWO_ARGUMENTS(arguments);
   Atom lhs = car(arguments);
@@ -437,9 +522,9 @@ int builtin_numgt(Atom arguments, Atom *result) {
 }
 
 symbol_t *builtin_numgt_or_eq_docstring =
-  "(>= INT-A INT-B) \
-\
-Return 'T' iff integer A is greater than or equal to integer B.";
+  "(>= INT-A INT-B)\n"
+  "\n"
+  "Return 'T' iff integer A is greater than or equal to integer B.";
 int builtin_numgt_or_eq(Atom arguments, Atom *result) {
   BUILTIN_ENSURE_TWO_ARGUMENTS(arguments);
   Atom lhs = car(arguments);
@@ -452,9 +537,9 @@ int builtin_numgt_or_eq(Atom arguments, Atom *result) {
 }
 
 symbol_t *builtin_evaluate_string_docstring =
-  "(evaluate-string STRING) \
-\
-Evaluate STRING as a LITE LISP expression.";
+  "(evaluate-string STRING)\n"
+  "\n"
+  "Evaluate STRING as a LITE LISP expression.";
 int builtin_evaluate_string(Atom arguments, Atom *result) {
   BUILTIN_ENSURE_ONE_ARGUMENT(arguments);
   Atom input = car(arguments);
@@ -478,9 +563,9 @@ int builtin_evaluate_string(Atom arguments, Atom *result) {
 }
 
 symbol_t *builtin_save_docstring =
-  "(save BUFFER) \
-\
-Save the given BUFFER to a file.";
+  "(save BUFFER)\n"
+  "\n"
+  "Save the given BUFFER to a file.";
 int builtin_save(Atom arguments, Atom *result) {
   BUILTIN_ENSURE_ONE_ARGUMENT(arguments);
   Atom buffer = car(arguments);
@@ -496,6 +581,8 @@ int builtin_save(Atom arguments, Atom *result) {
 }
 
 symbol_t *builtin_apply_docstring =
+  "(apply FUNCTION ARGUMENTS)\n"
+  "\n"
   "Call FUNCTION with the given ARGUMENTS and return the result.";
 int builtin_apply(Atom arguments, Atom *result) {
   BUILTIN_ENSURE_TWO_ARGUMENTS(arguments);
@@ -544,6 +631,8 @@ int builtin_apply(Atom arguments, Atom *result) {
 }
 
 symbol_t *builtin_eq_docstring =
+  "(eq A B)\n"
+  "\n"
   "Return 'T' iff A and B refer to the same Atomic LISP object.";
 int builtin_eq(Atom arguments, Atom *result) {
   BUILTIN_ENSURE_TWO_ARGUMENTS(arguments);
@@ -582,7 +671,7 @@ int builtin_eq(Atom arguments, Atom *result) {
 }
 
 symbol_t *builtin_symbol_table_docstring =
-  "Return the LISP symbol table.";
+  "(sym)\n\nReturn the LISP symbol table.";
 int builtin_symbol_table(Atom arguments, Atom *result) {
   BUILTIN_ENSURE_NO_ARGUMENTS(arguments);
   *result = *sym_table();
@@ -590,7 +679,7 @@ int builtin_symbol_table(Atom arguments, Atom *result) {
 }
 
 symbol_t *builtin_print_docstring =
-  "Print the given ARG to standard out, prettily.";
+  "(print ARG)\n\nPrint the given ARG to standard out, prettily.";
 int builtin_print(Atom arguments, Atom *result) {
   BUILTIN_ENSURE_ONE_ARGUMENT(arguments);
   pretty_print_atom(car(arguments));

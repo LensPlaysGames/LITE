@@ -24,7 +24,7 @@ extern symbol_t         *builtin_macrop_docstring;
 int builtin_macrop      (Atom arguments, Atom *result);
 extern symbol_t         *builtin_stringp_docstring;
 int builtin_stringp     (Atom arguments, Atom *result);
-extern symbol_t         *builtin_bufferp_docbuffer;
+extern symbol_t         *builtin_bufferp_docstring;
 int builtin_bufferp     (Atom arguments, Atom *result);
 
 // PAIRS
@@ -81,6 +81,13 @@ int builtin_buffer_remove(Atom arguments, Atom *result);
 extern symbol_t          *builtin_buffer_remove_forward_docstring;
 int builtin_buffer_remove_forward(Atom arguments, Atom *result);
 
+extern symbol_t          *builtin_buffer_set_point_docstring;
+int builtin_buffer_set_point(Atom arguments, Atom *result);
+extern symbol_t          *builtin_buffer_point_docstring;
+int builtin_buffer_point (Atom arguments, Atom *result);
+
+extern symbol_t          *builtin_buffer_index_docstring;
+int builtin_buffer_index (Atom arguments, Atom *result);
 extern symbol_t          *builtin_buffer_string_docstring;
 int builtin_buffer_string(Atom arguments, Atom *result);
 extern symbol_t          *builtin_buffer_lines_docstring;
