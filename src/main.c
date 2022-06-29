@@ -15,28 +15,49 @@
 #include <rope.h>
 #include <types.h>
 
-#ifdef LITE_GFX
-#include <api.h>
-#include <gui.h>
-#endif
+// TODO: Find a place for this stuff.
 
-#ifdef LITE_GFX
+/// Allocate the given string on the heap and return it's address, or
+/// NULL if the action can not be completed.
 char *allocate_string(const char *string) {
-  if (!string) {
-    return NULL;
-  }
+  if (!string) { return NULL; }
   size_t string_length = strlen(string);
-  if (!string_length) {
-    return NULL;
-  }
+  if (!string_length) { return NULL; }
   char *out = malloc(string_length + 1);
-  if (!out) {
-    return NULL;
-  }
+  if (!out) { return NULL; }
   strncpy(out, string, string_length);
   out[string_length] = '\0';
   return out;
 }
+
+#if defined (_WIN32) || defined (_WIN64)
+#  include <windows.h>
+#  define SLEEP(ms) Sleep(ms)
+#elif defined (__unix)
+#  ifdef _POSIX_C_SOURCE
+#    define _POSIX_C_SOURCE_BACKUP _POSIX_C_SOURCE
+#    undef _POSIX_C_SOURCE
+#  endif
+#  define _POSIX_C_SOURCE 199309L
+#  include <time.h>
+#  define SLEEP(ms) do {                        \
+    struct timespec ts;                         \
+    ts.tv_sec = ms / 1000;                      \
+    ts.tv_nsec = ms % 1000 * 1000;              \
+    nanosleep(&ts, NULL);                       \
+  } while (0)
+#  undef _POSIX_C_SOURCE
+#  ifdef _POSIX_C_SOURCE_BACKUP
+#    define _POSIX_C_SOURCE _POSIX_C_SOURCE_BACKUP
+#    undef _POSIX_C_SOURCE_BACKUP
+#  endif
+#else
+#  error "System unknown! Can not create SLEEP macro."
+#endif
+
+#ifdef LITE_GFX
+#include <api.h>
+#include <gui.h>
 
 void free_properties(GUIString string) {
   GUIStringProperty *it = string.properties;
@@ -58,6 +79,8 @@ void update_headline(GUIContext *ctx, char *new_headline) {
   if (ctx->headline.string) {
     free(ctx->headline.string);
   }
+  // POSSIBLE FIXME: Should properties really be cleared at every
+  // re-draw? Should properties maybe be left alone?
   reset_properties(&ctx->headline);
   ctx->headline.string = new_headline;
   ctx->headline.properties = NULL;
@@ -91,8 +114,12 @@ int add_property(GUIString *string, GUIStringProperty *property) {
   return 1;
 }
 
-GUIStringProperty *string_property(size_t offset, size_t length
-                                   , GUIColor fg, GUIColor bg)
+GUIStringProperty *string_property
+(size_t offset
+ , size_t length
+ , GUIColor fg
+ , GUIColor bg
+ )
 {
   GUIStringProperty *prop = malloc(sizeof(GUIStringProperty));
   if (!prop) { return NULL; }
@@ -458,35 +485,7 @@ void handle_modifier_up(GUIModifierKey mod) {
     break;
   }
 }
-#endif /* #ifdef LITE_GFX */
-//================================================================ END api.c
 
-#if defined (_WIN32) || defined (_WIN64)
-#  include <windows.h>
-#  define SLEEP(ms) Sleep(ms)
-#elif defined (__unix)
-#  ifdef _POSIX_C_SOURCE
-#    define _POSIX_C_SOURCE_BACKUP _POSIX_C_SOURCE
-#    undef _POSIX_C_SOURCE
-#  endif
-#  define _POSIX_C_SOURCE 199309L
-#  include <time.h>
-#  define SLEEP(ms) do {                        \
-    struct timespec ts;                         \
-    ts.tv_sec = ms / 1000;                      \
-    ts.tv_nsec = ms % 1000 * 1000;              \
-    nanosleep(&ts, NULL);                       \
-  } while (0)
-#  undef _POSIX_C_SOURCE
-#  ifdef _POSIX_C_SOURCE_BACKUP
-#    define _POSIX_C_SOURCE _POSIX_C_SOURCE_BACKUP
-#    undef _POSIX_C_SOURCE_BACKUP
-#  endif
-#else
-#  error "System unknown! Can not create SLEEP macro."
-#endif
-
-#ifdef LITE_GFX
 GUIContext *initialize_lite_gui_ctx() {
   GUIContext *ctx = malloc(sizeof(GUIContext));
   if (!ctx) { return NULL; }
@@ -551,19 +550,20 @@ int enter_lite_gui() {
        , cursor_fg, cursor_bg);
     add_property(&gctx->contents, cursor_property);
     do_gui(&open, gctx);
-    // Only update GUI every 10 milliseconds.
+    // Only update GUI every several milliseconds.
     Atom sleep_ms = nil;
     env_get(genv(), make_sym("REDISPLAY-IDLE-MS"), &sleep_ms);
     if (integerp(sleep_ms)) {
       SLEEP(sleep_ms.value.integer);
     } else {
-      SLEEP(10);
+      SLEEP(20);
     }
   }
   destroy_gui();
   return 0;
 }
-#endif
+#endif /* #ifdef LITE_GFX */
+//================================================================ END api.c
 
 int main(int argc, char **argv) {
   printf("LITE will guide the way through the darkness.\n");
