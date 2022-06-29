@@ -68,6 +68,80 @@ static inline void draw_bg() {
   SDL_RenderClear(grender);
 }
 
+static inline char *string_join(char *a, char *b) {
+  if (!a || !b) { return NULL; }
+  size_t a_len = strlen(a);
+  size_t b_len = strlen(b);
+  size_t new_len = a_len + b_len;
+  char *out = malloc(new_len + 1);
+  if (!out) { return NULL; }
+  memcpy(out, a, a_len);
+  memcpy(out + a_len, b, b_len);
+  out[new_len] = '\0';
+  return out;
+}
+
+static inline TTF_Font *try_open_system_font(const char *path) {
+#if defined (_WIN32) || defined (_WIN64)
+
+  char *working_path = string_join("C:/Windows/fonts/", (char *)path);
+  if (!working_path) { return NULL; }
+  TTF_Font *working_font = TTF_OpenFont(working_path, 18);
+  free(working_path);
+  if (working_font) { return working_font; }
+
+#elif defined (__unix)
+
+  char *working_path = string_join("/usr/share/fonts/", (char *)path);
+  if (!working_path) { return NULL; }
+  font = TTF_OpenFont(working_path, 18);
+  free(working_path);
+  if (font) { return font; }
+
+  char *working_path = string_join("/usr/local/share/fonts/", (char *)path);
+  if (!working_path) { return NULL; }
+  font = TTF_OpenFont(working_path, 18);
+  free(working_path);
+  if (font) { return font; }
+#endif
+  return NULL;
+}
+
+// Try to open a font found in the SDL2 backend directory,
+// falling back to searching the system-wide font directories.
+static inline TTF_Font *try_open_font(const char *path) {
+  TTF_Font *working_font = NULL;
+  char *working_path = NULL;
+
+  // Search current directory.
+  working_font = TTF_OpenFont(path, 18);
+  if (working_font) { return working_font; }
+
+  // Assume working directory of base of the repository.
+  working_path = string_join("gfx/fonts/apache/", (char *)path);
+  if (!working_path) { return NULL; }
+  working_font = TTF_OpenFont(working_path, 18);
+  free(working_path);
+  if (working_font) { return working_font; }
+
+  // Assume working directory of bin repository subdirectory.
+  working_path = string_join("../gfx/fonts/apache/", (char *)path);
+  if (!working_path) { return NULL; }
+  working_font = TTF_OpenFont(working_path, 18);
+  free(working_path);
+  if (working_font) { return working_font; }
+
+  // Assume working directory of gfx repository subdirectory.
+  working_path = string_join("fonts/apache/", (char *)path);
+  if (!working_path) { return NULL; }
+  working_font = TTF_OpenFont(working_path, 18);
+  free(working_path);
+  if (working_font) { return working_font; }
+
+  // If still not found, search system-specific font directories.
+  return try_open_system_font(path);
+}
+
 int create_gui() {
   if (SDL_Init(SDL_INIT_VIDEO) != 0) {
     printf("GFX::SDL:ERROR: Failed to initialize SDL.\n");
@@ -97,12 +171,14 @@ int create_gui() {
     printf("GFX::SDL:ERROR: Failed to initialize SDL_ttf.\n");
     return 1;
   }
-  // First, assume working directory of base of the repository.
-  font = TTF_OpenFont("gfx/sdl2/DroidSans.ttf", 18);
-  // Next, assume working directory of bin repository subdirectory.
-  if (!font) { font = TTF_OpenFont("../gfx/sdl2/DroidSans.ttf", 18); }
-  // Next, search current directory.
-  if (!font) { font = TTF_OpenFont("DroidSans.ttf", 18); }
+  // Attempt to load font(s) included with LITE distribution.
+  if (!font) { font = try_open_font("DroidSansMono.ttf"); }
+  if (!font) { font = try_open_font("RobotoMono-Regular.ttf"); }
+  if (!font) { font = try_open_font("DroidSans.ttf"); }
+  if (!font) { font = try_open_font("Tinos-Regular.ttf"); }
+  // At this point, hail mary for a system font.
+  if (!font) { font = try_open_font("UbuntuMono-R.ttf"); }
+  if (!font) { font = try_open_font("Arial.ttf"); }
   // Finally, if no font was found anywhere, error out.
   if (!font) {
     printf("GFX::SDL: SDL_ttf could not open a font.\n"
