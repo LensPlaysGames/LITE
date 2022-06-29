@@ -523,21 +523,19 @@ int enter_lite_gui() {
     return 2;
   }
 
-  GUIColor headline_invert_one_fg;
-  headline_invert_one_fg.a = 255;
-  headline_invert_one_fg.r = 0;
-  headline_invert_one_fg.g = 0;
-  headline_invert_one_fg.b = 0;
-  GUIColor headline_invert_one_bg;
-  headline_invert_one_bg.a = 255;
-  headline_invert_one_bg.r = 255;
-  headline_invert_one_bg.g = 255;
-  headline_invert_one_bg.b = 255;
-  GUIStringProperty *headline_invert_one =
-    string_property(1,1, headline_invert_one_fg, headline_invert_one_bg);
-  if (!add_property(&gctx->headline, headline_invert_one)) {
-    return 1;
-  }
+  // TODO: Make this LISP extensible.
+  // Maybe think about an equivalent to Emacs' faces?
+
+  GUIColor cursor_fg;
+  cursor_fg.r = 0;
+  cursor_fg.g = 0;
+  cursor_fg.b = 0;
+  cursor_fg.a = UINT8_MAX;
+  GUIColor cursor_bg;
+  cursor_bg.r = UINT8_MAX;
+  cursor_bg.g = UINT8_MAX;
+  cursor_bg.b = UINT8_MAX;
+  cursor_bg.a = UINT8_MAX;
 
   while (open) {
     char *new_contents = NULL;
@@ -548,6 +546,10 @@ int enter_lite_gui() {
       new_contents = buffer_string(*current_buffer.value.buffer);
     }
     update_contents(gctx, new_contents);
+    GUIStringProperty *cursor_property = string_property
+      (current_buffer.value.buffer->point_byte, 1
+       , cursor_fg, cursor_bg);
+    add_property(&gctx->contents, cursor_property);
     do_gui(&open, gctx);
     // Only update GUI every 10 milliseconds.
     Atom sleep_ms = nil;

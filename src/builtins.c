@@ -335,7 +335,15 @@ int builtin_buffer_set_point(Atom arguments, Atom *result) {
   if (!bufferp(buffer) || !integerp(point)) {
     return ERROR_TYPE;
   }
-  buffer.value.buffer->point_byte = point.value.integer;
+  size_t new_point_byte = 0;
+  if (point.value.integer > 0) {
+    if (point.value.integer > buffer.value.buffer->rope->weight) {
+      new_point_byte = buffer.value.buffer->rope->weight;
+    } else {
+      new_point_byte = point.value.integer;
+    }
+  }
+  buffer.value.buffer->point_byte = new_point_byte;
   *result = buffer;
   return ERROR_NONE;
 }
