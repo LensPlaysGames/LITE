@@ -60,7 +60,7 @@ if (LITE_GFX)
   target_link_libraries(
     LITE
     PRIVATE
-    SDL_LIB
+    ${LITE_GFX_LIBRARY}
   )
 endif()
 

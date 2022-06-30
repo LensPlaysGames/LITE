@@ -1,6 +1,7 @@
 #include <buffer.h>
 
 #include <error.h>
+#include <errno.h>
 #include <file_io.h>
 #include <rope.h>
 #include <stdio.h>
@@ -246,38 +247,21 @@ char *buffer_line(Buffer buffer, size_t line_number) {
 
 char *buffer_current_line(Buffer buffer) {
   if (!buffer.rope) { return NULL; }
-  printf("buffer:\n"
-         "  point byte: %zu\n",
-         buffer.point_byte
-         );
   char *contents = rope_string(NULL, buffer.rope, NULL);
   if (!contents) { return NULL; }
   // Search backward for newline, or point_byte of zero.
-  char *beg = contents + buffer.point_byte;
-  size_t point = buffer.point_byte + 1;
+  size_t point = buffer.point_byte ? buffer.point_byte - 1 : 0;
+  char *beg = contents + point;
   while (point && *beg != '\r' && *beg != '\n') {
     beg -= 1;
     point -= 1;
   }
   char *current_line = NULL;
   size_t line_length = 0;
-  if (*beg != '\r' && *beg != '\n') {
-    // Return span from beginning of contents up until point_byte.
-    line_length = buffer.point_byte;
-    current_line = malloc(line_length + 1);
-    if (!current_line) {
-      free(contents);
-      return NULL;
-    }
-    strncpy(current_line, contents, line_length);
-    current_line[line_length] = '\0';
-    free(contents);
-    return current_line;
+  if (*beg == '\r' || *beg == '\n') {
+    beg += 1;
   }
-
-  // At this point, `beg` refers to the address of a newline within
-  // contents. Search forward for newline or end of string from `beg`.
-  char *end = beg;
+  char *end = contents + buffer.point_byte;
   while (*end != '\0' && *end != '\n' && point < buffer.rope->weight) {
     end += 1;
     point += 1;
@@ -311,15 +295,29 @@ void buffer_print(Buffer buffer) {
 }
 
 Error buffer_save(Buffer buffer) {
-  if (!buffer.rope || !buffer.path) {
+  if (!buffer.rope) {
     MAKE_ERROR(args, ERROR_ARGUMENTS, nil
-               , "buffer_save: Buffer rope and/or path may not be NULL."
+               , "buffer_save: Buffer rope may not be NULL."
+               , NULL);
+    return args;
+  }
+  if (!buffer.path) {
+    MAKE_ERROR(args, ERROR_ARGUMENTS, nil
+               , "buffer_save: Buffer path may not be NULL."
+               , NULL);
+    return args;
+  }
+  if (buffer.path[0] == '\0') {
+    MAKE_ERROR(args, ERROR_ARGUMENTS, nil
+               , "buffer_save: Buffer path may not be empty."
                , NULL);
     return args;
   }
 
   FILE *file = fopen(buffer.path, "w");
   if (!file) {
+    printf("Failure to save buffer at \"%s\" -- failed to open file\n"
+           "errno=%d\n", buffer.path, errno);
     MAKE_ERROR(err, ERROR_MEMORY, nil
                , "buffer_save: Could not open file for writing."
                , NULL);
@@ -335,8 +333,13 @@ Error buffer_save(Buffer buffer) {
     return oom;
   }
   size_t file_size = strlen(contents);
+
   size_t bytes = fwrite(contents, 1, file_size, file);
-  fclose(file);
+  uint8_t close_status = fclose(file);
+  if (close_status != 0) {
+    printf("Failure to save buffer at \"%s\" -- bad close\n"
+           "errno=%d\n", buffer.path, errno);
+  }
   if (file_size != bytes) {
     // TODO: add file error or something.
     MAKE_ERROR(err, ERROR_TODO, nil
@@ -349,6 +352,7 @@ Error buffer_save(Buffer buffer) {
 }
 
 void buffer_free(Buffer* buffer) {
+  if (!buffer) { return; }
   if (buffer->rope) {
     rope_free(buffer->rope);
   }

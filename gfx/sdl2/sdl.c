@@ -7,7 +7,12 @@
 
 #define SDL_MAIN_HANDLED
 #include <SDL.h>
+#include <SDL_events.h>
+#include <SDL_rect.h>
+#include <SDL_render.h>
+#include <SDL_surface.h>
 #include <SDL_ttf.h>
+#include <SDL_video.h>
 
 static SDL_Color bg = { 18, 18, 18, UINT8_MAX };
 static SDL_Color fg = { UINT8_MAX, UINT8_MAX, UINT8_MAX, UINT8_MAX };
@@ -44,7 +49,7 @@ static inline char *allocate_string_span
   if (!out) {
     return NULL;
   }
-  strncpy(out, string + offset, length);
+  memcpy(out, string + offset, length);
   out[length] = '\0';
   return out;
 }
@@ -109,59 +114,61 @@ static inline TTF_Font *try_open_system_font(const char *path) {
 
 // Try to open a font found in the SDL2 backend directory,
 // falling back to searching the system-wide font directories.
-static inline TTF_Font *try_open_font(const char *path) {
+static inline TTF_Font *try_open_font(const char *name) {
   TTF_Font *working_font = NULL;
   char *working_path = NULL;
 
   // Search current directory.
-  working_font = TTF_OpenFont(path, 18);
+  working_font = TTF_OpenFont(name, 18);
   if (working_font) { return working_font; }
 
   // Assume working directory of base of the repository.
-  working_path = string_join("gfx/fonts/apache/", (char *)path);
+  working_path = string_join("gfx/fonts/apache/", (char *)name);
   if (!working_path) { return NULL; }
   working_font = TTF_OpenFont(working_path, 18);
   free(working_path);
   if (working_font) { return working_font; }
 
   // Assume working directory of bin repository subdirectory.
-  working_path = string_join("../gfx/fonts/apache/", (char *)path);
+  working_path = string_join("../gfx/fonts/apache/", (char *)name);
   if (!working_path) { return NULL; }
   working_font = TTF_OpenFont(working_path, 18);
   free(working_path);
   if (working_font) { return working_font; }
 
   // Assume working directory of gfx repository subdirectory.
-  working_path = string_join("fonts/apache/", (char *)path);
+  working_path = string_join("fonts/apache/", (char *)name);
   if (!working_path) { return NULL; }
   working_font = TTF_OpenFont(working_path, 18);
   free(working_path);
   if (working_font) { return working_font; }
 
   // If still not found, search system-specific font directories.
-  return try_open_system_font(path);
+  return try_open_system_font(name);
 }
 
+static int created_gui_marker = 0;
 int create_gui() {
-  if (SDL_Init(SDL_INIT_VIDEO) != 0) {
+  if (created_gui_marker != 0) { return 3; }
+  created_gui_marker = 1;
+  if (SDL_Init(SDL_INIT_EVERYTHING) != 0) {
     printf("GFX::SDL:ERROR: Failed to initialize SDL.\n");
     return 1;
   }
+
   gwindow = SDL_CreateWindow
-    ("GUI BASIC"
+    ("SDL2 Window"
      , SDL_WINDOWPOS_UNDEFINED
      , SDL_WINDOWPOS_UNDEFINED
      , 640, 480
-     , SDL_WINDOW_SHOWN
-     | SDL_WINDOW_RESIZABLE
-     | SDL_WINDOW_ALLOW_HIGHDPI
+     , SDL_WINDOW_RESIZABLE
      | SDL_WINDOW_INPUT_FOCUS
      );
   if (!gwindow) {
     printf("GFX::SDL:ERROR: Could not create SDL window.\n");
     return 1;
   }
-  grender = SDL_CreateRenderer(gwindow, -1, SDL_RENDERER_SOFTWARE);
+  grender = SDL_CreateRenderer(gwindow, -1, SDL_RENDERER_ACCELERATED);
   if (!grender) {
     printf("GFX::SDL:ERROR: Could not create SDL renderer.\n");
     return 1;
@@ -220,7 +227,8 @@ static inline void draw_gui_string_into_surface_within_rect
   }
   SDL_Surface *text_surface = NULL;
   if (!string.properties) {
-    text_surface = TTF_RenderUTF8_Shaded_Wrapped(font, string.string, fg, bg, rect->w);
+    text_surface = TTF_RenderUTF8_Shaded_Wrapped
+      (font, string.string, fg, bg, rect->w);
     if (!text_surface) { return; }
   } else {
     text_surface = SDL_CreateRGBSurfaceWithFormat
@@ -238,13 +246,15 @@ static inline void draw_gui_string_into_surface_within_rect
           || *string_contents == '\n'
           || *string_contents == '\0')
         {
-          size_t start_of_line_offset = (last_newline_offset == 0 ? 0 : last_newline_offset + 1);
+          size_t start_of_line_offset =
+            (last_newline_offset == 0 ? 0 : last_newline_offset + 1);
+          // Newline implies carriage return.
           destination.x = 0;
           GUIStringProperty *it = string.properties;
           uint8_t prop_count = 0;
           uint8_t props_in_line = 0;
           size_t line_height = font_height;
-          // null-terminated list of offset (index + 1) into linked list.
+          // zero-terminated list of count (index + 1) into linked list.
           uint8_t properties[256];
           while (it) {
             prop_count += 1;
@@ -322,7 +332,8 @@ static inline void draw_gui_string_into_surface_within_rect
                 }
                 // Correctly display newline by inserting space.
                 if (propertized_text[0] == '\n'
-                    || propertized_text[0] == '\r')
+                    || propertized_text[0] == '\r'
+                    || propertized_text[0] == '\0')
                   {
                     propertized_text[0] = ' ';
                     propertized_text[1] = '\0';
@@ -332,28 +343,26 @@ static inline void draw_gui_string_into_surface_within_rect
                 SDL_Color prop_bg;
                 gui_color_to_sdl(&prop_bg, &it->bg);
                 SDL_Surface *propertized_text_surface = NULL;
-                if (propertized_text[0] != '\0') {
 #ifdef DEBUG_TEXT_PROPERTIES
-                  printf("Propertized:    \"%s\"\n", propertized_text);
+                printf("Propertized:    \"%s\"\n", propertized_text);
 #endif
-                  propertized_text_surface = TTF_RenderUTF8_Shaded
-                    (font, propertized_text, prop_fg, prop_bg);
-                  free(propertized_text);
-                  if (!propertized_text_surface) {
-                    // TODO: Handle memory allocation failure during GUI redraw.
-                    return;
-                  }
-                  SDL_BlitSurface(propertized_text_surface, NULL, text_surface, &destination);
-                  horizontal_offset += it->length;
-                  destination.x += propertized_text_surface->w;
-                  SDL_FreeSurface(propertized_text_surface);
+                propertized_text_surface = TTF_RenderUTF8_Shaded
+                  (font, propertized_text, prop_fg, prop_bg);
+                free(propertized_text);
+                if (!propertized_text_surface) {
+                  // TODO: Handle memory allocation failure during GUI redraw.
+                  return;
                 }
+                SDL_BlitSurface(propertized_text_surface, NULL, text_surface, &destination);
+                horizontal_offset += it->length;
+                destination.x += propertized_text_surface->w;
+                SDL_FreeSurface(propertized_text_surface);
               }
               prop_index += 1;
               it = it->next;
             }
             if (last_newline_offset + horizontal_offset < offset) {
-              size_t bytes_to_render = offset - horizontal_offset - (last_newline_offset == 0 ? 0 : last_newline_offset + 1);
+              size_t bytes_to_render = offset - horizontal_offset - start_of_line_offset;
               char *appended_text = allocate_string_span
                 (string.string
                  , start_of_line_offset + horizontal_offset
@@ -395,7 +404,13 @@ static inline void draw_gui_string_into_surface_within_rect
 }
 
 void draw_gui(GUIContext *ctx) {
+  if (!gwindow || !grender || !ctx) {
+    return;
+  }
+
+  // Update window title if one is provided.
   if (ctx->title) {
+    printf("GFX::SDL: Setting window title to \"%s\"\n", ctx->title);
     SDL_SetWindowTitle(gwindow, ctx->title);
     ctx->title = NULL;
   }
@@ -407,6 +422,7 @@ void draw_gui(GUIContext *ctx) {
   // Clear screen to background color.
   draw_bg();
 
+  // Get size of screen (needed to support resizing).
   int width = 0;
   int height = 0;
   SDL_GetWindowSize(gwindow, &width, &height);
@@ -419,39 +435,47 @@ void draw_gui(GUIContext *ctx) {
     return;
   }
 
+  // Calculate height of head/foot lines using line count.
   // TODO: Handle wrapping of long lines.
   size_t headline_line_count = count_lines(ctx->headline.string);
   size_t footline_line_count = count_lines(ctx->footline.string);
-
   size_t headline_height = font_height * headline_line_count;
   size_t footline_height = font_height * footline_line_count;
 
   // TODO: Handle corner case when there is not enough room for contents.
   size_t contents_height = height - headline_height - footline_height;
 
+  // Simple vertical layout, for now.
   SDL_Rect rect_headline;
+  SDL_Rect rect_contents;
+  SDL_Rect rect_footline;
+
   rect_headline.x = 0;
   rect_headline.y = 0;
   rect_headline.w = width;
   rect_headline.h = headline_height;
-  SDL_Rect rect_contents;
+
   rect_contents.x = 0;
   rect_contents.y = rect_headline.h + rect_headline.y;
   rect_contents.w = width;
   rect_contents.h = contents_height;
-  SDL_Rect rect_footline;
+
   rect_footline.x = 0;
   rect_footline.y = rect_contents.h + rect_contents.y;
   rect_footline.w = width;
   rect_footline.h = footline_height;
 
+  // Draw context string contents onto screen surface within calculated rectangle,
+  // taking in to account text properties of GUIStrings.
   draw_gui_string_into_surface_within_rect(ctx->headline, surface, &rect_headline);
   draw_gui_string_into_surface_within_rect(ctx->contents, surface, &rect_contents);
   draw_gui_string_into_surface_within_rect(ctx->footline, surface, &rect_footline);
 
+  // Copy screen surface into a texture.
   texture = SDL_CreateTextureFromSurface(grender, surface);
   SDL_FreeSurface(surface);
   if (texture) {
+    // Render texture.
     SDL_RenderCopy(grender, texture, NULL, NULL);
     SDL_DestroyTexture(texture);
   } else {
@@ -468,7 +492,7 @@ int handle_events() {
   while (SDL_PollEvent(&event)) {
     switch(event.type) {
     default:
-      break;
+      continue;
     case SDL_KEYDOWN:
       if ((mod = is_modifier(event.key.keysym.sym)) != GUI_MODKEY_MAX) {
         handle_modifier_dn(mod);
@@ -494,19 +518,30 @@ int handle_events() {
 }
 
 // Returns a boolean-like integer value (0 is false).
-void do_gui(int *open, GUIContext *ctx) {
-  if (!open || *open == 0 || !ctx) {
-    return;
+int do_gui(GUIContext *ctx) {
+  if (!ctx) {
+    printf("GFX::SDL:ERROR: Can not render NULL graphical context.\n");
+    return 0;
   }
-  *open = handle_events();
-  if (*open == 0) { return; }
+  int status = handle_events();
+  if (status == 0) {
+    printf("GFX::SDL: Quitting.\n");
+    return 0;
+  }
   draw_gui(ctx);
+  return 1;
 }
 
 void destroy_gui() {
-  SDL_DestroyRenderer(grender);
-  SDL_DestroyWindow(gwindow);
-  TTF_CloseFont(font);
+  if (grender) {
+    SDL_DestroyRenderer(grender);
+  }
+  if (gwindow) {
+    SDL_DestroyWindow(gwindow);
+  }
+  if (font) {
+    TTF_CloseFont(font);
+  }
   TTF_Quit();
   SDL_Quit();
 }

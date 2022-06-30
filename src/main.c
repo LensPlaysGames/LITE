@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <api.h>
 #include <buffer.h>
 #include <environment.h>
 #include <evaluation.h>
@@ -25,7 +26,7 @@ char *allocate_string(const char *string) {
   if (!string_length) { return NULL; }
   char *out = malloc(string_length + 1);
   if (!out) { return NULL; }
-  strncpy(out, string, string_length);
+  memcpy(out, string, string_length);
   out[string_length] = '\0';
   return out;
 }
@@ -79,11 +80,10 @@ void update_headline(GUIContext *ctx, char *new_headline) {
   if (ctx->headline.string) {
     free(ctx->headline.string);
   }
+  ctx->headline.string = new_headline;
   // POSSIBLE FIXME: Should properties really be cleared at every
   // re-draw? Should properties maybe be left alone?
   reset_properties(&ctx->headline);
-  ctx->headline.string = new_headline;
-  ctx->headline.properties = NULL;
 }
 
 void update_contents(GUIContext *ctx, char *new_contents) {
@@ -106,6 +106,7 @@ void update_footline(GUIContext *ctx, char *new_footline) {
   ctx->footline.properties = NULL;
 }
 
+/// Add PROPERTY to beginning of STRING properties linked list.
 /// Returns boolean-like value (0 == failure).
 int add_property(GUIString *string, GUIStringProperty *property) {
   if (!string || !property) { return 0; }
@@ -303,12 +304,11 @@ void handle_character_dn(uint64_t c) {
       }
 
       const size_t tmp_str_sz = 2;
-      char *tmp_str = malloc(tmp_str_sz);
-      memset(tmp_str, '\0', tmp_str_sz);
+      char tmp_str[tmp_str_sz];
+      memset(&tmp_str[0], '\0', tmp_str_sz);
       // TODO+FIXME: This falsely assumes one-byte character.
       tmp_str[0] = (char)c;
       Atom keybind = alist_get(current_keymap, make_string(tmp_str));
-      free(tmp_str);
 
       if (debug_keybinding) {
         printf("Got keybind: ");
@@ -354,7 +354,7 @@ void handle_character_dn(uint64_t c) {
 
         if (symbolp(keybind)) {
           // Explicitly insert characters with 'SELF-INSERT-CHAR' symbol.
-          if (keybind.value.symbol && strlen(keybind.value.symbol)) {
+          if (keybind.value.symbol && keybind.value.symbol[0] != '\0') {
             if (strcmp(keybind.value.symbol, "SELF-INSERT-CHAR") == 0) {
               // FIXME: This assumes one-byte content.
               Error err = buffer_insert_byte(current_buffer.value.buffer, (char)c);
@@ -368,7 +368,7 @@ void handle_character_dn(uint64_t c) {
           }
         } else if (stringp(keybind)) {
           // Rebind characters (only one byte for now) using a string associated value.
-          if (keybind.value.symbol && strlen(keybind.value.symbol)) {
+          if (keybind.value.symbol && keybind.value.symbol[0] != '\0') {
             c = keybind.value.symbol[0];
             // Go around again!
             keybind_recurse_count += 1;
@@ -512,15 +512,11 @@ GUIContext *initialize_lite_gui_ctx() {
 }
 
 int enter_lite_gui() {
-  int open;
-  if ((open = create_gui())) {
-    return open;
+  if (create_gui()) {
+    return 69;
   }
-  open = 1;
   gctx = initialize_lite_gui_ctx();
-  if (!gctx) {
-    return 2;
-  }
+  if (!gctx) { return 69; }
 
   // TODO: Make this LISP extensible.
   // Maybe think about an equivalent to Emacs' faces?
@@ -536,10 +532,12 @@ int enter_lite_gui() {
   cursor_bg.b = UINT8_MAX;
   cursor_bg.a = UINT8_MAX;
 
+  int open = 1;
   while (open) {
     char *new_contents = NULL;
     Atom current_buffer = nil;
     // Maybe only redisplay on a change somehow?
+
     env_get(genv(), make_sym("CURRENT-BUFFER"), &current_buffer);
     if (bufferp(current_buffer)) {
       new_contents = buffer_string(*current_buffer.value.buffer);
@@ -549,8 +547,10 @@ int enter_lite_gui() {
       (current_buffer.value.buffer->point_byte, 1
        , cursor_fg, cursor_bg);
     add_property(&gctx->contents, cursor_property);
-    do_gui(&open, gctx);
-    // Only update GUI every several milliseconds.
+
+    open = do_gui(gctx);
+    if (!open) { break; }
+
     Atom sleep_ms = nil;
     env_get(genv(), make_sym("REDISPLAY-IDLE-MS"), &sleep_ms);
     if (integerp(sleep_ms)) {
@@ -575,15 +575,17 @@ int main(int argc, char **argv) {
     }
   }
 
-  Atom buffer = make_buffer
+  Atom initial_buffer = make_buffer
     (env_create(nil), allocate_string("LITE_SHINES_UPON_US.txt"));
-  if (nilp(buffer)) {
+  if (nilp(initial_buffer)) {
     return 1;
   }
-  env_set(genv(), make_sym("CURRENT-BUFFER"), buffer);
+  env_set(genv(), make_sym("CURRENT-BUFFER"), initial_buffer);
+
+  int status = 0;
 
 #ifdef LITE_GFX
-  enter_lite_gui();
+  status = enter_lite_gui();
 #else
   enter_repl(genv());
 #endif
@@ -596,5 +598,5 @@ int main(int argc, char **argv) {
     print_gcol_data();
   }
 
-  return 0;
+  return status;
 }

@@ -52,7 +52,7 @@ const SimpleFile get_file(char* path) {
   if (!path) {
     return smpl;
   }
-  smpl.path = path;
+  smpl.path = strdup(path);
 
   FILE *file = fopen(path, "r");
   if (!file) {
@@ -77,7 +77,14 @@ const SimpleFile get_file(char* path) {
     return smpl;
   }
   memset(buffer, 0, size);
-  fread(buffer, 1, size, file);
+
+  if (fread(buffer, 1, size, file) != size) {
+    printf("SimpleFile: Could not read %zu bytes from file at \"%s\"\n"
+           , size, path);
+    fclose(file);
+    return smpl;
+  }
+
   smpl.contents = buffer;
   fclose(file);
 

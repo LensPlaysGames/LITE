@@ -58,6 +58,6 @@ void draw_gui(GUIContext *ctx);
 int handle_events();
 
 /// Do one iteration of the GUI based on graphical context.
-void do_gui(int *open, GUIContext *ctx);
+int do_gui(GUIContext *ctx);
 
 #endif /* GUI_H */

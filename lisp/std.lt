@@ -201,42 +201,48 @@ also known as the absolute value.")
     (alist-set
      keymap "CTRL"
      (alist-set
-      (alist-get keymap "CTRL")
-      "b"
+      (alist-get keymap "CTRL") "b"
       '(backward-byte))))
 
 (define keymap
     (alist-set
      keymap "CTRL"
      (alist-set
-      (alist-get keymap "CTRL")
-      "f"
+      (alist-get keymap "CTRL") "f"
       '(forward-byte))))
 
+;; Save current buffer with "CTRL" "s"
 (define keymap
     (alist-set
      keymap "CTRL"
      (alist-set
-      (alist-get keymap "CTRL")
-      "e"
+      (alist-get keymap "CTRL") "s"
+      '(save current-buffer))))
+
+;; Evaluate current line with "CTRL" "e"
+(define keymap
+    (alist-set
+     keymap "CTRL"
+     (alist-set
+      (alist-get keymap "CTRL") "e"
       '(evaluate-string
         (buffer-current-line current-buffer)))))
 
+;; Evaluate zeroeth line with "CTRL" "0"
 (define keymap
     (alist-set
      keymap "CTRL"
      (alist-set
-      (alist-get keymap "CTRL")
-      "0"
+      (alist-get keymap "CTRL") "0"
       '(evaluate-string
         (buffer-line current-buffer 0)))))
 
+;; Evaluate current buffer with "LEFT-ALT" "e"
 (define keymap
     (alist-set
      keymap "LEFT-ALT"
      (alist-set
-      (alist-get keymap "LEFT-ALT")
-      "e"
+      (alist-get keymap "LEFT-ALT") "e"
       '(evaluate-string
         (buffer-string current-buffer)))))
 

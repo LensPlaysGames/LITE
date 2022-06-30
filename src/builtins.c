@@ -6,6 +6,7 @@
 #include <evaluation.h>
 #include <parser.h>
 #include <rope.h>
+#include <stdlib.h>
 #include <string.h>
 #include <types.h>
 
@@ -392,7 +393,9 @@ int builtin_buffer_string(Atom arguments, Atom *result) {
   if (!bufferp(buffer) || !buffer.value.buffer) {
     return ERROR_TYPE;
   }
-  *result = make_string(buffer_string(*buffer.value.buffer));
+  char *contents = buffer_string(*buffer.value.buffer);
+  *result = make_string(contents);
+  free(contents);
   return ERROR_NONE;
 }
 
@@ -414,10 +417,12 @@ int builtin_buffer_lines (Atom arguments, Atom *result) {
   if (!integerp(line_count)) {
     return ERROR_TYPE;
   }
-  *result = make_string
-    (buffer_lines(*buffer.value.buffer
-                  , start_line.value.integer
-                  , line_count.value.integer));
+  char *lines = buffer_lines
+    (*buffer.value.buffer
+     , start_line.value.integer
+     , line_count.value.integer);
+  *result = make_string(lines);
+  free(lines);
   return ERROR_NONE;
 }
 
@@ -435,8 +440,10 @@ int builtin_buffer_line  (Atom arguments, Atom *result) {
   if (!integerp(line_count)) {
     return ERROR_TYPE;
   }
-  *result = make_string(buffer_line(*buffer.value.buffer
-                                    , line_count.value.integer));
+  char *line = buffer_line(*buffer.value.buffer
+                           , line_count.value.integer);
+  *result = make_string(line);
+  free(line);
   return ERROR_NONE;
 }
 
@@ -450,7 +457,9 @@ int builtin_buffer_current_line(Atom arguments, Atom *result) {
   if (!bufferp(buffer) || !buffer.value.buffer) {
     return ERROR_TYPE;
   }
-  *result = make_string(buffer_current_line(*buffer.value.buffer));
+  char *line = buffer_current_line(*buffer.value.buffer);
+  *result = make_string(line);
+  free(line);
   return ERROR_NONE;
 }
 
@@ -577,7 +586,7 @@ symbol_t *builtin_save_docstring =
 int builtin_save(Atom arguments, Atom *result) {
   BUILTIN_ENSURE_ONE_ARGUMENT(arguments);
   Atom buffer = car(arguments);
-  if (!bufferp(buffer)) {
+  if (!bufferp(buffer) || !buffer.value.buffer) {
     return ERROR_TYPE;
   }
   Error err = buffer_save(*buffer.value.buffer);
