@@ -1,5 +1,8 @@
 * SDL2 as a Library
 
+LITE would like to thank the developers of SDL2 for releasing free and
+open source software for everybody in the world to use, without worry.
+
 ** Dependencies
 
 NOTE: The /DEVELOPMENT/ releases are necessary (don't get runtime binaries).
