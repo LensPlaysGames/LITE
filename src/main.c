@@ -5,7 +5,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <api.h>
 #include <buffer.h>
 #include <environment.h>
 #include <evaluation.h>
