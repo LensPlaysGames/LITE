@@ -172,8 +172,8 @@ Error buffer_remove_bytes(Buffer *buffer, size_t count) {
   }
   Rope *rope = rope_remove_span(buffer->rope, buffer->point_byte, count);
   if (!rope) {
-    MAKE_ERROR(err, ERROR_TODO, nil
-               , "Failed to remove span from buffer rope."
+    MAKE_ERROR(err, ERROR_GENERIC, nil
+               , "Failed to remove span from buffer's rope."
                , NULL);
     return err;
   }
@@ -207,7 +207,7 @@ Error buffer_remove_bytes_forward(Buffer *buffer, size_t count) {
   }
   size_t size = buffer_size(*buffer);
   if (!size) {
-    MAKE_ERROR(err, ERROR_TODO, nil
+    MAKE_ERROR(err, ERROR_GENERIC, nil
                , "Can not remove from empty buffer."
                , NULL);
     return err;
@@ -220,7 +220,7 @@ Error buffer_remove_bytes_forward(Buffer *buffer, size_t count) {
   }
   Rope *rope = rope_remove_span(buffer->rope, buffer->point_byte, count);
   if (!rope) {
-    MAKE_ERROR(err, ERROR_TODO, nil
+    MAKE_ERROR(err, ERROR_GENERIC, nil
                , "Failed to remove span from buffer rope."
                , NULL);
     return err;
@@ -341,8 +341,7 @@ Error buffer_save(Buffer buffer) {
            "errno=%d\n", buffer.path, errno);
   }
   if (file_size != bytes) {
-    // TODO: add file error or something.
-    MAKE_ERROR(err, ERROR_TODO, nil
+    MAKE_ERROR(err, ERROR_FILE, nil
                , "buffer_save: Could not write contents to file."
                , NULL);
     return err;

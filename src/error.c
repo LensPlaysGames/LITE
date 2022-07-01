@@ -33,6 +33,12 @@ void print_error(Error e) {
   case ERROR_MEMORY:
     puts("Could not allocate memory.");
     break;
+  case ERROR_FILE:
+    puts("File error.");
+    break;
+  case ERROR_GENERIC:
+    puts("Generic error.");
+    break;
   default:
     puts("Unrecognized error.");
     break;
@@ -91,6 +97,12 @@ char *error_string(Error e) {
   case ERROR_MEMORY:
     append_error_string("Allocation failure\n");
     break;
+  case ERROR_FILE:
+    append_error_string("File error.\n");
+    break;
+  case ERROR_GENERIC:
+    append_error_string("Generic error.\n");
+    break;
   default:
     append_error_string("Unrecognized error. Please report as issue on GitHub.\n");
     break;
@@ -111,6 +123,5 @@ char *error_string(Error e) {
     append_error_string(":: ");
     append_error_string((char *)e.suggestion);
   }
-
   return strdup(error_string_buffer);
 }

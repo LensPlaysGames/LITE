@@ -15,6 +15,8 @@ typedef struct Error {
     ERROR_ARGUMENTS,
     ERROR_TYPE,
     ERROR_MEMORY,
+    ERROR_FILE,
+    ERROR_GENERIC,
   } type;
   const char *message;
   const char *suggestion;
