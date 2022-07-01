@@ -86,12 +86,12 @@ static inline char *string_join(char *a, char *b) {
   return out;
 }
 
-static inline TTF_Font *try_open_system_font(const char *path) {
+static inline TTF_Font *try_open_system_font(const char *path, size_t size) {
 #if defined (_WIN32) || defined (_WIN64)
 
   char *working_path = string_join("C:/Windows/fonts/", (char *)path);
   if (!working_path) { return NULL; }
-  TTF_Font *working_font = TTF_OpenFont(working_path, 18);
+  TTF_Font *working_font = TTF_OpenFont(working_path, size);
   free(working_path);
   if (working_font) { return working_font; }
 
@@ -99,52 +99,54 @@ static inline TTF_Font *try_open_system_font(const char *path) {
 
   char *working_path = string_join("/usr/share/fonts/", (char *)path);
   if (!working_path) { return NULL; }
-  font = TTF_OpenFont(working_path, 18);
+  working_font = TTF_OpenFont(working_path, size);
   free(working_path);
-  if (font) { return font; }
+  if (working_font) { return working_font; }
 
   char *working_path = string_join("/usr/local/share/fonts/", (char *)path);
   if (!working_path) { return NULL; }
-  font = TTF_OpenFont(working_path, 18);
+  working_font = TTF_OpenFont(working_path, size);
   free(working_path);
-  if (font) { return font; }
+  if (working_font) { return working_font; }
+
 #endif
+
   return NULL;
 }
 
 // Try to open a font found in the SDL2 backend directory,
 // falling back to searching the system-wide font directories.
-static inline TTF_Font *try_open_font(const char *name) {
+static inline TTF_Font *try_open_font(const char *name, size_t size) {
   TTF_Font *working_font = NULL;
   char *working_path = NULL;
 
   // Search current directory.
-  working_font = TTF_OpenFont(name, 18);
+  working_font = TTF_OpenFont(name, size);
   if (working_font) { return working_font; }
 
   // Assume working directory of base of the repository.
   working_path = string_join("gfx/fonts/apache/", (char *)name);
   if (!working_path) { return NULL; }
-  working_font = TTF_OpenFont(working_path, 18);
+  working_font = TTF_OpenFont(working_path, size);
   free(working_path);
   if (working_font) { return working_font; }
 
   // Assume working directory of bin repository subdirectory.
   working_path = string_join("../gfx/fonts/apache/", (char *)name);
   if (!working_path) { return NULL; }
-  working_font = TTF_OpenFont(working_path, 18);
+  working_font = TTF_OpenFont(working_path, size);
   free(working_path);
   if (working_font) { return working_font; }
 
   // Assume working directory of gfx repository subdirectory.
   working_path = string_join("fonts/apache/", (char *)name);
   if (!working_path) { return NULL; }
-  working_font = TTF_OpenFont(working_path, 18);
+  working_font = TTF_OpenFont(working_path, size);
   free(working_path);
   if (working_font) { return working_font; }
 
   // If still not found, search system-specific font directories.
-  return try_open_system_font(name);
+  return try_open_system_font(name, size);
 }
 
 static int created_gui_marker = 0;
@@ -178,14 +180,16 @@ int create_gui() {
     printf("GFX::SDL:ERROR: Failed to initialize SDL_ttf.\n");
     return 1;
   }
+  // TODO: Do not hard-code font size!
   // Attempt to load font(s) included with LITE distribution.
-  if (!font) { font = try_open_font("DroidSansMono.ttf"); }
-  if (!font) { font = try_open_font("RobotoMono-Regular.ttf"); }
-  if (!font) { font = try_open_font("DroidSans.ttf"); }
-  if (!font) { font = try_open_font("Tinos-Regular.ttf"); }
+  const size_t font_size = 18;
+  if (!font) { font = try_open_font("DroidSansMono.ttf"      , font_size); }
+  if (!font) { font = try_open_font("RobotoMono-Regular.ttf" , font_size); }
+  if (!font) { font = try_open_font("DroidSans.ttf"          , font_size); }
+  if (!font) { font = try_open_font("Tinos-Regular.ttf"      , font_size); }
   // At this point, hail mary for a system font.
-  if (!font) { font = try_open_font("UbuntuMono-R.ttf"); }
-  if (!font) { font = try_open_font("Arial.ttf"); }
+  if (!font) { font = try_open_font("UbuntuMono-R.ttf"       , font_size); }
+  if (!font) { font = try_open_font("Arial.ttf"              , font_size); }
   // Finally, if no font was found anywhere, error out.
   if (!font) {
     printf("GFX::SDL: SDL_ttf could not open a font.\n"
@@ -213,6 +217,39 @@ static inline void gui_color_to_sdl(SDL_Color *dst, GUIColor *src) {
   dst->a = src->a;
 }
 
+static inline SDL_Rect *rect_make_empty(SDL_Rect *rect) {
+  if (!rect) { return NULL; }
+  memset(rect, 0, sizeof(SDL_Rect));
+  return rect;
+}
+
+#define SDL_RECT_EMPTY(n) SDL_Rect (n); do { \
+    (n).x = 0;                               \
+    (n).y = 0;                               \
+    (n).w = 0;                               \
+    (n).h = 0;                               \
+  } while (0);
+
+static inline SDL_Rect *rect_copy(SDL_Rect *dst, SDL_Rect *src) {
+  if (!dst || !src) { return NULL; }
+  memcpy(dst, src, sizeof(SDL_Rect));
+  return dst;
+}
+
+static inline SDL_Rect *rect_copy_position(SDL_Rect *dst, SDL_Rect *src) {
+  if (!dst || !src) { return NULL; }
+  dst->x = src->x;
+  dst->y = src->y;
+  return dst;
+}
+
+static inline SDL_Rect *rect_copy_size(SDL_Rect *dst, SDL_Rect *src) {
+  if (!dst || !src) { return NULL; }
+  dst->w = src->w;
+  dst->h = src->h;
+  return dst;
+}
+
 // Uncomment the following definition for lots of debug output.
 // #define DEBUG_TEXT_PROPERTIES
 
@@ -226,11 +263,15 @@ static inline void draw_gui_string_into_surface_within_rect
     return;
   }
   SDL_Surface *text_surface = NULL;
+  // srcrect is the rectangle within text_surface that will be copied from.
+  SDL_RECT_EMPTY(srcrect);
   if (!string.properties) {
     text_surface = TTF_RenderUTF8_Shaded_Wrapped
       (font, string.string, fg, bg, rect->w);
     if (!text_surface) { return; }
   } else {
+    // First line is blank for some reason.
+    srcrect.y += font_height;
     text_surface = SDL_CreateRGBSurfaceWithFormat
       (0, rect->w, rect->h, 32, SDL_PIXELFORMAT_RGBA32);
     if (!text_surface) { return; }
@@ -240,7 +281,11 @@ static inline void draw_gui_string_into_surface_within_rect
     size_t offset = 0;
     // Byte offset of newline previous to `offset` in string.
     size_t last_newline_offset = 0;
+    // Destination within text_surface to render text into.
+    // SDL_BlitSurface overrides the destination rect w and h,
+    // so we must use a copy to prevent clobbering our data.
     SDL_Rect destination = *rect;
+    SDL_Rect destination_copy = destination;
     while (1) {
       if (*string_contents == '\r'
           || *string_contents == '\n'
@@ -289,7 +334,9 @@ static inline void draw_gui_string_into_surface_within_rect
             free(line_text);
             // TODO: Handle memory allocation failure during GUI redraw.
             if (line_text_surface) {
-              SDL_BlitSurface(line_text_surface, NULL, text_surface, &destination);
+              // TODO: Handle BlitSurface failure everywhere (0 == success).
+              SDL_BlitSurface(line_text_surface, NULL, text_surface
+                              , rect_copy(&destination_copy,&destination));
               SDL_FreeSurface(line_text_surface);
             }
           } else {
@@ -317,7 +364,8 @@ static inline void draw_gui_string_into_surface_within_rect
                     free(prepended_text);
                     // TODO: Handle memory allocation failure during GUI redraw.
                     if (prepended_text_surface) {
-                      SDL_BlitSurface(prepended_text_surface, NULL, text_surface, &destination);
+                      SDL_BlitSurface(prepended_text_surface, NULL, text_surface
+                                      , rect_copy(&destination_copy,&destination));
                       horizontal_offset += bytes_to_render;
                       destination.x += prepended_text_surface->w;
                       SDL_FreeSurface(prepended_text_surface);
@@ -330,7 +378,7 @@ static inline void draw_gui_string_into_surface_within_rect
                   // TODO: Handle memory allocation failure during GUI redraw.
                   return;
                 }
-                // Correctly display newline by inserting space.
+                // Correctly display newline/end of string by inserting space.
                 if (propertized_text[0] == '\n'
                     || propertized_text[0] == '\r'
                     || propertized_text[0] == '\0')
@@ -353,7 +401,8 @@ static inline void draw_gui_string_into_surface_within_rect
                   // TODO: Handle memory allocation failure during GUI redraw.
                   return;
                 }
-                SDL_BlitSurface(propertized_text_surface, NULL, text_surface, &destination);
+                SDL_BlitSurface(propertized_text_surface, NULL, text_surface
+                                , rect_copy(&destination_copy,&destination));
                 horizontal_offset += it->length;
                 destination.x += propertized_text_surface->w;
                 SDL_FreeSurface(propertized_text_surface);
@@ -377,7 +426,8 @@ static inline void draw_gui_string_into_surface_within_rect
                 free(appended_text);
                 // TODO: Handle memory allocation failure during GUI redraw.
                 if (appended_text_surface) {
-                  SDL_BlitSurface(appended_text_surface, NULL, text_surface, &destination);
+                  SDL_BlitSurface(appended_text_surface, NULL, text_surface
+                                  , rect_copy(&destination_copy,&destination));
                   horizontal_offset += bytes_to_render;
                   destination.x += appended_text_surface->w;
                   SDL_FreeSurface(appended_text_surface);
@@ -391,6 +441,10 @@ static inline void draw_gui_string_into_surface_within_rect
           destination.y += line_height;
           destination.h -= line_height;
           last_newline_offset = offset;
+          // No more room to draw text in output rectangle, stop now.
+          if (destination.h <= 0) {
+            break;
+          }
         }
       if (*string_contents == '\0') {
         break;
@@ -399,7 +453,11 @@ static inline void draw_gui_string_into_surface_within_rect
       offset += 1;
     }
   }
-  SDL_BlitSurface(text_surface, NULL, surface, rect);
+  rect_copy_size(&srcrect, rect);
+  // dstrect stores the position that text_surface will be copied into surface.
+  SDL_RECT_EMPTY(dstrect);
+  rect_copy_position(&dstrect, rect);
+  SDL_BlitSurface(text_surface, &srcrect, surface, &dstrect);
   SDL_FreeSurface(text_surface);
 }
 
