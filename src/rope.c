@@ -640,7 +640,7 @@ Rope *rope_remove_from_beginning(Rope *rope, size_t length) {
   // Make smaller string from right side of current string.
   size_t newstr_len = current_rope->weight - length;
   char *newstr = malloc(newstr_len + 1);
-  strncpy(newstr, current_rope->string + length, newstr_len);
+  memcpy(newstr, current_rope->string + length, newstr_len);
   newstr[newstr_len] = '\0';
   current_rope->weight = newstr_len;
   rope_set_string(current_rope, newstr);
@@ -668,7 +668,6 @@ Rope *rope_remove_from_end(Rope *rope, size_t length) {
       return NULL;
     }
   }
-
   if (length >= current_rope->weight) {
     // Remove node and call self with amount - current_rope->weight.
 
@@ -705,7 +704,7 @@ Rope *rope_remove_from_end(Rope *rope, size_t length) {
   // Re-allocate smaller string for node.
   size_t newstr_len = current_rope->weight - length;
   char *newstr = malloc(newstr_len + 1);
-  strncpy(newstr, current_rope->string, newstr_len);
+  memcpy(newstr, current_rope->string, newstr_len);
   newstr[newstr_len] = '\0';
   current_rope->weight = newstr_len;
   rope_set_string(current_rope, newstr);
@@ -755,7 +754,6 @@ Rope *rope_remove_span(Rope *rope, size_t offset, size_t length) {
         size_t current_rope_weight = current_rope->weight;
 
         // Shuffle nodes around.
-        // TODO: Less code duplication with Rope **.
         if (left_right == 0) {
           // `current_rope` is equal to `parent_rope->left`.
           if (!parent_rope->right) {
@@ -777,26 +775,28 @@ Rope *rope_remove_span(Rope *rope, size_t offset, size_t length) {
         }
 
         // If node contained perfect length, we are all done.
-        if (length - current_rope_weight == 0) {
+        size_t bytes_leftover = length - current_rope_weight;
+        //  Perfect fit            Underflow protection
+        if (bytes_leftover == 0 || bytes_leftover > length) {
           rope_update_weights(rope);
           return rope;
         }
         // Else, we must continue removing.
-        return rope_remove_span(rope, offset, length - current_rope_weight);
+        return rope_remove_span(rope, offset, bytes_leftover);
       }
 
       // Make smaller string from right side of current string.
       size_t newstr_len = current_rope->weight - length;
       char *newstr = malloc(newstr_len + 1);
       if (!newstr) { return NULL; }
-      strncpy(newstr, current_rope->string + length, newstr_len);
+      memcpy(newstr, current_rope->string + length, newstr_len);
       newstr[newstr_len] = '\0';
       current_rope->weight = newstr_len;
       rope_set_string(current_rope, newstr);
       rope_update_weights(rope);
       return rope;
 
-    } else if (length >= current_rope->weight - current_index) {
+    } else if (length > current_rope->weight - current_index) {
       // Remove everything after current_index, then continue removing recursively.
       current_index -= 1;
       size_t rope_weight = current_rope->weight;
@@ -809,12 +809,13 @@ Rope *rope_remove_span(Rope *rope, size_t offset, size_t length) {
       rope_set_string(current_rope, newstr);
       rope_update_weights(rope);
 
-      // Perfect match for removal length and length of node.
-      size_t remove_length = rope_weight - current_index;
-      if (remove_length == 0) {
+      size_t bytes_leftover = length - (rope_weight - current_index);
+      //  Perfect fit            Underflow protection
+      if (bytes_leftover == 0 || bytes_leftover > rope_weight) {
+        rope_update_weights(rope);
         return rope;
       }
-      return rope_remove_span(rope, offset, length - remove_length);
+      return rope_remove_span(rope, offset, bytes_leftover);
 
     } else {
       // Remove a span inside of string of current_rope.
