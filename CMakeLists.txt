@@ -20,7 +20,7 @@ project(LITE VERSION ${LITE_VERSION} LANGUAGES ${LITE_LANGUAGES})
 option(
   LITE_GFX
   "Should LITE be built with graphical abilities (GUI)?"
-  ON
+  OFF
 )
 
 if (${LITE_GFX})
