@@ -38,11 +38,13 @@ typedef struct GUIString {
 //       Definitely split contents into a linked list of windows,
 //       each with their own string of contents (or something similar).
 typedef struct GUIContext {
+  GUIStringProperty default_property;
   char *title; /// Graphical window title
   GUIString headline;
   GUIString contents;
   GUIString footline;
-  GUIStringProperty default_property;
+  GUIString popup;
+  char reading;
 } GUIContext;
 
 /// Returns 0 upon success.

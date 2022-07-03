@@ -109,5 +109,9 @@ extern symbol_t         *builtin_symbol_table_docstring;
 int builtin_symbol_table(Atom arguments, Atom *result);
 extern symbol_t         *builtin_print_docstring;
 int builtin_print       (Atom arguments, Atom *result);
+extern symbol_t         *builtin_read_prompted_docstring;
+int builtin_read_prompted(Atom arguments, Atom *result);
+extern symbol_t         *builtin_finish_read_docstring;
+int builtin_finish_read (Atom arguments, Atom *result);
 
 #endif /* LITE_BUILTINS_H */

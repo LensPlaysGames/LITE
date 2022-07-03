@@ -529,6 +529,24 @@ void draw_gui(GUIContext *ctx) {
   draw_gui_string_into_surface_within_rect(ctx->contents, surface, &rect_contents);
   draw_gui_string_into_surface_within_rect(ctx->footline, surface, &rect_footline);
 
+  if (ctx->reading) {
+    SDL_RECT_EMPTY(rect_popup);
+    rect_popup.w = width / 2 + width / 4;
+    rect_popup.h = height / 2 + height / 4;
+    rect_popup.x = width / 2 - (rect_popup.w / 2);
+    rect_popup.y = height / 2 - (rect_popup.h / 2);
+    size_t border_thickness = 4;
+    border_thickness &= ~1;
+    SDL_Rect rect_popup_outline = rect_popup;
+    rect_popup_outline.h += border_thickness;
+    rect_popup_outline.w += border_thickness;
+    rect_popup_outline.x -= border_thickness / 2;
+    rect_popup_outline.y -= border_thickness / 2;
+    SDL_FillRect(surface, &rect_popup_outline, 0xffffffff);
+    SDL_FillRect(surface, &rect_popup, 0);
+    draw_gui_string_into_surface_within_rect(ctx->popup, surface, &rect_popup);
+  }
+
   // Copy screen surface into a texture.
   texture = SDL_CreateTextureFromSurface(grender, surface);
   SDL_FreeSurface(surface);
@@ -550,13 +568,12 @@ int handle_events() {
   while (SDL_PollEvent(&event)) {
     switch(event.type) {
     default:
+      //printf("GFX::SDL: Unhandled event: %u\n", event.type);
       continue;
     case SDL_KEYDOWN:
       if ((mod = is_modifier(event.key.keysym.sym)) != GUI_MODKEY_MAX) {
         handle_modifier_dn(mod);
       } else {
-        // TODO: Convert `SDLK_` keycodes to UTF8.
-        // Maybe look into SDL TEXTINPUT event?
         uint64_t c = event.key.keysym.sym;
         handle_character_dn(c);
       }
@@ -564,8 +581,6 @@ int handle_events() {
     case SDL_KEYUP:
       if ((mod = is_modifier(event.key.keysym.sym)) != GUI_MODKEY_MAX) {
         handle_modifier_up(mod);
-      } else {
-        handle_character_up(event.key.keysym.sym);
       }
       break;
     case SDL_QUIT:

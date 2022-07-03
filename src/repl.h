@@ -6,7 +6,7 @@
 struct Atom;
 typedef struct Atom Atom;
 
-char* readline();
+char* readline(char *prompt);
 void enter_repl(Atom environment);
 
 #endif /* #ifndef LITE_REPL_H */

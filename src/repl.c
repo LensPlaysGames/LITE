@@ -14,13 +14,14 @@ static char user_input[MAX_INPUT_BUFSZ];
 
 /// Returns a heap-allocated C string containing
 /// a single line of input from the user.
-char* readline() {
+char* readline(char *prompt) {
   char *line = NULL;
   unsigned line_length = 0;
-  fputs(repl_prompt, stdout);
+  fputs(prompt, stdout);
   fgets(user_input, MAX_INPUT_BUFSZ, stdin);
   line_length = strlen(user_input);
   line = malloc(line_length + 1);
+  if (!line) { return NULL; }
   strcpy(line, user_input);
   line[line_length] = '\0';
   return line;
@@ -39,7 +40,7 @@ void enter_repl(Atom environment) {
     //==== READ ====
     putchar('\n');
     // Get current input as heap-allocated C string.
-    char *input = readline();
+    char *input = readline((char *)repl_prompt);
     const char *source = input;
     if (strlen(source) >= 4
         && memcmp(source, "quit", 4) == 0)

@@ -1,5 +1,10 @@
 #include <environment.h>
 
+#ifdef LITE_GFX
+#  include <api.h>
+#  include <gui.h>
+#endif /* #ifdef LITE_GFX */
+
 #include <builtins.h>
 #include <error.h>
 #include <types.h>
@@ -29,6 +34,14 @@ Error env_set(Atom environment, Atom symbol, Atom value) {
 Error env_get(Atom environment, Atom symbol, Atom *result) {
   Atom parent = car(environment);
   Atom bindings = cdr(environment);
+#ifdef LITE_GFX
+  // Handle reading/popup-buffer.
+  if (gui_ctx() && gui_ctx()->reading
+      && symbol.value.symbol == make_sym("CURRENT-BUFFER").value.symbol)
+    {
+      symbol = make_sym("POPUP-BUFFER");
+    }
+#endif /* #ifdef LITE_GFX */
   while (!nilp(bindings)) {
     Atom bind = car(bindings);
     if (car(bind).value.symbol == symbol.value.symbol) {
@@ -195,6 +208,11 @@ Atom default_environment() {
           , make_builtin(builtin_buffer_point, builtin_buffer_point_docstring));
   env_set(environment, make_sym("BUFFER-INDEX")
           , make_builtin(builtin_buffer_index, builtin_buffer_index_docstring));
+
+  env_set(environment, make_sym("READ-PROMPTED")
+          , make_builtin(builtin_read_prompted, builtin_read_prompted_docstring));
+  env_set(environment, make_sym("FINISH-READ")
+          , make_builtin(builtin_finish_read, builtin_finish_read_docstring));
 
   env_set(environment, make_sym("EVALUATE-STRING")
           , make_builtin(builtin_evaluate_string, builtin_evaluate_string_docstring));

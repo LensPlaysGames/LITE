@@ -1,11 +1,18 @@
 #include <builtins.h>
 
+#ifdef LITE_GFX
+#  include <api.h>
+#  include <gui.h>
+#endif /* #ifdef LITE_GFX */
+
 #include <buffer.h>
 #include <error.h>
 #include <environment.h>
 #include <evaluation.h>
 #include <parser.h>
+#include <repl.h>
 #include <rope.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <types.h>
@@ -701,6 +708,91 @@ int builtin_print(Atom arguments, Atom *result) {
   BUILTIN_ENSURE_ONE_ARGUMENT(arguments);
   pretty_print_atom(car(arguments));
   putchar('\n');
+  *result = nil;
+  return ERROR_NONE;
+}
+
+// TODO: There has to be better ways to do this...
+symbol_t *builtin_read_prompted_docstring =
+  "(read-prompted PROMPT)\n"
+  "\n"
+  "Show the user a PROMPT and return user response as a string.";
+int builtin_read_prompted(Atom arguments, Atom *result) {
+  BUILTIN_ENSURE_ONE_ARGUMENT(arguments);
+  Atom prompt = car(arguments);
+  if (!stringp(prompt)) {
+    return ERROR_TYPE;
+  }
+  size_t prompt_length = strlen(prompt.value.symbol);
+
+#ifdef LITE_GFX
+  // Bind return to 'finish-read'.
+  Atom keymap = nil;
+  env_get(genv(), make_sym("KEYMAP"), &keymap);
+  // TODO+FIXME: We really need to switch to string-based input,
+  // that way newline binding isn't platform dependant...
+# if defined (_WIN32) || defined (_WIN64)
+  char *return_character = "\r";
+# elif defined (__unix)
+  char *return_character = "\n";
+# endif
+  Atom original_return_binding = alist_get(keymap, make_string(return_character));
+  alist_set(&keymap, make_string(return_character), cons(make_sym("FINISH-READ"), nil));
+  env_set(genv(), make_sym("KEYMAP"), keymap);
+
+  Atom popup_buffer = make_buffer(env_create(nil), ".popup");
+  if (!bufferp(popup_buffer)) {
+    return ERROR_GENERIC;
+  }
+
+  // Clear popup buffer.
+  popup_buffer.value.buffer->point_byte = 0;
+  buffer_remove_bytes_forward(popup_buffer.value.buffer, SIZE_MAX);
+
+  // Insert prompt.
+  // TODO+FIXME: Make prompt not editable.
+  buffer_insert(popup_buffer.value.buffer, (char *)prompt.value.symbol);
+
+  // Re-enter main loop until input is complete.
+  GUIContext *ctx = gui_ctx();
+  ctx->reading = 1;
+  int open = 1;
+  while (open && ctx->reading) {
+    open = gui_loop();
+  }
+  ctx->reading = 0;
+
+  // Remove prompt.
+  popup_buffer.value.buffer->point_byte = 0;
+  buffer_remove_bytes_forward(popup_buffer.value.buffer, prompt_length);
+
+  *result = make_string(buffer_string(*popup_buffer.value.buffer));
+
+  // Restore keymap.
+  alist_set(&keymap, make_string(return_character), original_return_binding);
+  env_set(genv(), make_sym("KEYMAP"), keymap);
+
+#else
+  char *input = readline((char *)prompt.value.symbol);
+  if (!input) {
+    return ERROR_MEMORY;
+  }
+  *result = make_string(input);
+  free(input);
+#endif /* #ifdef LITE_GFX */
+
+  return ERROR_NONE;
+}
+
+symbol_t *builtin_finish_read_docstring =
+  "(finish-read)\n"
+  "\n"
+  "When reading, complete the read and return the string.";
+int builtin_finish_read(Atom arguments, Atom *result) {
+  BUILTIN_ENSURE_NO_ARGUMENTS(arguments);
+#ifdef LITE_GFX
+  gui_ctx()->reading = 0;
+#endif /* #ifdef LITE_GFX */
   *result = nil;
   return ERROR_NONE;
 }

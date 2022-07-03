@@ -12,11 +12,15 @@
 
 #include <stdint.h>
 
-// Handlers for non-modifier characters.
-// Hopefully 64 bits is enough for a character ;^).
-// At this point we assume UTF8, but it's too early to matter.
+/// Get global GUI Context.
+typedef struct GUIContext GUIContext;
+GUIContext *gui_ctx();
+
+// TODO: This shouldn't be here.
+int gui_loop();
+
+// TODO: Pass strings (left arrow could be "<left-arrow>", 'a' could be "a", etc).
 void handle_character_dn(uint64_t c);
-void handle_character_up(uint64_t c);
 
 typedef enum GUIModifierKey {
   GUI_MODKEY_LCTRL,
@@ -27,7 +31,6 @@ typedef enum GUIModifierKey {
   GUI_MODKEY_RSHIFT,
   GUI_MODKEY_MAX,
 } GUIModifierKey;
-
 
 // Handlers for modifier keys.
 void handle_modifier_dn(GUIModifierKey);

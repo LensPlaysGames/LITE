@@ -246,3 +246,10 @@ also known as the absolute value.")
       '(evaluate-string
         (buffer-string current-buffer)))))
 
+
+(defun user-says-yes (prompt)
+  "Return T iff the user response to PROMPT matches the string 'yes', otherwise return nil.
+Useful for ensuring the user would like to do something before doing it."
+  ;; TODO: Join "yes" hint on to given prompt.
+  ;; TODO: Think about capitilization option.
+  (eq "yes" (read-prompted prompt)))
