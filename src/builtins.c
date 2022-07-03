@@ -777,7 +777,15 @@ int builtin_read_prompted(Atom arguments, Atom *result) {
   if (!input) {
     return ERROR_MEMORY;
   }
+  size_t input_length = strlen(input);
+  if (input[input_length - 1] == '\n'
+      || input[input_length - 1] == '\r')
+    {
+      input[input_length - 1] = '\0';
+    }
   *result = make_string(input);
+  printf("string: ");
+  print_atom(*result);
   free(input);
 #endif /* #ifdef LITE_GFX */
 
