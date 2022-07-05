@@ -218,13 +218,18 @@ Useful for ensuring the user would like to do something before doing it."
       (alist-get keymap "CTRL") "f"
       '(forward-byte))))
 
+(defun save-current-with-msg (msg)
+  "Save buffer 'CURRENT-BUFFER' and return MSG."
+  (save current-buffer)
+  msg)
+
 ;; Save current buffer with "CTRL" "s"
 (define keymap
     (alist-set
      keymap "CTRL"
      (alist-set
       (alist-get keymap "CTRL") "s"
-      '(save current-buffer))))
+      '(save-current-with-msg "Saved."))))
 
 ;; Evaluate current line with "CTRL" "e"
 (define keymap

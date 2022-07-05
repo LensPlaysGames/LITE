@@ -54,7 +54,7 @@ const SimpleFile get_file(char* path) {
   }
   smpl.path = strdup(path);
 
-  FILE *file = fopen(path, "r");
+  FILE *file = fopen(path, "rb");
   if (!file) {
     printf("get_file(): Couldn't open file at %s\n", path);
     return smpl;

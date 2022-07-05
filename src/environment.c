@@ -143,6 +143,7 @@ Atom default_keymap() {
             cons(make_sym("BUFFER-REMOVE")
                  , cons(make_sym("CURRENT-BUFFER")
                         , cons(make_int(1), nil))));
+  alist_set(&keymap, make_string("\r"), make_string("\n"));
   alist_set(&keymap, make_string("CTRL"), default_control_keymap());
   alist_set(&keymap, make_string("LEFT-CONTROL"), make_string("CTRL"));
   alist_set(&keymap, make_string("RIGHT-CONTROL"), make_string("CTRL"));
@@ -154,8 +155,7 @@ Atom default_keymap() {
 
 Atom default_environment() {
   Atom environment = env_create(nil);
-  Atom keymap = default_keymap();
-  env_set(environment, make_sym("KEYMAP"),   keymap);
+  env_set(environment, make_sym("KEYMAP"),   default_keymap());
   env_set(environment, make_sym("T"),        make_sym("T"));
   env_set(environment, make_sym("CAR"),      make_builtin(builtin_car,          builtin_car_docstring));
   env_set(environment, make_sym("CDR"),      make_builtin(builtin_cdr,          builtin_cdr_docstring));
