@@ -726,22 +726,18 @@ int builtin_read_prompted(Atom arguments, Atom *result) {
   size_t prompt_length = strlen(prompt.value.symbol);
 
 #ifdef LITE_GFX
+
   // Bind return to 'finish-read'.
   Atom keymap = nil;
   env_get(genv(), make_sym("KEYMAP"), &keymap);
-  // TODO+FIXME: We really need to switch to string-based input,
-  // that way newline binding isn't platform dependant...
-# if defined (_WIN32) || defined (_WIN64)
+  // TODO+FIXME: We really need to switch to string-based input...
   char *return_character = "\r";
-# elif defined (__unix)
-  char *return_character = "\n";
-# endif
   Atom original_return_binding = alist_get(keymap, make_string(return_character));
   alist_set(&keymap, make_string(return_character), cons(make_sym("FINISH-READ"), nil));
   env_set(genv(), make_sym("KEYMAP"), keymap);
 
   Atom popup_buffer = make_buffer(env_create(nil), ".popup");
-  if (!bufferp(popup_buffer)) {
+  if (!bufferp(popup_buffer) || !popup_buffer.value.buffer) {
     return ERROR_GENERIC;
   }
 
@@ -760,19 +756,25 @@ int builtin_read_prompted(Atom arguments, Atom *result) {
   while (open && ctx->reading) {
     open = gui_loop();
   }
-  ctx->reading = 0;
+  if (!open) {
+    // TODO: Close program.
+    return ERROR_TODO;
+  }
 
   // Remove prompt.
   popup_buffer.value.buffer->point_byte = 0;
   buffer_remove_bytes_forward(popup_buffer.value.buffer, prompt_length);
 
-  *result = make_string(buffer_string(*popup_buffer.value.buffer));
+  char *string = buffer_string(*popup_buffer.value.buffer);
+  *result = make_string(string);
+  free(string);
 
   // Restore keymap.
   alist_set(&keymap, make_string(return_character), original_return_binding);
   env_set(genv(), make_sym("KEYMAP"), keymap);
 
 #else
+
   char *input = readline((char *)prompt.value.symbol);
   if (!input) {
     return ERROR_MEMORY;
@@ -787,6 +789,7 @@ int builtin_read_prompted(Atom arguments, Atom *result) {
   printf("string: ");
   print_atom(*result);
   free(input);
+
 #endif /* #ifdef LITE_GFX */
 
   return ERROR_NONE;
