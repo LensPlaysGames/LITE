@@ -13,6 +13,7 @@
 #include <SDL_surface.h>
 #include <SDL_ttf.h>
 #include <SDL_video.h>
+#include <SDL_version.h>
 
 static SDL_Color bg = { 18, 18, 18, UINT8_MAX };
 static SDL_Color fg = { UINT8_MAX, UINT8_MAX, UINT8_MAX, UINT8_MAX };
@@ -87,23 +88,26 @@ static inline char *string_join(char *a, char *b) {
 }
 
 static inline TTF_Font *try_open_system_font(const char *path, size_t size) {
+  char *working_path = NULL;
+  TTF_Font *working_font = NULL;
+
 #if defined (_WIN32) || defined (_WIN64)
 
-  char *working_path = string_join("C:/Windows/fonts/", (char *)path);
-  if (!working_path) { return NULL; }
-  TTF_Font *working_font = TTF_OpenFont(working_path, size);
-  free(working_path);
-  if (working_font) { return working_font; }
-
-#elif defined (__unix)
-
-  char *working_path = string_join("/usr/share/fonts/", (char *)path);
+  working_path = string_join("C:/Windows/fonts/", (char *)path);
   if (!working_path) { return NULL; }
   working_font = TTF_OpenFont(working_path, size);
   free(working_path);
   if (working_font) { return working_font; }
 
-  char *working_path = string_join("/usr/local/share/fonts/", (char *)path);
+#elif defined (__unix)
+
+  working_path = string_join("/usr/share/fonts/", (char *)path);
+  if (!working_path) { return NULL; }
+  working_font = TTF_OpenFont(working_path, size);
+  free(working_path);
+  if (working_font) { return working_font; }
+
+  working_path = string_join("/usr/local/share/fonts/", (char *)path);
   if (!working_path) { return NULL; }
   working_font = TTF_OpenFont(working_path, size);
   free(working_path);
@@ -266,8 +270,13 @@ static inline void draw_gui_string_into_surface_within_rect
   // srcrect is the rectangle within text_surface that will be copied from.
   SDL_RECT_EMPTY(srcrect);
   if (!string.properties) {
+#if SDL_TTF_VERSION_ATLEAST(2,0,18)
     text_surface = TTF_RenderUTF8_Shaded_Wrapped
       (font, string.string, fg, bg, rect->w);
+#else
+    text_surface = TTF_RenderUTF8_Blended_Wrapped
+      (font, string.string, fg, rect->w);
+#endif
     if (!text_surface) { return; }
   } else {
     // First line is blank for some reason.

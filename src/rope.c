@@ -104,7 +104,7 @@ Rope *rope_create(const char *str) {
   if (!newstr) {
     return NULL;
   }
-  strncpy(newstr, str, len);
+  memcpy(newstr, str, len);
   newstr[len] = '\0';
 
   // Allocate new rope nodes on heap.
@@ -188,7 +188,7 @@ Rope *rope_insert(Rope *rope, size_t index, char *str) {
     return rope_insert_byte(rope, index, str[0]);
   }
   char *contents = malloc(contents_length > 0 ? contents_length + 1 : 8);
-  strncpy(contents, str, contents_length);
+  memcpy(contents, str, contents_length);
   contents[contents_length] = '\0';
   if (index >= rope->weight) {
     // Append
@@ -320,10 +320,10 @@ Rope *rope_insert(Rope *rope, size_t index, char *str) {
 
     size_t new_left_left_len = current_index + 1;
     char *new_left_left_str = malloc(new_left_left_len);
-    strncpy(new_left_left_str
-            , current_rope->string
-            , new_left_left_len
-            );
+    memcpy(new_left_left_str
+           , current_rope->string
+           , new_left_left_len
+           );
     new_left_left_str[new_left_left_len - 1] = '\0';
 
     new_left_left->string = new_left_left_str;
@@ -343,7 +343,7 @@ Rope *rope_insert(Rope *rope, size_t index, char *str) {
 
     size_t new_right_len = current_rope->weight - current_index;
     char *new_right_str = malloc(new_right_len+1);
-    strncpy(new_right_str
+    memcpy(new_right_str
             , current_rope->string + current_index // skip left_left
             , new_right_len
             );
@@ -391,7 +391,7 @@ Rope *rope_insert_byte(Rope *rope, size_t index, char c) {
     // Re-allocate string.
     char *newstr = malloc(current_rope->weight + 2);
     if (!newstr) { return NULL; }
-    strncpy(newstr + 1, current_rope->string, current_rope->weight);
+    memcpy(newstr + 1, current_rope->string, current_rope->weight);
     newstr[0] = c;
     newstr[current_rope->weight + 1] = '\0';
     current_rope->weight += 1;
@@ -416,7 +416,7 @@ Rope *rope_insert_byte(Rope *rope, size_t index, char c) {
 
     char *newstr = malloc(current_rope->weight + 2);
     if (!newstr) { return NULL; }
-    strncpy(newstr, current_rope->string, current_rope->weight);
+    memcpy(newstr, current_rope->string, current_rope->weight);
     newstr[current_rope->weight] = c;
     newstr[current_rope->weight + 1] = '\0';
     current_rope->weight += 1;
@@ -442,9 +442,9 @@ Rope *rope_insert_byte(Rope *rope, size_t index, char c) {
     char *newstr = malloc(current_rope->weight + 2);
     if (!newstr) { return NULL; }
     newstr[0] = c;
-    strncpy(newstr + 1
-            , current_rope->string
-            , current_rope->weight);
+    memcpy(newstr + 1
+           , current_rope->string
+           , current_rope->weight);
     newstr[current_rope->weight + 1] = '\0';
     current_rope->weight += 1;
     rope_set_string(current_rope, newstr);
@@ -803,7 +803,7 @@ Rope *rope_remove_span(Rope *rope, size_t offset, size_t length) {
       size_t newstr_len = current_index;
       char *newstr = malloc(newstr_len + 1);
       if (!newstr) { return NULL; }
-      strncpy(newstr, current_rope->string, newstr_len);
+      memcpy(newstr, current_rope->string, newstr_len);
       newstr[newstr_len] = '\0';
       current_rope->weight = newstr_len;
       rope_set_string(current_rope, newstr);

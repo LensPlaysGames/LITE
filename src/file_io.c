@@ -56,7 +56,6 @@ const SimpleFile get_file(char* path) {
 
   FILE *file = fopen(path, "r");
   if (!file) {
-    fclose(file);
     printf("get_file(): Couldn't open file at %s\n", path);
     return smpl;
   }

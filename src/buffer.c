@@ -272,7 +272,7 @@ char *buffer_current_line(Buffer buffer) {
     free(contents);
     return NULL;
   }
-  strncpy(current_line, beg, line_length);
+  memcpy(current_line, beg, line_length);
   current_line[line_length] = '\0';
   free(contents);
   return current_line;

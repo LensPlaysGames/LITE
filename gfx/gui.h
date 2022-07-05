@@ -12,6 +12,7 @@
 #ifndef GUI_H
 #define GUI_H
 
+#include <stddef.h>
 #include <stdint.h>
 
 typedef struct GUIColor {
