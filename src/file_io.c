@@ -22,7 +22,7 @@ size_t file_size(FILE *file) {
 /// contents of the file found at the given path.
 char *file_contents(const char* path) {
   char *buffer = NULL;
-  FILE *file = fopen(path, "r");
+  FILE *file = fopen(path, "rb");
   if (!file) {
     printf("Couldn't open file at %s\n", path);
     return NULL;

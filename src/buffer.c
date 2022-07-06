@@ -314,7 +314,7 @@ Error buffer_save(Buffer buffer) {
     return args;
   }
 
-  FILE *file = fopen(buffer.path, "w");
+  FILE *file = fopen(buffer.path, "wb");
   if (!file) {
     printf("Failure to save buffer at \"%s\" -- failed to open file\n"
            "errno=%d\n", buffer.path, errno);
