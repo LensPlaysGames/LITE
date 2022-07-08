@@ -208,6 +208,10 @@ Atom default_environment() {
           , make_builtin(builtin_buffer_point, builtin_buffer_point_docstring));
   env_set(environment, make_sym("BUFFER-INDEX")
           , make_builtin(builtin_buffer_index, builtin_buffer_index_docstring));
+  env_set(environment, make_sym("BUFFER-SEEK-BYTE")
+          , make_builtin(builtin_buffer_seek_byte, builtin_buffer_seek_byte_docstring));
+  env_set(environment, make_sym("BUFFER-SEEK-SUBSTRING")
+          , make_builtin(builtin_buffer_seek_substring, builtin_buffer_seek_substring_docstring));
 
   env_set(environment, make_sym("READ-PROMPTED")
           , make_builtin(builtin_read_prompted, builtin_read_prompted_docstring));

@@ -97,6 +97,11 @@ int builtin_buffer_line  (Atom arguments, Atom *result);
 extern symbol_t          *builtin_buffer_current_line_docstring;
 int builtin_buffer_current_line(Atom arguments, Atom *result);
 
+extern symbol_t          *builtin_buffer_seek_byte_docstring;
+int builtin_buffer_seek_byte(Atom arguments, Atom *result);
+extern symbol_t          *builtin_buffer_seek_substring_docstring;
+int builtin_buffer_seek_substring(Atom arguments, Atom *result);
+
 // OTHER
 
 extern symbol_t         *builtin_evaluate_string_docstring;

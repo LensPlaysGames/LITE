@@ -562,6 +562,50 @@ int builtin_numgt_or_eq(Atom arguments, Atom *result) {
   return ERROR_NONE;
 }
 
+symbol_t *builtin_buffer_seek_byte_docstring =
+  "(buffer-seek-byte buffer bytes direction)\n"
+  "\n"
+  "Move buffer point to the next byte that is within the control string.\n"
+  "If no matching bytes are found, don't move point_byte.\n"
+  "Returns the amount of bytes buffer's point was moved.";
+int builtin_buffer_seek_byte(Atom arguments, Atom *result) {
+  BUILTIN_ENSURE_THREE_ARGUMENTS(arguments);
+  Atom buffer = car(arguments);
+  Atom bytes = car(cdr(arguments));
+  Atom direction = car(cdr(cdr(arguments)));
+  if (!bufferp(buffer) || !stringp(bytes) || !integerp(direction)) {
+    return ERROR_TYPE;
+  }
+  size_t bytes_moved = buffer_seek_until_byte
+    (buffer.value.buffer,
+     (char *)bytes.value.symbol,
+     direction.value.integer);
+  *result = make_int(bytes_moved);
+  return ERROR_NONE;
+}
+
+symbol_t *builtin_buffer_seek_substring_docstring =
+  "(buffer-seek-substring buffer substring direction)\n"
+  "\n"
+  "Move buffer point to the beginning of the given substring, if it exists.\n"
+  "If no matching substring is found, don't move point_byte.\n"
+  "When direction is negative, search backwards. Otherwise, search forwards.";
+int builtin_buffer_seek_substring(Atom arguments, Atom *result) {
+  BUILTIN_ENSURE_THREE_ARGUMENTS(arguments);
+  Atom buffer = car(arguments);
+  Atom substring = car(cdr(arguments));
+  Atom direction = car(cdr(cdr(arguments)));
+  if (!bufferp(buffer) || !stringp(substring) || !integerp(direction)) {
+    return ERROR_TYPE;
+  }
+  size_t bytes_moved = buffer_seek_until_substr
+    (buffer.value.buffer,
+     (char *)substring.value.symbol,
+     direction.value.integer);
+  *result = make_int(bytes_moved);
+  return ERROR_NONE;
+}
+
 symbol_t *builtin_evaluate_string_docstring =
   "(evaluate-string STRING)\n"
   "\n"

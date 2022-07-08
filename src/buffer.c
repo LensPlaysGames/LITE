@@ -233,6 +233,76 @@ Error buffer_remove_byte_forward(Buffer *buffer) {
   return buffer_remove_bytes_forward(buffer, 1);
 }
 
+size_t buffer_seek_until_byte
+(Buffer *const buffer,
+ char *control_string,
+ char direction
+ )
+{
+  if (!buffer || !buffer->rope
+      || !control_string
+      || control_string[0] == '\0')
+    {
+      return 0;
+    }
+  if (direction >= 0) {
+    for (size_t i = buffer->point_byte + 1; i >= buffer->point_byte && i < buffer->rope->weight; ++i) {
+      if (strchr(control_string, rope_index(buffer->rope, i))) {
+        size_t offset = i - buffer->point_byte;
+        buffer->point_byte = i;
+        return offset;
+      }
+    }
+  } else {
+    for (size_t i = buffer->point_byte - 1; i >= 0 && i <= buffer->point_byte; --i) {
+      if (strchr(control_string, rope_index(buffer->rope, i))) {
+        size_t offset = buffer->point_byte - i;
+        buffer->point_byte = i;
+        return offset;
+      }
+    }
+  }
+  return 0;
+}
+
+size_t buffer_seek_until_substr
+(Buffer *const buffer, char *substring, char direction) {
+  if (!buffer || !buffer->rope || !substring || substring[0] == '\0') {
+    return 0;
+  }
+  size_t substring_length = strnlen(substring, buffer->rope->weight + 1);
+  if (substring_length >= buffer->rope->weight) {
+    return 0;
+  }
+  char *allocated_string = buffer_string(*buffer);
+  char *string = allocated_string;
+  if (direction >= 0) {
+    for (size_t i = buffer->point_byte + 1; i >= buffer->point_byte && i < buffer->rope->weight; ++i) {
+      string = allocated_string + i;
+      size_t bytes_left = strnlen(string, substring_length + 1);
+      if (bytes_left <= substring_length) { return 0; }
+      if (memcmp(string, substring, substring_length) == 0) {
+        size_t offset = i - buffer->point_byte;
+        buffer->point_byte = i;
+        return offset;
+      }
+    }
+  } else {
+    for (size_t i = buffer->point_byte - 1; i >= 0 && i <= buffer->point_byte; --i) {
+      string = allocated_string + i;
+      size_t bytes_left = strnlen(string, substring_length + 1);
+      if (bytes_left <= substring_length) { return 0; }
+      if (memcmp(string, substring, substring_length) == 0) {
+        size_t offset = buffer->point_byte - i;
+        buffer->point_byte = i;
+        return offset;
+      }
+    }
+  }
+  free(allocated_string);
+  return 0;
+}
+
 char *buffer_string(Buffer buffer) {
   return rope_string(NULL, buffer.rope, NULL);
 }
