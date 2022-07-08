@@ -86,7 +86,7 @@ Error parse_list(const char *beg, const char **end, Atom *result) {
   for (;;) {
     const char *token;
     Atom item;
-    Error err = lex(*end, &token, end);
+    err = lex(*end, &token, end);
     if (err.type) { return err; }
     // End of list.
     if (token[0] == ')') {
@@ -138,9 +138,9 @@ Error parse_string(const char *beg, const char **end, Atom *result) {
                , "This is likely an internal error. Consider making an issue on GitHub.")
     return err;
   }
-  // Find end double quote.
   // Opening quote is eaten here.
   const char *p = beg + 1;
+  // Find end double quote.
   while (*p && *p != '"') {
     p++;
   }

@@ -7,7 +7,7 @@
 #include <types.h>
 
 
-Error ok = { ERROR_NONE, NULL, NULL, { ATOM_TYPE_NIL, 0, NULL, NULL} };
+Error ok = { ERROR_NONE, NULL, NULL, { ATOM_TYPE_NIL, { 0 }, NULL, NULL} };
 
 void print_error(Error e) {
   if (e.type == ERROR_NONE) {

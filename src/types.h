@@ -41,7 +41,7 @@ struct Pair {
   Atom atom[2];
 };
 
-static const Atom nil = { ATOM_TYPE_NIL, 0, NULL, NULL };
+static const Atom nil = { ATOM_TYPE_NIL, { 0 }, NULL, NULL };
 
 #define nilp(a)     ((a).type == ATOM_TYPE_NIL)
 #define pairp(a)    ((a).type == ATOM_TYPE_PAIR)

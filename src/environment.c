@@ -216,6 +216,8 @@ Atom default_environment() {
 
   env_set(environment, make_sym("EVALUATE-STRING")
           , make_builtin(builtin_evaluate_string, builtin_evaluate_string_docstring));
+  env_set(environment, make_sym("EVALUATE-FILE")
+          , make_builtin(builtin_evaluate_file, builtin_evaluate_file_docstring));
 
   env_set(environment, make_sym("WHILE-RECURSE-LIMIT"), make_int_with_docstring
           (10000
@@ -254,7 +256,7 @@ including data output at each iteration of the loop."));
   return environment;
 }
 
-static Atom global_environment = { ATOM_TYPE_NIL, 0, NULL, NULL };
+static Atom global_environment = { ATOM_TYPE_NIL, { 0 }, NULL, NULL };
 Atom genv() {
   if (nilp(global_environment)) {
     printf("Recreating global environment from defaults...\n");

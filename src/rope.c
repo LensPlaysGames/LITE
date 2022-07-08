@@ -149,7 +149,7 @@ size_t rope_sum(Rope *rope) {
   return sum;
 }
 
-// Re-calculates weight based on what the current values are.
+/// Re-calculates weight based on what the current values are.
 void rope_update_weights(Rope *rope) {
   if (!rope || rope->string) {
     return;
@@ -231,26 +231,27 @@ Rope *rope_insert(Rope *rope, size_t index, char *str) {
     }
 
     if (current_index <= 1) {
-      // INPUT: "This is a rope. | Appended."
-      //
-      //     <root> (27)-x
-      //    /
-      //   <node> (15)----------,
-      //  /                      \
-      // "This is a rope." (15)   " | Appended." (12)
-      //
-      // Attempting to prepend "| Prepended | ".
-      //
-      // OUTPUT: "| Prepended | This is a rope. | Appended."
-      //
-      //       <root> (41)-x
-      //      /
-      //     <node> (29)------------,
-      //    /                        \
-      //   <current_rope> (14)-,      " | Appended." (12)
-      //  /                     \
-      // "| Prepended | " (14)   "This is a rope." (15)
-      // new_contents            rope_copy(current_rope)
+      /* INPUT: "This is a rope. | Appended."
+       *
+       *     <root> (27)-x
+       *    /
+       *   <node> (15)----------,
+       *  /                      \
+       * "This is a rope." (15)   " | Appended." (12)
+       *
+       * Attempting to prepend "| Prepended | ".
+       *
+       * OUTPUT: "| Prepended | This is a rope. | Appended."
+       *
+       *       <root> (41)-x
+       *      /
+       *     <node> (29)------------,
+       *    /                        \
+       *   <current_rope> (14)-,      " | Appended." (12)
+       *  /                     \
+       * "| Prepended | " (14)   "This is a rope." (15)
+       * new_contents            rope_copy(current_rope)
+       */
 
       Rope *new_contents = malloc(sizeof(Rope));
       if (!new_contents) {
@@ -272,28 +273,29 @@ Rope *rope_insert(Rope *rope, size_t index, char *str) {
       return rope;
     }
 
-    // INPUT: "This is a rope. | Appended."
-    //
-    //     <root> (27)-x
-    //    /
-    //   <node> (15)---------,
-    //  /                     \
-    // "This is a rope." (15)  " | Appended." (12)
-    //
-    // Attempting to insert "| Inserted | " at index of eight.
-    //
-    // OUTPUT: "This is | Inserted | a rope. | Appended."
-    //
-    //         <root> (40)-x
-    //        /
-    //       <node> (28)---------,
-    //      /                     \
-    //     <current_rope> (21)-,   " | Appended." (12)
-    //    /                     \
-    //   <new_left> (8)-,        "a rope."
-    //  /                \       new_right (7)
-    // "This is "         "| Inserted | "
-    // new_left_left (8)  new_contents (13)
+    /* INPUT: "This is a rope. | Appended."
+     *
+     *     <root> (27)-x
+     *    /
+     *   <node> (15)---------,
+     *  /                                           \
+     * "This is a rope." (15)  " | Appended." (12)
+     *
+     * Attempting to insert "| Inserted | " at index of eight.
+     *
+     * OUTPUT: "This is | Inserted | a rope. | Appended."
+     *
+     *         <root> (40)-x
+     *        /
+     *       <node> (28)---------,
+     *      /                                           \
+     *     <current_rope> (21)-,   " | Appended." (12)
+     *    /                                     \
+     *   <new_left> (8)-,        "a rope."
+     *  /                \       new_right (7)
+     * "This is "         "| Inserted | "
+     * new_left_left (8)  new_contents (13)
+     */
 
     Rope *new_left_left = malloc(sizeof(Rope));
     if (!new_left_left) {
@@ -452,23 +454,24 @@ Rope *rope_insert_byte(Rope *rope, size_t index, char c) {
     return rope;
   }
 
-  // INPUT: "This is a rope. | Appended."
-  //
-  //     <root> (27)-x
-  //    /
-  //   <node> (15)---------,
-  //  /                     \
-  // "This is a rope." (15)  " | Appended." (12)
-  //
-  // Attempting to insert '|' at index of 23.
-  //
-  // OUTPUT: "This is a rope. | Append|ed."
-  //
-  //         <root> (28)-x
-  //        /
-  //       <node> (15)-----------,
-  //      /                       \
-  //     "This is a rope." (15)    " | Append|ed." (13)
+  /* INPUT: "This is a rope. | Appended."
+   *
+   *     <root> (27)-x
+   *    /
+   *   <node> (15)---------,
+   *  /                                   \
+   * "This is a rope." (15)  " | Appended." (12)
+   *
+   * Attempting to insert '|' at index of 23.
+   *
+   * OUTPUT: "This is a rope. | Append|ed."
+   *
+   *         <root> (28)-x
+   *        /
+   *       <node> (15)-----------,
+   *      /                   \
+   *     "This is a rope." (15)    " | Append|ed." (13)
+   */
 
   char *newstr = malloc(current_rope->weight + 2);
   if (!newstr) { return NULL; }

@@ -317,7 +317,6 @@ Error evaluate_expression(Atom expr, Atom environment, Atom *result) {
           }
           // Get docstring, if present.
           Atom doc = nil;
-          symbol_t *docstring = NULL;
           if (!nilp(cdr(cdr(arguments)))) {
             // No more than three arguments.
             if (!nilp(cdr(cdr(cdr(arguments))))) {

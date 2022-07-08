@@ -9,10 +9,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-static Atom symbol_table = { ATOM_TYPE_NIL, 0, NULL, NULL };
+static Atom symbol_table = { ATOM_TYPE_NIL, { 0 }, NULL, NULL };
 Atom *sym_table() { return &symbol_table; }
 
-static Atom buffer_table = { ATOM_TYPE_NIL, 0, NULL, NULL };
+static Atom buffer_table = { ATOM_TYPE_NIL, { 0 }, NULL, NULL };
 Atom *buf_table() { return &buffer_table; }
 
 //================================================================ BEG garbage_collection
@@ -539,7 +539,6 @@ int format_bufsz(const char *format, ...) {
 char *atom_string(Atom atom, char *buffer) {
   char *left;
   char *right;
-  size_t leftlen;
   size_t rightlen;
   size_t length = buffer ? strlen(buffer) : 0;
   size_t to_add = 0;
@@ -585,7 +584,6 @@ char *atom_string(Atom atom, char *buffer) {
     right[0] = '\0';
     rightlen = 0;
     left = atom_string(car(atom), NULL);
-    leftlen = left == NULL ? 0 : strlen(left);
     atom = cdr(atom);
     while (!nilp(atom)) {
       if (pairp(atom)) {
