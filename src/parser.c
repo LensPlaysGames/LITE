@@ -6,13 +6,21 @@
 #include <stdlib.h>
 #include <string.h>
 
+// Whitespace characters that may safely be skipped by the lexer.
+const char *lite_ws = " \t\r\n\e\f\v";
+// Delimiting characters separate different atoms.
+// NOTE: lite_delimiters is suffixed with lite_ws.
+const char *lite_delimiters = "()\" \t\r\n\e\f\v";
+// Characters that may come before an atom but not after.
+const char *lite_prefixes = "()\'`";
+
+# define seek_past(str, chars)  (str += strspn((str),  (chars)))
+# define seek_until(str, chars) (str += strcspn((str), (chars)))
+
 /// Given a SOURCE, get the next token, and point to it with BEG and END.
 Error lex(const char *source, const char **beg, const char **end) {
-  const char *ws = " \t\n";
-  const char *delimiter = "()\" \t\n";
-  const char *prefix = "()\'`";
   // Eat all preceding whitespace.
-  source += strspn(source, ws);
+  seek_past(source, lite_ws);
   if (source[0] == '\0') {
     *beg = NULL;
     *end = NULL;
@@ -22,25 +30,28 @@ Error lex(const char *source, const char **beg, const char **end) {
   while (source[0] == ';') {
     // Eat line following comment delimiter.
     source = strchr(source, '\n');
-    // Nothing in source left except comment(s).
     if (source == NULL) {
+      // Nothing in source left except comment(s).
       *beg = NULL;
       *end = NULL;
       return ok;
     }
     // Eat preceding whitespace before delimiter check.
-    source += strspn(source, ws);
+    seek_past(source, lite_ws);
   }
   *beg = source;
-  if (strchr(prefix, source[0]) != NULL) {
+  if (strchr(lite_prefixes, source[0]) != NULL) {
     *end = source + 1;
   } else if (source[0] == ',') {
     *end = source + (source[1] == '@' ? 2 : 1);
   } else {
-    *end = source + strcspn(source, delimiter);
+    *end = source;
+    seek_until(*end, lite_delimiters);
   }
   return ok;
 }
+# undef seek_past
+# undef seek_until
 
 Error parse_simple(const char *beg, const char *end, Atom *result) {
   char *buffer;
@@ -69,6 +80,12 @@ Error parse_simple(const char *beg, const char *end, Atom *result) {
     ++beg;
   }
   *p = '\0';
+  if (strlen(buffer) == 0 || buffer[0] == ' ' || buffer[0] == '\n' || buffer[0] == '\r') {
+    MAKE_ERROR(err, ERROR_SYNTAX, nil
+               , "Zero-length symbol is not allowed."
+               , NULL);
+    return err;
+  }
   if (strcmp(buffer, "NIL") == 0) {
     *result = nil;
   } else {
