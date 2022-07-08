@@ -615,15 +615,21 @@ int do_gui(GUIContext *ctx) {
 }
 
 void destroy_gui() {
-  if (grender) {
-    SDL_DestroyRenderer(grender);
+  if (created_gui_marker) {
+    if (grender) {
+      SDL_DestroyRenderer(grender);
+      grender = NULL;
+    }
+    if (gwindow) {
+      SDL_DestroyWindow(gwindow);
+      gwindow = NULL;
+    }
+    if (font) {
+      TTF_CloseFont(font);
+      font = NULL;
+    }
+    TTF_Quit();
+    SDL_Quit();
+    created_gui_marker = 0;
   }
-  if (gwindow) {
-    SDL_DestroyWindow(gwindow);
-  }
-  if (font) {
-    TTF_CloseFont(font);
-  }
-  TTF_Quit();
-  SDL_Quit();
 }

@@ -1,4 +1,5 @@
 #include <builtins.h>
+
 #include <buffer.h>
 #include <error.h>
 #include <environment.h>
@@ -11,6 +12,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <types.h>
+#include <utility.h>
 
 #ifdef LITE_GFX
 #  include <api.h>
@@ -773,14 +775,14 @@ int builtin_read_prompted(Atom arguments, Atom *result) {
     open = gui_loop();
   }
   if (!open) {
-    // TODO: Close program.
-    return ERROR_TODO;
+    exit_lite(0);
   }
 
   // Remove prompt.
   popup_buffer.value.buffer->point_byte = 0;
   buffer_remove_bytes_forward(popup_buffer.value.buffer, prompt_length);
 
+  // Convert popup buffer contents into a string.
   char *string = buffer_string(*popup_buffer.value.buffer);
   *result = make_string(string);
   free(string);

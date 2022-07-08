@@ -40,6 +40,7 @@ add_executable(
   src/rope.c
   src/parser.c
   src/types.c
+  src/utility.c
 )
 target_compile_definitions(
   LITE

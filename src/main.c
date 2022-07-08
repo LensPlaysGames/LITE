@@ -1,19 +1,19 @@
-#include <ctype.h>
-#include <stdbool.h>
-#include <stdio.h>
-#include <stdint.h>
-#include <stdlib.h>
-#include <string.h>
-
 #include <buffer.h>
+#include <ctype.h>
 #include <environment.h>
 #include <evaluation.h>
 #include <error.h>
 #include <file_io.h>
+#include <stdbool.h>
+#include <stdio.h>
 #include <parser.h>
 #include <repl.h>
 #include <rope.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
 #include <types.h>
+#include <utility.h>
 
 // TODO: Find a place for this stuff.
 
@@ -570,13 +570,7 @@ int main(int argc, char **argv) {
   enter_repl(genv());
 #endif
 
-  int debug_memory = env_non_nil(genv(), make_sym("DEBUG/MEMORY"));
-  // Garbage collection with no marking means free everything.
-  gcol();
-  free_buffer_table();
-  if (debug_memory) {
-    print_gcol_data();
-  }
+  exit_lite(status);
 
   return status;
 }
