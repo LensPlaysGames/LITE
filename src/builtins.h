@@ -101,6 +101,8 @@ int builtin_buffer_current_line(Atom arguments, Atom *result);
 
 extern symbol_t         *builtin_evaluate_string_docstring;
 int builtin_evaluate_string(Atom arguments, Atom *result);
+extern symbol_t         *builtin_evaluate_file_docstring;
+int builtin_evaluate_file(Atom arguments, Atom *result);
 extern symbol_t         *builtin_save_docstring;
 int builtin_save        (Atom arguments, Atom *result);
 extern symbol_t         *builtin_apply_docstring;

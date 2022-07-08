@@ -3,6 +3,7 @@
 #include <error.h>
 #include <parser.h>
 #include <evaluation.h>
+#include <environment.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -21,20 +22,26 @@ size_t file_size(FILE *file) {
 /// Returns a heap-allocated buffer containing the
 /// contents of the file found at the given path.
 char *file_contents(const char* path) {
+  const char* error_prefix = "file_contents(): ";
+  if (!path) {
+    printf("%sPath must not be NULL.\n", error_prefix);
+    return NULL;
+  }
   char *buffer = NULL;
   FILE *file = fopen(path, "rb");
   if (!file) {
-    printf("Couldn't open file at %s\n", path);
+    printf("%sCouldn't open file at %s\n", error_prefix, path);
     return NULL;
   }
   size_t size = file_size(file);
   if (size == 0) {
-    printf("File has zero size at %s\n", path);
+    printf("%sFile has zero size at %s\n", error_prefix, path);
     return NULL;
   }
   buffer = malloc(size + 1);
   if (!buffer) {
-    printf("Could not allocate buffer for file at %s\n", path);
+    printf("%sCould not allocate buffer for file at %s\n",
+           error_prefix, path);
     return NULL;
   }
   fread(buffer, 1, size, file);
@@ -44,26 +51,28 @@ char *file_contents(const char* path) {
 }
 
 const SimpleFile get_file(char* path) {
+  const char* error_prefix = "get_file(): ";
   SimpleFile smpl;
   smpl.path = NULL;
   smpl.contents = NULL;
   smpl.flags = SMPL_FILE_FLAG_INVALID;
   smpl.size = 0;
   if (!path) {
+    printf("%sPath must not be NULL\n", error_prefix);
     return smpl;
   }
   smpl.path = strdup(path);
 
   FILE *file = fopen(path, "rb");
   if (!file) {
-    printf("get_file(): Couldn't open file at %s\n", path);
+    printf("%sCouldn't open file at %s\n", error_prefix, path);
     return smpl;
   }
 
   size_t size = file_size(file);
   if (size == 0) {
     fclose(file);
-    printf("get_file(): File has zero size at %s\n", path);
+    printf("%sFile has zero size at %s\n", error_prefix, path);
     return smpl;
   }
   smpl.size = size;
@@ -72,14 +81,15 @@ const SimpleFile get_file(char* path) {
   buffer = malloc(size);
   if (!buffer) {
     fclose(file);
-    printf("get_file(): Could not allocate buffer for file at %s\n", path);
+    printf("%sCould not allocate buffer for file at %s\n",
+           error_prefix, path);
     return smpl;
   }
   memset(buffer, 0, size);
 
   if (fread(buffer, 1, size, file) != size) {
-    printf("SimpleFile: Could not read %zu bytes from file at \"%s\"\n"
-           , size, path);
+    printf("%sCould not read %zu bytes from file at \"%s\"\n",
+           error_prefix, size, path);
     fclose(file);
     return smpl;
   }
@@ -104,23 +114,52 @@ void free_file(SimpleFile file) {
   }
 }
 
-Error load_file(Atom environment, const char* path) {
-  char *input = file_contents(path);
+Error evaluate_file(Atom environment, const char* path, Atom *result) {
   Error err;
+  if (!path) {
+    PREP_ERROR(err, ERROR_ARGUMENTS, nil
+               , "Path must not be NULL."
+               , NULL);
+    return err;
+  }
+  char *input = file_contents(path);
   if (!input) {
     PREP_ERROR(err, ERROR_ARGUMENTS, nil
                , "Could not get contents of file."
-               , path)
+               , path);
     return err;
   }
+
+  Atom debug_eval_file = nil;
+  env_get(genv(), make_sym("DEBUG/EVALUATE-FILE"), &debug_eval_file);
+
+  if (!nilp(debug_eval_file)) {
+    printf("Evaluating file at \"%s\"\n", path);
+    //printf("Contents:\n"
+    //       "-----\n"
+    //       "\"%s\"\n"
+    //       "-----\n",
+    //       input);
+  }
+
   const char* source = input;
   Atom expr;
+  Atom dummy_result = nil;
+  if (!result) {
+    result = &dummy_result;
+  }
   while (parse_expr(source, &source, &expr).type == ERROR_NONE) {
-    Atom result;
-    err = evaluate_expression(expr, environment, &result);
+    if (!nilp(debug_eval_file)) {
+      printf("Parsed expression: ");
+      print_atom(expr);
+      putchar('\n');
+    }
+    err = evaluate_expression(expr, environment, result);
     if (err.type) { return err; }
-    print_atom(result);
-    putchar('\n');
+    if (!nilp(debug_eval_file)) {
+      print_atom(*result);
+      putchar('\n');
+    }
   }
   free(input);
   return ok;

@@ -29,6 +29,6 @@ size_t file_size(FILE *file);
 /// contents of the file found at the given path.
 char *file_contents(const char* path);
 
-Error load_file(Atom environment, const char* path);
+Error evaluate_file(Atom environment, const char* path, Atom *result);
 
 #endif /* LITE_FILE_IO_H */

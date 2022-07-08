@@ -1,14 +1,9 @@
 #include <builtins.h>
-
-#ifdef LITE_GFX
-#  include <api.h>
-#  include <gui.h>
-#endif /* #ifdef LITE_GFX */
-
 #include <buffer.h>
 #include <error.h>
 #include <environment.h>
 #include <evaluation.h>
+#include <file_io.h>
 #include <parser.h>
 #include <repl.h>
 #include <rope.h>
@@ -16,6 +11,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <types.h>
+
+#ifdef LITE_GFX
+#  include <api.h>
+#  include <gui.h>
+#endif
 
 #define BUILTIN_ENSURE_NO_ARGUMENTS(builtin_args) do {  \
     if (!nilp(builtin_args)) {                          \
@@ -580,6 +580,22 @@ int builtin_evaluate_string(Atom arguments, Atom *result) {
   err = evaluate_expression(expr, genv(), result);
   if (err.type) {
     printf("EVALUATE-STRING EVALUATION ");
+    print_error(err);
+    return err.type;
+  }
+  return ERROR_NONE;
+}
+
+symbol_t *builtin_evaluate_file_docstring =
+  "(evaluate-file FILEPATH)\n"
+  "\n"
+  "Evaluate file at FILEPATH as LITE LISP source code.";
+int builtin_evaluate_file(Atom arguments, Atom *result) {
+  BUILTIN_ENSURE_ONE_ARGUMENT(arguments);
+  Atom filepath = car(arguments);
+  if (!stringp(filepath)) { return ERROR_TYPE; }
+  Error err = evaluate_file(genv(), filepath.value.symbol, result);
+  if (err.type) {
     print_error(err);
     return err.type;
   }

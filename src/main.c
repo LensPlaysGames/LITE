@@ -543,7 +543,8 @@ int main(int argc, char **argv) {
   // Treat every given argument as a file to load, for now.
   if (argc > 1) {
     for (size_t i = 1; i < argc; ++i) {
-      load_file(genv(), argv[i]);
+      Atom result = nil;
+      evaluate_file(genv(), argv[i], &result);
     }
   }
 
