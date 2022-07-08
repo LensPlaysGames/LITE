@@ -218,6 +218,9 @@ Atom default_environment() {
   env_set(environment, make_sym("FINISH-READ")
           , make_builtin(builtin_finish_read, builtin_finish_read_docstring));
 
+  env_set(environment, make_sym("STRING-LENGTH")
+          , make_builtin(builtin_string_length, builtin_string_length_docstring));
+
   env_set(environment, make_sym("EVALUATE-STRING")
           , make_builtin(builtin_evaluate_string, builtin_evaluate_string_docstring));
   env_set(environment, make_sym("EVALUATE-FILE")

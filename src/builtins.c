@@ -606,6 +606,19 @@ int builtin_buffer_seek_substring(Atom arguments, Atom *result) {
   return ERROR_NONE;
 }
 
+symbol_t *builtin_string_length_docstring =
+  "(string-length string)\n"
+  "\n"
+  "Return the length of STRING.";
+int builtin_string_length(Atom arguments, Atom *result) {
+  BUILTIN_ENSURE_ONE_ARGUMENT(arguments);
+  Atom string = car(arguments);
+  if (!stringp(string)) { return ERROR_TYPE; }
+  size_t length = strlen(string.value.symbol);
+  *result = make_int(length);
+  return ERROR_NONE;
+}
+
 symbol_t *builtin_evaluate_string_docstring =
   "(evaluate-string STRING)\n"
   "\n"

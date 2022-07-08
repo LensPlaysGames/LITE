@@ -36,7 +36,7 @@ char rope_index(Rope *rope, size_t index) {
   if (!current_rope) {
     return 0;
   }
-  return current_rope->string[current_index];
+  return current_rope->string[current_index - 1];
 }
 
 Rope *rope_from_buffer(uint8_t *bytes, size_t length) {

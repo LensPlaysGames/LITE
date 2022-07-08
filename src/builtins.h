@@ -104,6 +104,8 @@ int builtin_buffer_seek_substring(Atom arguments, Atom *result);
 
 // OTHER
 
+extern symbol_t         *builtin_string_length_docstring;
+int builtin_string_length(Atom arguments, Atom *result);
 extern symbol_t         *builtin_evaluate_string_docstring;
 int builtin_evaluate_string(Atom arguments, Atom *result);
 extern symbol_t         *builtin_evaluate_file_docstring;
