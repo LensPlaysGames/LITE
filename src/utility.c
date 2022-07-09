@@ -13,7 +13,7 @@ void exit_lite(int code) {
 # ifdef LITE_GFX
   destroy_gui();
 # endif
-  int debug_memory = env_non_nil(genv(), make_sym("DEBUG/MEMORY"));
+  int debug_memory = env_non_nil(*genv(), make_sym("DEBUG/MEMORY"));
   // Garbage collection with no marking means free everything.
   gcol();
   if (debug_memory) {

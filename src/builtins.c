@@ -636,7 +636,7 @@ int builtin_evaluate_string(Atom arguments, Atom *result) {
     print_error(err);
     return err.type;
   }
-  err = evaluate_expression(expr, genv(), result);
+  err = evaluate_expression(expr, *genv(), result);
   if (err.type) {
     printf("EVALUATE-STRING EVALUATION ");
     print_error(err);
@@ -653,7 +653,7 @@ int builtin_evaluate_file(Atom arguments, Atom *result) {
   BUILTIN_ENSURE_ONE_ARGUMENT(arguments);
   Atom filepath = car(arguments);
   if (!stringp(filepath)) { return ERROR_TYPE; }
-  Error err = evaluate_file(genv(), filepath.value.symbol, result);
+  Error err = evaluate_file(*genv(), filepath.value.symbol, result);
   if (err.type) {
     print_error(err);
     return err.type;
@@ -808,12 +808,12 @@ int builtin_read_prompted(Atom arguments, Atom *result) {
 
   // Bind return to 'finish-read'.
   Atom keymap = nil;
-  env_get(genv(), make_sym("KEYMAP"), &keymap);
+  env_get(*genv(), make_sym("KEYMAP"), &keymap);
   // TODO+FIXME: We really need to switch to string-based input...
   char *return_character = "\r";
   Atom original_return_binding = alist_get(keymap, make_string(return_character));
   alist_set(&keymap, make_string(return_character), cons(make_sym("FINISH-READ"), nil));
-  env_set(genv(), make_sym("KEYMAP"), keymap);
+  env_set(*genv(), make_sym("KEYMAP"), keymap);
 
   Atom popup_buffer = make_buffer(env_create(nil), ".popup");
   if (!bufferp(popup_buffer) || !popup_buffer.value.buffer) {
@@ -849,9 +849,9 @@ int builtin_read_prompted(Atom arguments, Atom *result) {
   free(string);
 
   // Restore keymap.
-  env_get(genv(), make_sym("KEYMAP"), &keymap);
+  env_get(*genv(), make_sym("KEYMAP"), &keymap);
   alist_set(&keymap, make_string(return_character), original_return_binding);
-  env_set(genv(), make_sym("KEYMAP"), keymap);
+  env_set(*genv(), make_sym("KEYMAP"), keymap);
 
 #else
 

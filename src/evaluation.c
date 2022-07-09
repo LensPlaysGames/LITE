@@ -250,29 +250,78 @@ Error evaluate_return_value(Atom *stack, Atom *expr, Atom *environment, Atom *re
 Error evaluate_expression(Atom expr, Atom environment, Atom *result) {
   MAKE_ERROR(err, ERROR_NONE, nil, NULL, NULL);
   Atom stack = nil;
-  const static size_t gcol_count_default = 100000;
-  static size_t gcol_count = gcol_count_default;
+  // These numbers are tailored to free around twenty mebibytes at a time,
+  // and to have both of the reasons for garbage collection actually used.
+  const static size_t gcol_pair_allocations_threshold_default = 290500;
+  const static size_t gcol_evaluation_iteration_threshold_default = 100000;
+  static size_t evaluation_iterations_until_gcol = gcol_evaluation_iteration_threshold_default;
   do {
-    if (!--gcol_count) {
-      size_t threshold;
-      Atom threshold_atom = nil;
-      err = env_get(environment, make_sym("GARBAGE-COLLECTOR-ITERATIONS-THRESHOLD"), &threshold_atom);
-      if (err.type) { print_error(err); }
-      if (nilp(threshold_atom) || !integerp(threshold_atom)) {
-        threshold = gcol_count_default;
-      } else {
-        threshold = threshold_atom.value.integer;
+    char should_gcol = 0;
+    if (!--evaluation_iterations_until_gcol) { should_gcol = 1; }
+    // Check pair allocations count every 100 evaluation iterations.
+    if (!should_gcol && evaluation_iterations_until_gcol % 100 == 0) {
+      Atom pair_allocations_threshold = nil;
+      err = env_get(environment, make_sym("GARBAGE-COLLECTOR-PAIR-ALLOCATIONS-THRESHOLD"),
+                    &pair_allocations_threshold);
+      if (err.type) { err = ok; }
+      if (!integerp(pair_allocations_threshold) || pair_allocations_threshold.value.integer <= 0) {
+        pair_allocations_threshold = make_int(gcol_pair_allocations_threshold_default);
       }
-      gcol_count = threshold;
+      if (pair_allocations_count - pair_allocations_freed >= pair_allocations_threshold.value.integer) {
+        should_gcol = 1;
+      }
+    }
+    if (should_gcol) {
+      size_t pair_allocations_freed_before = pair_allocations_freed;
+      size_t generic_allocations_freed_before = generic_allocations_freed;
+      Atom debug_memory = nil;
+      env_get(environment, make_sym("DEBUG/MEMORY"), &debug_memory);
+      if (!nilp(debug_memory)) {
+        printf("=====\nCollecting Garbage: ");
+        if (evaluation_iterations_until_gcol) {
+          printf("pair allocations threshold reached\n");
+        } else {
+          printf("evaluation iterations threshold reached\n");
+        }
+        print_gcol_data();
+        printf("VVVVV\n");
+      }
+      size_t iterations_threshold = gcol_evaluation_iteration_threshold_default;
+      Atom threshold_atom = nil;
+      err = env_get(environment, make_sym("GARBAGE-COLLECTOR-EVALUATION-ITERATIONS-THRESHOLD"), &threshold_atom);
+      if (err.type) { print_error(err); err = ok; }
+      else if (integerp(threshold_atom) && threshold_atom.value.integer > 0) {
+        iterations_threshold = (size_t)threshold_atom.value.integer;
+      }
+      evaluation_iterations_until_gcol = iterations_threshold;
       gcol_mark(&expr);
+      gcol_mark(genv());
       gcol_mark(&environment);
       gcol_mark(&stack);
       gcol_mark(sym_table());
       gcol_mark(buf_table());
       gcol();
-      if (env_non_nil(environment, make_sym("DEBUG/MEMORY"))) {
+      if (!nilp(debug_memory)) {
+        size_t pair_allocations_freed_this_iteration =
+          pair_allocations_freed - pair_allocations_freed_before;
+        size_t generic_allocations_freed_this_iteration =
+          generic_allocations_freed - generic_allocations_freed_before;
+        size_t pair_allocations_bytes_freed =
+          pair_allocations_freed_this_iteration * sizeof(ConsAllocation);
+        size_t generic_allocations_bytes_freed =
+          generic_allocations_freed_this_iteration * sizeof(GenericAllocation);
         printf("Garbage Collected\n");
         print_gcol_data();
+        printf("This iteration:\n"
+               "|-- %zu pairs freed (%zu bytes)\n"
+               "|-- %zu generics freed (%zu bytes)\n"
+               "`-- %zu bytes freed\n",
+               pair_allocations_freed_this_iteration,
+               pair_allocations_bytes_freed,
+               generic_allocations_freed_this_iteration,
+               generic_allocations_bytes_freed,
+               pair_allocations_bytes_freed + generic_allocations_bytes_freed);
+        printf("=====\n");
       }
     }
     if (expr.type == ATOM_TYPE_SYMBOL) {

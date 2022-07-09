@@ -233,9 +233,17 @@ Atom default_environment() {
            "Used to prevent infinite loops."));
 
   // FIXME: It's always best to keep docstrings out of here and where they belong.
-  env_set(environment, make_sym("GARBAGE-COLLECTOR-ITERATIONS-THRESHOLD"), make_int_with_docstring
+  env_set(environment, make_sym("GARBAGE-COLLECTOR-EVALUATION-ITERATIONS-THRESHOLD"),
+          make_int_with_docstring
           (100000, "This number corresponds to the amount of evaluation operations before \
-running the garbage collector.\nSmaller numbers mean memory is freed more often."));
+running the garbage collector.\nSmaller numbers mean memory is freed more often. \
+The default value of '100000' means memory is freed in around twenty megabyte chunks."));
+
+  env_set(environment, make_sym("GARBAGE-COLLECTOR-PAIR-ALLOCATIONS-THRESHOLD"),
+          make_int_with_docstring
+          (290500, "This number corresponds to the amount of pairs able to be allocated \
+before running the garbage collector.\nSmaller numbers mean memory is freed more often, \
+but too small causes problems."));
 
   env_set(environment, make_sym("DEBUG/ENVIRONMENT"), nil_with_docstring
           ("When non-nil, display debug information concerning the current \
@@ -264,10 +272,10 @@ including data output at each iteration of the loop."));
 }
 
 static Atom global_environment = { ATOM_TYPE_NIL, { 0 }, NULL, NULL };
-Atom genv() {
+Atom *genv() {
   if (nilp(global_environment)) {
     printf("Recreating global environment from defaults...\n");
     global_environment = default_environment();
   }
-  return global_environment;
+  return &global_environment;
 }

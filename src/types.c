@@ -145,14 +145,30 @@ void gcol() {
 }
 
 void print_gcol_data() {
-  printf("Cons Allocations Count:    %zu\n"
-         "Cons Allocations Freed:    %zu\n"
-         "Generic Allocations Count: %zu\n"
-         "Generic Allocations Freed: %zu\n"
+  int pair_allocations_in_use =
+    pair_allocations_count - pair_allocations_freed;
+  if (pair_allocations_in_use < 0) {
+    printf("ERROR: More pair allocations freed than allocated.\n");
+  }
+  int generic_allocations_in_use =
+    generic_allocations_count - generic_allocations_freed;
+  if (generic_allocations_in_use < 0) {
+    printf("ERROR: More generic allocations freed than allocated.\n");
+  }
+  printf("Pair Allocations Total:     %zu\n"
+         "Pair Allocations Freed:     %zu\n"
+         "Pair Allocations In Use:    %i (%zu bytes)\n"
+         "Generic Allocations Total:  %zu\n"
+         "Generic Allocations Freed:  %zu\n"
+         "Generic Allocations In Use: %i (%zu bytes)\n"
          , pair_allocations_count
          , pair_allocations_freed
+         , pair_allocations_in_use
+         , pair_allocations_in_use * sizeof(ConsAllocation)
          , generic_allocations_count
          , generic_allocations_freed
+         , generic_allocations_in_use
+         , generic_allocations_in_use * sizeof(GenericAllocation)
          );
 }
 

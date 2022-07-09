@@ -19,6 +19,6 @@ int env_non_nil(Atom environment, Atom symbol);
 Atom default_environment();
 
 /// Return the global environment, creating it if it doesn't exist.
-Atom genv();
+Atom *genv();
 
 #endif /* LITE_ENVIRONMENT_H */

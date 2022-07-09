@@ -235,7 +235,7 @@ int handle_character_dn_modifiers(Atom current_keymap, size_t *keybind_recurse_c
       current_keymap = rshift_bind;
     }
   }
-  env_set(genv(), make_sym("CURRENT-KEYMAP"), current_keymap);
+  env_set(*genv(), make_sym("CURRENT-KEYMAP"), current_keymap);
   return 1;
 }
 
@@ -244,7 +244,7 @@ void handle_character_dn(uint64_t c) {
   if (strchr(ignored_bytes, (unsigned char)c)) {
     return;
   }
-  int debug_keybinding = env_non_nil(genv(), make_sym("DEBUG/KEYBINDING"));
+  int debug_keybinding = env_non_nil(*genv(), make_sym("DEBUG/KEYBINDING"));
   if (debug_keybinding) {
     if (c > 255) {
       printf("Keydown: %llu\n", c);
@@ -256,9 +256,9 @@ void handle_character_dn(uint64_t c) {
   size_t keybind_recurse_count = 0;
   // Get current keymap from LISP environment.
   Atom current_keymap = nil;
-  env_get(genv(), make_sym("CURRENT-KEYMAP"), &current_keymap);
+  env_get(*genv(), make_sym("CURRENT-KEYMAP"), &current_keymap);
   if (nilp(current_keymap)) {
-    env_get(genv(), make_sym("KEYMAP"), &current_keymap);
+    env_get(*genv(), make_sym("KEYMAP"), &current_keymap);
   }
   if (debug_keybinding) {
     printf("Current keymap: ");
@@ -266,7 +266,7 @@ void handle_character_dn(uint64_t c) {
     putchar('\n');
   }
   Atom current_buffer = nil;
-  env_get(genv(), make_sym("CURRENT-BUFFER"), &current_buffer);
+  env_get(*genv(), make_sym("CURRENT-BUFFER"), &current_buffer);
   if (!bufferp(current_buffer)) {
     return;
   }
@@ -274,7 +274,7 @@ void handle_character_dn(uint64_t c) {
     return;
   }
   while (c && keybind_recurse_count < keybind_recurse_limit) {
-    env_get(genv(), make_sym("CURRENT-KEYMAP"), &current_keymap);
+    env_get(*genv(), make_sym("CURRENT-KEYMAP"), &current_keymap);
     if (debug_keybinding) {
       printf("Current keymap: ");
       pretty_print_atom(current_keymap);
@@ -299,12 +299,12 @@ void handle_character_dn(uint64_t c) {
       if (debug_keybinding) {
         printf("Nested keymap found, updating CURRENT-KEYMAP\n");
       }
-      env_set(genv(), make_sym("CURRENT-KEYMAP"), keybind);
+      env_set(*genv(), make_sym("CURRENT-KEYMAP"), keybind);
       c = 0;
       continue;
     } else {
       Atom root_keymap = nil;
-      env_get(genv(), make_sym("KEYMAP"), &root_keymap);
+      env_get(*genv(), make_sym("KEYMAP"), &root_keymap);
       if (nilp(keybind)) {
         if (pairp(current_keymap) && pairp(root_keymap)
             && current_keymap.value.pair == root_keymap.value.pair)
@@ -325,7 +325,7 @@ void handle_character_dn(uint64_t c) {
             c = 0;
             continue;
           }
-        env_set(genv(), make_sym("CURRENT-KEYMAP"), root_keymap);
+        env_set(*genv(), make_sym("CURRENT-KEYMAP"), root_keymap);
         keybind_recurse_count += 1;
         if (debug_keybinding) {
           printf("keybind_recurse_count: %zu\n", keybind_recurse_count);
@@ -365,12 +365,12 @@ void handle_character_dn(uint64_t c) {
         putchar('\n');
       }
       Atom result = nil;
-      Error err = evaluate_expression(keybind, genv(), &result);
+      Error err = evaluate_expression(keybind, *genv(), &result);
       if (err.type) {
         printf("KEYBIND ");
         print_error(err);
         update_gui_string(&gctx->footline, error_string(err));
-        env_set(genv(), make_sym("CURRENT-KEYMAP"), root_keymap);
+        env_set(*genv(), make_sym("CURRENT-KEYMAP"), root_keymap);
         return;
       }
       if (debug_keybinding) {
@@ -381,8 +381,8 @@ void handle_character_dn(uint64_t c) {
       update_gui_string(&gctx->footline, atom_string(result, NULL));
     }
     // Reset current keymap
-    env_get(genv(), make_sym("KEYMAP"), &current_keymap);
-    env_set(genv(), make_sym("CURRENT-KEYMAP"), current_keymap);
+    env_get(*genv(), make_sym("KEYMAP"), &current_keymap);
+    env_set(*genv(), make_sym("CURRENT-KEYMAP"), current_keymap);
     if (debug_keybinding) {
       printf("Keymap reset: ");
       print_atom(current_keymap);
@@ -497,7 +497,7 @@ static GUIColor cursor_bg = { UINT8_MAX,UINT8_MAX,
 int gui_loop() {
   char *new_contents = NULL;
   Atom current_buffer = nil;
-  env_get(genv(), make_sym("CURRENT-BUFFER"), &current_buffer);
+  env_get(*genv(), make_sym("CURRENT-BUFFER"), &current_buffer);
   if (bufferp(current_buffer)) {
     new_contents = buffer_string(*current_buffer.value.buffer);
   }
@@ -514,7 +514,7 @@ int gui_loop() {
   if (!open) { return open; }
 
   Atom sleep_ms = nil;
-  env_get(genv(), make_sym("REDISPLAY-IDLE-MS"), &sleep_ms);
+  env_get(*genv(), make_sym("REDISPLAY-IDLE-MS"), &sleep_ms);
   if (integerp(sleep_ms)) {
     SLEEP(sleep_ms.value.integer);
   } else {
@@ -548,7 +548,7 @@ int main(int argc, char **argv) {
     Atom result = nil;
     Error err = ok;
     for (size_t i = 1; i < argc; ++i) {
-      err = evaluate_file(genv(), argv[i], &result);
+      err = evaluate_file(*genv(), argv[i], &result);
       if (err.type) {
         printf("%s: ", argv[i]);
         print_error(err);
@@ -562,21 +562,21 @@ int main(int argc, char **argv) {
   if (nilp(initial_buffer)) {
     return 1;
   }
-  env_set(genv(), make_sym("CURRENT-BUFFER"), initial_buffer);
+  env_set(*genv(), make_sym("CURRENT-BUFFER"), initial_buffer);
 
   Atom popup_buffer = make_buffer
     (env_create(nil), allocate_string(".popup"));
   if (nilp(popup_buffer)) {
     return 1;
   }
-  env_set(genv(), make_sym("POPUP-BUFFER"), popup_buffer);
+  env_set(*genv(), make_sym("POPUP-BUFFER"), popup_buffer);
 
   int status = 0;
 
 #ifdef LITE_GFX
   status = enter_lite_gui();
 #else
-  enter_repl(genv());
+  enter_repl(*genv());
 #endif
 
   exit_lite(status);
