@@ -145,7 +145,6 @@ of the `.` improper list operator."
 }
 
 Error parse_string(const char *beg, const char **end, Atom *result) {
-  Atom string = nil;
   *result = nil;
   *end = beg;
   Error err = ok;
@@ -158,9 +157,7 @@ Error parse_string(const char *beg, const char **end, Atom *result) {
   // Opening quote is eaten here.
   const char *p = beg + 1;
   // Find end double quote.
-  while (*p && *p != '"') {
-    p++;
-  }
+  while (*p && *p != '"') { p++; }
   if (!*p) {
     PREP_ERROR(err, ERROR_SYNTAX, nil
                , "Expected a closing double quote."
@@ -172,12 +169,67 @@ Error parse_string(const char *beg, const char **end, Atom *result) {
   size_t string_length = *end - beg - 2;
   // Allocate memory for string contents.
   char *contents = malloc(string_length + 1);
-  memcpy(contents, beg + 1, string_length);
+  if (!contents) {
+    PREP_ERROR(err, ERROR_MEMORY, nil,
+               "Could not allocate memory for new string contents.",
+               NULL);
+    return err;
+  }
+  memset(contents, 0, string_length);
+  // Copy into allocated memory, handling escape sequences.
+  // TODO: It would be cool to handle unicode characters with '\uXXXX',
+  // as well as hex values with '\xXXXX'.
+  size_t written_offset = 0;
+  char prev_was_backslash = 0;
+  char write_this_iteration = 1;
+  p = beg + 1;
+  while (*p && *p != '"' && written_offset <= string_length) {
+    //printf("%zu: \"%.*s\" -> \"%s\"\n", written_offset, (int)string_length, beg + 1, contents);
+    write_this_iteration = 1;
+    if (prev_was_backslash) {
+      write_this_iteration = 0;
+      if (prev_was_backslash >= 2) {
+        switch (*p) {
+        case 'n':
+          // "\\n" -> 0xa ('\n')
+          contents[written_offset] = '\n';
+          written_offset += 1;
+          break;
+        case 'r':
+          // "\\r" -> 0xd ('\r')
+          contents[written_offset] = '\r';
+          written_offset += 1;
+          break;
+        default:
+          // Unrecognized escape sequence, print literally.
+          contents[written_offset] = '\\';
+          written_offset += 1;
+          contents[written_offset] = '\\';
+          written_offset += 1;
+          write_this_iteration = 1;
+          break;
+        }
+      }
+    }
+    if (*p == '\\') {
+      prev_was_backslash += 1;
+      // skip backslash, do not write this iteration.
+      write_this_iteration = 0;
+    } else {
+      prev_was_backslash = 0;
+    }
+    if (write_this_iteration) {
+      contents[written_offset] = *p;
+      written_offset += 1;
+    }
+    p++;
+  }
+  contents[written_offset] = '\0';
   contents[string_length] = '\0';
+  //printf("Parsed string contents: \"%s\"\n", contents);
   // Make LISP String Atom from C-style string.
-  string = make_string(contents);
+  *result = make_string(contents);
   free(contents);
-  *result = string;
   return ok;
 }
 
