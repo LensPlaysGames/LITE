@@ -58,24 +58,24 @@ Error gcol_generic_allocation(Atom *ref, void *payload) {
   return ok;
 }
 
-void gcol_mark(Atom root) {
-  if (nilp(root)) {
+void gcol_mark(Atom *root) {
+  if (!root || nilp(*root)) {
     return;
   }
-  if (root.galloc) {
-    root.galloc->mark = 1;
+  if (root->galloc) {
+    root->galloc->mark = 1;
   }
   // Any type made with `cons()` belongs here.
-  if (pairp(root) || closurep(root) || macrop(root)) {
+  if (pairp(*root) || closurep(*root) || macrop(*root)) {
     ConsAllocation *alloc = (ConsAllocation *)
-      ((char *)root.value.pair - offsetof(ConsAllocation, pair));
+      ((char *)root->value.pair - offsetof(ConsAllocation, pair));
     if (!alloc || alloc->mark) {
       return;
     }
     alloc->mark = 1;
-    gcol_mark(car(root));
-    if (!nilp(cdr(root))) {
-      gcol_mark(cdr(root));
+    gcol_mark(&car(*root));
+    if (!nilp(cdr(*root))) {
+      gcol_mark(&cdr(*root));
     }
   }
 }
@@ -313,15 +313,6 @@ Atom make_buffer(Atom environment, char *path) {
   return result;
 }
 
-void free_buffer_table() {
-  size_t buffer_count = 0;
-  while (!nilp(buffer_table)) {
-    buffer_free(car(buffer_table).value.buffer);
-    buffer_table = cdr(buffer_table);
-    buffer_count += 1;
-  }
-}
-
 int listp(Atom expr) {
   while (!nilp(expr)) {
     if (expr.type != ATOM_TYPE_PAIR) {
@@ -498,7 +489,10 @@ void print_atom(Atom atom) {
     printf("\"%s\"", atom.value.symbol);
     break;
   case ATOM_TYPE_BUFFER:
-    printf("#<BUFFER>:%p", atom.value.buffer);
+    printf("#<BUFFER>:\"%s\":%zu"
+           , atom.value.buffer->path
+           , atom.value.buffer->point_byte
+           );
     break;
   }
 }

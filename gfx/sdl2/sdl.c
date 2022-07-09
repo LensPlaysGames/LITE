@@ -335,15 +335,18 @@ static inline void draw_gui_string_into_surface_within_rect
             size_t bytes_to_render = offset - start_of_line_offset;
             char *line_text = allocate_string_span
               (string.string, start_of_line_offset, bytes_to_render);
-            if (!line_text) { return; }
-            SDL_Surface *line_text_surface =
-              TTF_RenderUTF8_Shaded(font, line_text, fg, bg);
-            free(line_text);
-            if (line_text_surface) {
-              // TODO: Handle BlitSurface failure everywhere (0 == success).
-              SDL_BlitSurface(line_text_surface, NULL, text_surface
-                              , rect_copy(&destination_copy,&destination));
-              SDL_FreeSurface(line_text_surface);
+            if (line_text) {
+              if (line_text[0] != '\0') {
+                SDL_Surface *line_text_surface =
+                  TTF_RenderUTF8_Shaded(font, line_text, fg, bg);
+                if (line_text_surface) {
+                  // TODO: Handle BlitSurface failure everywhere (0 == success).
+                  SDL_BlitSurface(line_text_surface, NULL, text_surface
+                                  , rect_copy(&destination_copy,&destination));
+                  SDL_FreeSurface(line_text_surface);
+                }
+              }
+              free(line_text);
             }
           } else {
             // properties present, render portions of line at a time
@@ -360,58 +363,54 @@ static inline void draw_gui_string_into_surface_within_rect
                   size_t bytes_to_render = it->offset - horizontal_offset - start_of_line_offset;
                   char *prepended_text = allocate_string_span
                     (string.string, start_of_line_offset, bytes_to_render);
-                  // TODO: Handle memory allocation failure during GUI redraw.
-                  if (prepended_text && prepended_text[0] != '\0') {
+                  if (prepended_text) {
+                    if (prepended_text[0] != '\0') {
 #ifdef DEBUG_TEXT_PROPERTIES
-                    printf("Prepended:      \"%s\"\n", prepended_text);
+                      printf("Prepended:      \"%s\"\n", prepended_text);
 #endif
-                    SDL_Surface *prepended_text_surface = TTF_RenderUTF8_Shaded
-                      (font, prepended_text, fg, bg);
-                    free(prepended_text);
-                    // TODO: Handle memory allocation failure during GUI redraw.
-                    if (prepended_text_surface) {
-                      SDL_BlitSurface(prepended_text_surface, NULL, text_surface
-                                      , rect_copy(&destination_copy,&destination));
-                      horizontal_offset += bytes_to_render;
-                      destination.x += prepended_text_surface->w;
-                      SDL_FreeSurface(prepended_text_surface);
+                      SDL_Surface *prepended_text_surface = TTF_RenderUTF8_Shaded
+                        (font, prepended_text, fg, bg);
+                      // TODO: Handle memory allocation failure during GUI redraw.
+                      if (prepended_text_surface) {
+                        SDL_BlitSurface(prepended_text_surface, NULL, text_surface
+                                        , rect_copy(&destination_copy,&destination));
+                        horizontal_offset += bytes_to_render;
+                        destination.x += prepended_text_surface->w;
+                        SDL_FreeSurface(prepended_text_surface);
+                      }
                     }
+                    free(prepended_text);
                   }
                 }
                 char *propertized_text = allocate_string_span
                   (string.string, it->offset, it->length);
-                if (!propertized_text) {
-                  // TODO: Handle memory allocation failure during GUI redraw.
-                  return;
-                }
-                // Correctly display newline/end of string by inserting space.
-                if (propertized_text[0] == '\n'
-                    || propertized_text[0] == '\r'
-                    || propertized_text[0] == '\0')
-                  {
-                    propertized_text[0] = ' ';
-                    propertized_text[1] = '\0';
-                  }
-                SDL_Color prop_fg;
-                gui_color_to_sdl(&prop_fg, &it->fg);
-                SDL_Color prop_bg;
-                gui_color_to_sdl(&prop_bg, &it->bg);
-                SDL_Surface *propertized_text_surface = NULL;
+                if (propertized_text) {
+                  // Correctly display newline/end of string by inserting space.
+                  if (propertized_text[0] == '\n'
+                      || propertized_text[0] == '\r'
+                      || propertized_text[0] == '\0')
+                    {
+                      propertized_text[0] = ' ';
+                      propertized_text[1] = '\0';
+                    }
+                  SDL_Color prop_fg;
+                  gui_color_to_sdl(&prop_fg, &it->fg);
+                  SDL_Color prop_bg;
+                  gui_color_to_sdl(&prop_bg, &it->bg);
 #ifdef DEBUG_TEXT_PROPERTIES
-                printf("Propertized:    \"%s\"\n", propertized_text);
+                  printf("Propertized:    \"%s\"\n", propertized_text);
 #endif
-                propertized_text_surface = TTF_RenderUTF8_Shaded
-                  (font, propertized_text, prop_fg, prop_bg);
-                free(propertized_text);
-                if (!propertized_text_surface) {
-                  // TODO: Handle memory allocation failure during GUI redraw.
-                  return;
+                  SDL_Surface *propertized_text_surface = TTF_RenderUTF8_Shaded
+                    (font, propertized_text, prop_fg, prop_bg);
+                  if (propertized_text_surface) {
+                    SDL_BlitSurface(propertized_text_surface, NULL, text_surface
+                                    , rect_copy(&destination_copy,&destination));
+                    horizontal_offset += it->length;
+                    destination.x += propertized_text_surface->w;
+                    SDL_FreeSurface(propertized_text_surface);
+                  }
+                  free(propertized_text);
                 }
-                SDL_BlitSurface(propertized_text_surface, NULL, text_surface
-                                , rect_copy(&destination_copy,&destination));
-                horizontal_offset += it->length;
-                destination.x += propertized_text_surface->w;
-                SDL_FreeSurface(propertized_text_surface);
               }
               prop_index += 1;
               it = it->next;
@@ -423,21 +422,22 @@ static inline void draw_gui_string_into_surface_within_rect
                  , start_of_line_offset + horizontal_offset
                  , bytes_to_render);
               // TODO: Handle memory allocation failure during GUI redraw.
-              if (appended_text && appended_text[0] != '\0') {
+              if (appended_text) {
+                if (appended_text[0] != '\0') {
 #ifdef DEBUG_TEXT_PROPERTIES
-                printf("Appended:       \"%s\"\n", appended_text);
+                  printf("Appended:       \"%s\"\n", appended_text);
 #endif
-                SDL_Surface *appended_text_surface = TTF_RenderUTF8_Shaded
-                  (font, appended_text, fg, bg);
-                free(appended_text);
-                // TODO: Handle memory allocation failure during GUI redraw.
-                if (appended_text_surface) {
-                  SDL_BlitSurface(appended_text_surface, NULL, text_surface
-                                  , rect_copy(&destination_copy,&destination));
-                  horizontal_offset += bytes_to_render;
-                  destination.x += appended_text_surface->w;
-                  SDL_FreeSurface(appended_text_surface);
+                  SDL_Surface *appended_text_surface = TTF_RenderUTF8_Shaded
+                    (font, appended_text, fg, bg);
+                  if (appended_text_surface) {
+                    SDL_BlitSurface(appended_text_surface, NULL, text_surface
+                                    , rect_copy(&destination_copy,&destination));
+                    horizontal_offset += bytes_to_render;
+                    destination.x += appended_text_surface->w;
+                    SDL_FreeSurface(appended_text_surface);
+                  }
                 }
+                free(appended_text);
               }
             }
 #ifdef DEBUG_TEXT_PROPERTIES

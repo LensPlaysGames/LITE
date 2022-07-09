@@ -16,9 +16,6 @@ void exit_lite(int code) {
   int debug_memory = env_non_nil(genv(), make_sym("DEBUG/MEMORY"));
   // Garbage collection with no marking means free everything.
   gcol();
-  // Buffers aren't garbage collected, for now. They build up as the
-  // program runs and are freed all at once right at the end.
-  free_buffer_table();
   if (debug_memory) {
     print_gcol_data();
   }

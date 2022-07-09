@@ -50,7 +50,7 @@ char *file_contents(const char* path) {
   return buffer;
 }
 
-const SimpleFile get_file(char* path) {
+const SimpleFile get_file(char *path) {
   const char* error_prefix = "get_file(): ";
   SimpleFile smpl;
   smpl.path = NULL;
@@ -65,6 +65,7 @@ const SimpleFile get_file(char* path) {
 
   FILE *file = fopen(path, "rb");
   if (!file) {
+    free(smpl.path);
     printf("%sCouldn't open file at %s\n", error_prefix, path);
     return smpl;
   }
@@ -72,6 +73,7 @@ const SimpleFile get_file(char* path) {
   size_t size = file_size(file);
   if (size == 0) {
     fclose(file);
+    free(smpl.path);
     printf("%sFile has zero size at %s\n", error_prefix, path);
     return smpl;
   }
@@ -81,6 +83,7 @@ const SimpleFile get_file(char* path) {
   buffer = malloc(size);
   if (!buffer) {
     fclose(file);
+    free(smpl.path);
     printf("%sCould not allocate buffer for file at %s\n",
            error_prefix, path);
     return smpl;
@@ -88,9 +91,10 @@ const SimpleFile get_file(char* path) {
   memset(buffer, 0, size);
 
   if (fread(buffer, 1, size, file) != size) {
+    fclose(file);
+    free(smpl.path);
     printf("%sCould not read %zu bytes from file at \"%s\"\n",
            error_prefix, size, path);
-    fclose(file);
     return smpl;
   }
 

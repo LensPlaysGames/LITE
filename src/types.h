@@ -14,6 +14,7 @@ typedef struct Error Error;
 struct GenericAllocation;
 
 typedef long long int integer_t;
+
 typedef const char symbol_t;
 typedef struct Atom {
   enum AtomType {
@@ -27,7 +28,7 @@ typedef struct Atom {
     ATOM_TYPE_STRING,
     ATOM_TYPE_BUFFER,
   } type;
-  union {
+  union AtomValue {
     struct Pair *pair;
     symbol_t *symbol;
     Buffer *buffer;
@@ -87,7 +88,7 @@ Error gcol_generic_allocation(Atom *ref, void *payload);
 
 /// Mark cons and generic allocations as needed,
 /// so as to not free them on the next gcol().
-void gcol_mark(Atom root);
+void gcol_mark(Atom *root);
 
 /// Garbage collect all unmarked allocations.
 void gcol();
@@ -133,9 +134,7 @@ Error make_closure(Atom environment, Atom arguments, Atom body, Atom *result);
 Atom make_buffer(Atom environment, char *path);
 
 Atom *sym_table();
-
 Atom *buf_table();
-void free_buffer_table();
 
 char *atom_string(Atom atom, char *str);
 
