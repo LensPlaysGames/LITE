@@ -220,6 +220,18 @@ also known as the absolute value.")
         (forward-byte))
     ))
 
+(defun end-of-line ()
+  "Move to the end of the current line."
+  (let ((newline-string "\\r\\n"))
+    (if (eq (buffer-index current-buffer (buffer-point current-buffer)) "\\r")
+        "\r"
+        (if (eq (buffer-index current-buffer (buffer-point current-buffer)) "\\n")
+            "\n"
+            ;; else
+            (if (= (buffer-seek-byte current-buffer newline-string 1) 0)
+                (forward-bytes 50000) ;; get to end of last line.
+                "End of line.")))))
+
 (defun backward-line ()
   "Move backward one line, if possible.
 
@@ -306,6 +318,13 @@ Useful for ensuring the user would like to do something before doing it."
     (alist-set
      keymap "CTRL"
      (alist-set
+      (alist-get keymap "CTRL") "e"
+      '(end-of-line))))
+
+(define keymap
+    (alist-set
+     keymap "CTRL"
+     (alist-set
       (alist-get keymap "CTRL") "b"
       '(backward-byte))))
 
@@ -343,32 +362,24 @@ Useful for ensuring the user would like to do something before doing it."
       (alist-get keymap "CTRL") "s"
       '(save-current-with-msg "Saved."))))
 
-;; Evaluate current line with "CTRL" "e"
+;; Evaluate zeroeth line with "LEFT-ALT" "0"
 (define keymap
     (alist-set
-     keymap "CTRL"
+     keymap "LEFT-ALT"
      (alist-set
-      (alist-get keymap "CTRL") "e"
-      '(evaluate-string
-        (buffer-current-line current-buffer)))))
-
-;; Evaluate zeroeth line with "CTRL" "0"
-(define keymap
-    (alist-set
-     keymap "CTRL"
-     (alist-set
-      (alist-get keymap "CTRL") "0"
+      (alist-get keymap "LEFT-ALT") "0"
       '(evaluate-string
         (buffer-line current-buffer 0)))))
 
-;; Evaluate current buffer with "LEFT-ALT" "e"
+
+;; Evaluate current line with "LEFT-ALT" "e"
 (define keymap
     (alist-set
      keymap "LEFT-ALT"
      (alist-set
       (alist-get keymap "LEFT-ALT") "e"
       '(evaluate-string
-        (buffer-string current-buffer)))))
+        (buffer-current-line current-buffer)))))
 
 ;; Open new file buffer with "LEFT-ALT" "o"
 (define keymap
