@@ -770,7 +770,9 @@ int builtin_eq(Atom arguments, Atom *result) {
 }
 
 symbol_t *builtin_symbol_table_docstring =
-  "(sym)\n\nReturn the LISP symbol table.";
+  "(sym)\n"
+  "\n"
+  "Return the LISP symbol table.";
 int builtin_symbol_table(Atom arguments, Atom *result) {
   BUILTIN_ENSURE_NO_ARGUMENTS(arguments);
   *result = *sym_table();
@@ -778,7 +780,9 @@ int builtin_symbol_table(Atom arguments, Atom *result) {
 }
 
 symbol_t *builtin_print_docstring =
-  "(print ARG)\n\nPrint the given ARG to standard out, prettily.";
+  "(print ARG)\n"
+  "\n"
+  "Print the given ARG to standard out, prettily.";
 int builtin_print(Atom arguments, Atom *result) {
   BUILTIN_ENSURE_ONE_ARGUMENT(arguments);
   pretty_print_atom(car(arguments));

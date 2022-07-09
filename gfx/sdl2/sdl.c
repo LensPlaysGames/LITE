@@ -302,8 +302,6 @@ static inline void draw_gui_string_into_surface_within_rect
         {
           size_t start_of_line_offset =
             (last_newline_offset == 0 ? 0 : last_newline_offset + 1);
-          // Newline implies carriage return.
-          destination.x = 0;
           GUIStringProperty *it = string.properties;
           uint8_t prop_count = 0;
           uint8_t props_in_line = 0;
@@ -338,10 +336,9 @@ static inline void draw_gui_string_into_surface_within_rect
             char *line_text = allocate_string_span
               (string.string, start_of_line_offset, bytes_to_render);
             if (!line_text) { return; }
-            SDL_Surface *line_text_surface = TTF_RenderUTF8_Shaded
-              (font, line_text, fg, bg);
+            SDL_Surface *line_text_surface =
+              TTF_RenderUTF8_Shaded(font, line_text, fg, bg);
             free(line_text);
-            // TODO: Handle memory allocation failure during GUI redraw.
             if (line_text_surface) {
               // TODO: Handle BlitSurface failure everywhere (0 == success).
               SDL_BlitSurface(line_text_surface, NULL, text_surface
@@ -449,6 +446,7 @@ static inline void draw_gui_string_into_surface_within_rect
           }
           destination.y += line_height;
           destination.h -= line_height;
+          destination.x = 0;
           last_newline_offset = offset;
           // No more room to draw text in output rectangle, stop now.
           if (destination.h <= 0) {
@@ -545,6 +543,7 @@ void draw_gui(GUIContext *ctx) {
     rect_popup.x = width / 2 - (rect_popup.w / 2);
     rect_popup.y = height / 2 - (rect_popup.h / 2);
     size_t border_thickness = 4;
+    // Ensure thickness is even.
     border_thickness &= ~1;
     SDL_Rect rect_popup_outline = rect_popup;
     rect_popup_outline.h += border_thickness;

@@ -309,6 +309,7 @@ void handle_character_dn(uint64_t c) {
         if (pairp(current_keymap) && pairp(root_keymap)
             && current_keymap.value.pair == root_keymap.value.pair)
           {
+            // If current keymap is root keymap, key is not bound.
             if (debug_keybinding) {
               printf("Key not bound: %c\n", (char)c);
             }
@@ -322,6 +323,7 @@ void handle_character_dn(uint64_t c) {
               return;
             }
             c = 0;
+            continue;
           }
         env_set(genv(), make_sym("CURRENT-KEYMAP"), root_keymap);
         keybind_recurse_count += 1;
@@ -342,6 +344,7 @@ void handle_character_dn(uint64_t c) {
               return;
             }
             c = 0;
+            continue;
           }
         }
       } else if (stringp(keybind)) {
@@ -385,12 +388,12 @@ void handle_character_dn(uint64_t c) {
       print_atom(current_keymap);
       putchar('\n');
     }
+    keybind_recurse_count += 1;
+    if (debug_keybinding) {
+      printf("keybind_recurse_count: %zu\n", keybind_recurse_count);
+    }
     // End keybind loop.
     c = 0;
-  }
-  keybind_recurse_count += 1;
-  if (debug_keybinding) {
-    printf("keybind_recurse_count: %zu\n", keybind_recurse_count);
   }
 }
 
