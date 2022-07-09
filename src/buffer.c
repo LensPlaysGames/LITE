@@ -68,7 +68,7 @@ Error buffer_insert(Buffer *buffer, char* string) {
                , NULL);
     return err;
   }
-  buffer->point_byte += strlen(string) + 1;
+  buffer->point_byte += strlen(string);
   buffer->rope = new_rope;
   return ok;
 }

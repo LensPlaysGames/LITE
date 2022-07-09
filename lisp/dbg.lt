@@ -1,7 +1,9 @@
 ;;; Enable all debug information possible
 
-(define debug/environment t)
-(define debug/evaluate t)
-(define debug/macro t)
-(define debug/memory t)
-(define debug/while t)
+(define debug/environment   t)
+(define debug/evaluate      t)
+(define debug/evaluate-file t)
+(define debug/keybinding    t)
+(define debug/macro         t)
+(define debug/memory        t)
+(define debug/while         t)

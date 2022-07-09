@@ -216,6 +216,11 @@ Error parse_string(const char *beg, const char **end, Atom *result) {
       // skip backslash, do not write this iteration.
       write_this_iteration = 0;
     } else {
+      if (prev_was_backslash == 1) {
+        contents[written_offset] = '\\';
+        written_offset += 1;
+        write_this_iteration = 1;
+      }
       prev_was_backslash = 0;
     }
     if (write_this_iteration) {
