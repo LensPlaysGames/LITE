@@ -545,9 +545,15 @@ int main(int argc, char **argv) {
 
   // Treat every given argument as a file to load, for now.
   if (argc > 1) {
+    Atom result = nil;
+    Error err = ok;
     for (size_t i = 1; i < argc; ++i) {
-      Atom result = nil;
-      evaluate_file(genv(), argv[i], &result);
+      err = evaluate_file(genv(), argv[i], &result);
+      if (err.type) {
+        printf("%s: ", argv[i]);
+        print_error(err);
+        err = ok;
+      }
     }
   }
 
