@@ -849,6 +849,7 @@ int builtin_read_prompted(Atom arguments, Atom *result) {
   free(string);
 
   // Restore keymap.
+  env_get(genv(), make_sym("KEYMAP"), &keymap);
   alist_set(&keymap, make_string(return_character), original_return_binding);
   env_set(genv(), make_sym("KEYMAP"), keymap);
 

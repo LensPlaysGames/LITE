@@ -250,10 +250,11 @@ Attempts to keep point column the same."
               (buffer-set-point current-buffer 0)
               ;; else, newline found, and point is already at it.
               nil)
-          (if (= (buffer-point current-buffer) 0)
-              (forward-bytes (- column-index 1))
-              (forward-bytes column-index))
-          ))))
+          (if (<= (- column-index 1) (string-length (buffer-next-line current-buffer)))
+              (if (= (buffer-point current-buffer) 0)
+                  (forward-bytes (- column-index 1))
+                  (forward-bytes column-index))
+              (buffer-seek-byte current-buffer newline-string 1))))))
 
 (defun forward-line ()
   "Move forward one line, if possible.
@@ -280,7 +281,7 @@ Attempts to keep point column the same."
             ;; then move point forward to original column, if possible.
             (if (<= (- column-index 1) (string-length (buffer-next-line current-buffer)))
                 (forward-bytes (if (= bol-offset 0) (+ 1 column-index) column-index))
-                (forward-byte))
+                (buffer-seek-byte current-buffer newline-seek-substring 1))
             ;; else nothing was found, restore point to what it was at start of function.
             (buffer-set-point current-buffer original-point))))))
 
