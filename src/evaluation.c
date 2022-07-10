@@ -152,7 +152,7 @@ Error evaluate_return_value(Atom *stack, Atom *expr, Atom *environment, Atom *re
         // FIXME: These docstrings are leaked.
         (*result).docstring = strdup(docstring.value.symbol);
       }
-      Error err = env_set(*environment, symbol, *result);
+      Error err = env_set(*genv(), symbol, *result);
       if (err.type) { return err; }
       *stack = car(*stack);
       *expr = cons(make_sym("QUOTE"), cons(symbol, nil));

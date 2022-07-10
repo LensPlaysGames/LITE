@@ -121,6 +121,10 @@ as well as places INITIAL-VALUE at the end of SOME-LIST.")
        `((lambda ,(map car defs) ,@body)
          ,@(map cadr defs)))
 
+(macro progn body
+       "Evaluate the BODY expressions sequentially, returning the last returned value."
+       (if body `((lambda () ,@body)) nil))
+
 ;; ARITHMETIC & LOGIC
 
 ;; Redefine '+' operator to handle any amount of integer arguments.
@@ -145,11 +149,11 @@ also known as the absolute value.")
 
 (macro when (condition . body)
        "Evaluate BODY iff CONDITION evaluates to any non-nil value."
-       `(if ,condition ,@body nil))
+       `(if ,condition ((lambda () ,@body)) nil))
 
 (macro unless (condition . body)
        "Evaluate BODY iff CONDITION evaluates to nil."
-       `(if (! ,condition) ,@body nil))
+       `(if (! ,condition) ((lambda () ,@body)) nil))
 
 ;; ASSOCIATION LISTS
 ;; also known as ALISTS
@@ -212,9 +216,10 @@ also known as the absolute value.")
 (defun beginning-of-line ()
   "Move to the beginning of the current line"
   (let ((newline-string "\\r\\n"))
-    (if (eq (buffer-index current-buffer (buffer-point current-buffer)) newline-string)
-        (forward-byte)
-        nil)
+    (if (eq (buffer-index current-buffer (buffer-point current-buffer)) "\\r")
+        (backward-byte)
+        (when (eq (buffer-index current-buffer (buffer-point current-buffer)) "\\n")
+          (backward-byte)))
     (if (= (buffer-seek-byte current-buffer newline-string -1) 0)
         (buffer-set-point current-buffer 0)
         (forward-byte))
@@ -222,75 +227,56 @@ also known as the absolute value.")
 
 (defun end-of-line ()
   "Move to the end of the current line."
-  (let ((newline-string "\\r\\n"))
-    (if (eq (buffer-index current-buffer (buffer-point current-buffer)) "\\r")
-        "\r"
-        (if (eq (buffer-index current-buffer (buffer-point current-buffer)) "\\n")
-            "\n"
-            ;; else
-            (if (= (buffer-seek-byte current-buffer newline-string 1) 0)
-                (forward-bytes 50000) ;; get to end of last line.
-                "End of line.")))))
+  (if (eq (buffer-index current-buffer (buffer-point current-buffer)) "\\r")
+      "\r"
+      (if (eq (buffer-index current-buffer (buffer-point current-buffer)) "\\n")
+          "\n"
+          ;; else
+          (if (= (buffer-seek-byte current-buffer "\\r\\n" 1) 0)
+              (forward-bytes 5000000) ;; get to end of last line.
+              "End of line."))))
 
 (defun backward-line ()
   "Move backward one line, if possible.
 
 Attempts to keep point column the same."
-  (let ((newline-string "\\r\\n")
-        (original-point (buffer-point current-buffer)))
-    ;; If point is over a hnewline, move just behind it.
-    (if (eq (buffer-index current-buffer (buffer-point current-buffer)) newline-string)
-        (backward-byte)
-        nil)
-    ;; Seek backwards until a newline character, or beginning of buffer.
-    (if (= (buffer-seek-byte current-buffer newline-string -1) 0)
-        (buffer-set-point current-buffer 0)
-        nil)
-    (if (= (buffer-point current-buffer) 0)
-        ;; then we can not move backwards anymore, we are on first line.
-        (buffer-set-point current-buffer original-point)
-        ;; Else, calculate offset from original point to current point (column offset).
-        (let ((column-index
-               (- original-point (buffer-point current-buffer))))
-          ;; Seek backwards until a newline character, or beginning of buffer.
-          (if (= (buffer-seek-byte current-buffer newline-string -1) 0)
-              ;; No newline found, go to beginning of buffer.
-              (buffer-set-point current-buffer 0)
-              ;; else, newline found, and point is already at it.
-              nil)
-          (if (<= (- column-index 1) (string-length (buffer-next-line current-buffer)))
-              (if (= (buffer-point current-buffer) 0)
-                  (forward-bytes (- column-index 1))
-                  (forward-bytes column-index))
-              (buffer-seek-byte current-buffer newline-string 1))))))
+  (let ((newline-bytes "\\r\\n"))
+    ;; Calculate column offset and move to end of previous line.
+    (let ((column-offset (buffer-seek-byte current-buffer newline-bytes -1)))
+      ;; If on the first line, do nothing.
+      (unless (= column-offset 0)
+        (let ((distance-from-end-to-column (+ (- (string-length (buffer-current-line current-buffer)) column-offset) 1)))
+          (when (> distance-from-end-to-column 0)
+            (backward-bytes distance-from-end-to-column)))))))
 
 (defun forward-line ()
   "Move forward one line, if possible.
 
 Attempts to keep point column the same."
-  ;; I need the offset from beginning of line to point.
-  ;; Seek until next newline, then add offset from above iff line is long enough.
-  (let ((newline-seek-substring "\\r\\n")
+  (let ((newline-bytes "\\r\\n")
         (original-point (buffer-point current-buffer)))
-    ;; Seek backwards to newline
-    ;; if search for newline backwards finds nothing,
-    (if (= (buffer-seek-byte current-buffer newline-seek-substring -1) 0)
-        ;; then set point to beginning of buffer.
-        (buffer-set-point current-buffer 0)
-        ;; Otherwise, skip.
-        nil
-        )
-    ;; Calculate offset from original point to beginning of line (column offset).
-    (let ((bol-offset (buffer-point current-buffer)))
-      (let ((column-index (- original-point bol-offset)))
-        ;; if search for newline forwards finds something,
-        (if (>= (buffer-seek-byte current-buffer newline-seek-substring 1) 0)
-            ;; then move point forward to original column, if possible.
-            (if (< (- column-index 1) (string-length (buffer-next-line current-buffer)))
-                (forward-bytes (if (= bol-offset 0) (+ 1 column-index) column-index))
-                (buffer-seek-byte current-buffer newline-seek-substring 1))
-            ;; else nothing was found, restore point to what it was at start of function.
-            (buffer-set-point current-buffer original-point))))))
+    ;; Seek backwards to newline and keep track of originating column.
+    (let ((column-offset
+           (let ((column-offset-impl (buffer-seek-byte current-buffer newline-bytes -1)))
+             ;; If cursor is on the first line of the buffer,
+             (if (= column-offset-impl 0)
+                 ;; then column offset is one above cursor byte offset.
+                 (progn
+                   (when (eq (buffer-index current-buffer (buffer-point current-buffer)) "\\n")
+                     (backward-byte))
+                   (+ 1 original-point))
+                 ;; otherwise, return bytes moved.
+                 column-offset-impl))))
+      ;; Seek forward to next newline.
+      (buffer-seek-byte current-buffer newline-bytes 1)
+      ;; if next line has space to navigate to originating column,
+      (if (<= column-offset (string-length (buffer-next-line current-buffer)))
+          ;; then navigate to the originating column.
+          (forward-bytes column-offset)
+          ;; Otherwise, seek to the next newline.
+          (when (= (buffer-seek-byte current-buffer newline-bytes 1) 0)
+            ;; If no newline is found, move to end of buffer.
+            (forward-bytes 999999999999))))))
 
 ;; MISCELLANEOUS
 
@@ -349,7 +335,7 @@ Useful for ensuring the user would like to do something before doing it."
       (alist-get keymap "CTRL") "n"
       '(forward-line))))
 
-(defun save-current-with-msg (msg)
+(defun save-current-buffer-with-msg (msg)
   "Save buffer 'CURRENT-BUFFER' and return MSG."
   (save current-buffer)
   msg)
@@ -360,7 +346,7 @@ Useful for ensuring the user would like to do something before doing it."
      keymap "CTRL"
      (alist-set
       (alist-get keymap "CTRL") "s"
-      '(save-current-with-msg "Saved."))))
+      '(save-current-buffer-with-msg "Saved."))))
 
 ;; Evaluate zeroeth line with "LEFT-ALT" "0"
 (define keymap
@@ -381,10 +367,14 @@ Useful for ensuring the user would like to do something before doing it."
       '(evaluate-string
         (buffer-current-line current-buffer)))))
 
+(defun switch-current-buffer ()
+  "Prompt user for a filepath to open a buffer at, and set current-buffer."
+  (define current-buffer (open-buffer (read-prompted "filepath: "))))
+
 ;; Open new file buffer with "LEFT-ALT" "o"
 (define keymap
     (alist-set
      keymap "LEFT-ALT"
      (alist-set
       (alist-get keymap "LEFT-ALT") "o"
-      '(define current-buffer (open-buffer (read-prompted "filepath: "))))))
+      '(switch-current-buffer))))
