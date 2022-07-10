@@ -115,6 +115,7 @@ Error evaluate_apply(Atom *stack, Atom *expr, Atom *environment, Atom *result) {
 
 /// EXPR is expected to be in form of '(OPERATOR . ARGUMENTS)'
 Error evaluate_return_value(Atom *stack, Atom *expr, Atom *environment, Atom *result) {
+  Error err = ok;
   *environment = list_get(*stack, 1);
   Atom operator = list_get(*stack, 2);
   Atom body = list_get(*stack, 5);
@@ -142,7 +143,9 @@ Error evaluate_return_value(Atom *stack, Atom *expr, Atom *environment, Atom *re
       return evaluate_bind_arguments(stack, expr, environment);
     }
   } else if (operator.type == ATOM_TYPE_SYMBOL) {
-    if (strcmp(operator.value.symbol, "DEFINE") == 0) {
+    char define_locality = -1;
+    if ((define_locality = strcmp(operator.value.symbol, "DEFINE")) == 0
+        || (define_locality = !strcmp(operator.value.symbol, "SET")) == !0) {
       // Here is where env_set is called, since
       // arguments have now been evaluated.
       Atom arguments = list_get(*stack, 4);
@@ -152,7 +155,8 @@ Error evaluate_return_value(Atom *stack, Atom *expr, Atom *environment, Atom *re
         // FIXME: These docstrings are leaked.
         (*result).docstring = strdup(docstring.value.symbol);
       }
-      Error err = env_set(*genv(), symbol, *result);
+      Atom define_environment = define_locality == 0 ? *environment : *genv();
+      err = env_set(define_environment, symbol, *result);
       if (err.type) { return err; }
       *stack = car(*stack);
       *expr = cons(make_sym("QUOTE"), cons(symbol, nil));
@@ -211,7 +215,7 @@ Error evaluate_return_value(Atom *stack, Atom *expr, Atom *environment, Atom *re
       // But we are going to need two stack frames due to needing to make
       // it back here after evaluating the body, right? I don't know...
       Atom body_result = nil;
-      Error err = evaluate_expression(car(cdr(arguments)), *environment, &body_result);
+      err = evaluate_expression(car(cdr(arguments)), *environment, &body_result);
       if (err.type) { return err; }
       // Re-evaluate expression before continuing.
       *expr = car(arguments);
@@ -355,7 +359,8 @@ Error evaluate_expression(Atom expr, Atom environment, Atom *result) {
             return err;
           }
           *result = car(arguments);
-        } else if (strcmp(operator.value.symbol, "DEFINE") == 0) {
+        } else if (strcmp(operator.value.symbol, "DEFINE") == 0
+                   || strcmp(operator.value.symbol, "SET") == 0) {
           const char *usage_define = "Usage: (DEFINE <symbol> <value> [docstring])";
           // Ensure at least two arguments.
           if (nilp(arguments) || nilp(cdr(arguments))) {

@@ -170,12 +170,17 @@ Variables are stored in an /environment/.
 The environment is a key/value dictionary, where the keys
 are a symbol, and the values are atomic LISP objects.
 
-Currently, there is only one global environment (this will change).
-
-To create a new variable, use the ~DEFINE~ operator.
+To bind a symbol to a value in the local scope, use the ~DEFINE~ special form.
 #+begin_src lisp
   (define new-variable 42)
 #+end_src
+
+To bind a symbol to a value in the global scope, use the ~SET~ special form.
+#+begin_src lisp
+  (set new-variable 42)
+#+end_src
+
+# TODO: Explore what is meant by "scope", above.
 
 ~new-variable~ is now a symbol bound in the environment.
 Following occurences of the bound symbol will be evaluated to the defined value, ~42~.
