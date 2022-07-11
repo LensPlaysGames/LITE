@@ -175,11 +175,15 @@ also known as the absolute value.")
 
 ;; BUFFERS
 
+(define newline-bytes "\\r\\n"
+  "A sequence of bytes that may be at the or signify a newline.
+
+This is not the newline encoding, simply all possible newline byte values.")
+
 (defun buffer-prev-line (buffer)
   "Get the line before the current line, if possible."
-  (let ((newline-seek-substring "\\r\\n")
-        (original-point (buffer-point current-buffer)))
-    (if (= (buffer-seek-byte current-buffer newline-seek-substring -1) 0)
+  (let ((original-point (buffer-point current-buffer)))
+    (if (= (buffer-seek-byte current-buffer newline-bytes -1) 0)
         (buffer-set-point current-buffer 0)
         nil)
     (let ((output (buffer-current-line current-buffer)))
@@ -188,9 +192,8 @@ also known as the absolute value.")
 
 (defun buffer-next-line (buffer)
   "Get the line after the current line, if possible."
-  (let ((newline-seek-substring "\\r\\n")
-        (original-point (buffer-point current-buffer)))
-    (buffer-seek-byte current-buffer newline-seek-substring 1)
+  (let ((original-point (buffer-point current-buffer)))
+    (buffer-seek-byte current-buffer newline-bytes 1)
     (let ((output (buffer-current-line current-buffer)))
       (buffer-set-point current-buffer original-point)
       output)))
@@ -215,15 +218,9 @@ also known as the absolute value.")
 
 (defun beginning-of-line ()
   "Move to the beginning of the current line"
-  (let ((newline-string "\\r\\n"))
-    (if (eq (buffer-index current-buffer (buffer-point current-buffer)) "\\r")
-        (backward-byte)
-        (when (eq (buffer-index current-buffer (buffer-point current-buffer)) "\\n")
-          (backward-byte)))
-    (if (= (buffer-seek-byte current-buffer newline-string -1) 0)
-        (buffer-set-point current-buffer 0)
-        (forward-byte))
-    ))
+  (if (= (buffer-seek-byte current-buffer newline-bytes -1) 0)
+      (buffer-set-point current-buffer 0)
+      (forward-byte)))
 
 (defun end-of-line ()
   "Move to the end of the current line."
@@ -231,8 +228,7 @@ also known as the absolute value.")
       "\r"
       (if (eq (buffer-index current-buffer (buffer-point current-buffer)) "\\n")
           "\n"
-          ;; else
-          (if (= (buffer-seek-byte current-buffer "\\r\\n" 1) 0)
+          (if (= (buffer-seek-byte current-buffer newline-bytes 1) 0)
               (forward-bytes 999999999999) ;; get to end of last line.
               "End of line."))))
 
@@ -240,21 +236,19 @@ also known as the absolute value.")
   "Move backward one line, if possible.
 
 Attempts to keep point column the same."
-  (let ((newline-bytes "\\r\\n"))
-    ;; Calculate column offset and move to end of previous line.
-    (let ((column-offset (buffer-seek-byte current-buffer newline-bytes -1)))
-      ;; If on the first line, do nothing.
-      (unless (= column-offset 0)
-        (let ((distance-from-end-to-column (+ (- (string-length (buffer-current-line current-buffer)) column-offset) 1)))
-          (when (> distance-from-end-to-column 0)
-            (backward-bytes distance-from-end-to-column)))))))
+  ;; Calculate column offset and move to end of previous line.
+  (let ((column-offset (buffer-seek-byte current-buffer newline-bytes -1)))
+    ;; If on the first line, do nothing.
+    (unless (= column-offset 0)
+      (let ((distance-from-end-to-column (+ (- (string-length (buffer-current-line current-buffer)) column-offset) 1)))
+        (when (> distance-from-end-to-column 0)
+          (backward-bytes distance-from-end-to-column))))))
 
 (defun forward-line ()
   "Move forward one line, if possible.
 
 Attempts to keep point column the same."
-  (let ((newline-bytes "\\r\\n")
-        (original-point (buffer-point current-buffer)))
+  (let ((original-point (buffer-point current-buffer)))
     ;; Seek backwards to newline and keep track of originating column.
     (let ((column-offset
            (let ((column-offset-impl (buffer-seek-byte current-buffer newline-bytes -1)))
@@ -278,6 +272,14 @@ Attempts to keep point column the same."
             ;; If no newline is found, move to end of buffer.
             (forward-bytes 999999999999))))))
 
+(defun search-forward ()
+  "Set the point to the beginning of the prompted-for string if it is found in current buffer."
+  (buffer-seek-substring current-buffer (read-prompted "search forward: ") 1))
+
+(defun search-backward ()
+  "Set the point to the beginning of the prompted-for string if it is found in current buffer."
+  (buffer-seek-substring current-buffer (read-prompted "search forward: ") -1))
+
 ;; MISCELLANEOUS
 
 (macro set-docstring (x string)
@@ -292,6 +294,20 @@ Useful for ensuring the user would like to do something before doing it."
   (eq "yes" (read-prompted prompt)))
 
 ;; STANDARD KEYBINDINGS
+
+(define keymap
+    (alist-set
+     keymap "CTRL"
+     (alist-set
+      (alist-get keymap "CTRL") "i"
+      '(search-forward))))
+
+(define keymap
+    (alist-set
+     keymap "CTRL"
+     (alist-set
+      (alist-get keymap "CTRL") "r"
+      '(search-backward))))
 
 (define keymap
     (alist-set
