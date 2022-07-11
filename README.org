@@ -18,9 +18,9 @@ for text editing and general scripting that is *easy to port*.
 
 Initially, development followed [[https://www.lwh.jp/lisp/][this LISP interpreter tutorial]] ([[https://web.archive.org/web/20220617192957/https://www.lwh.jp/lisp][archive]]).
 
-*** Usage
+NOTE: Any and all shell commands assume a working directory of the base of this repository.
 
-All shell commands expect a working directory of the base of this repository.
+*** Usage
 
 **** LITE REPL
 
@@ -50,8 +50,6 @@ The executable may be obtained by building from local source.
 
 *** Building
 
-NOTE: Any and all shell commands assume a working directory of the base of this repository.
-
 [[https://cmake.org/][CMake]] is used as the cross-platform build system.
 
 To see a list of available build systems, use the following command:
@@ -66,7 +64,11 @@ First, generate an out-of-source build tree:
 #+begin_src sh
   cmake -G <build system> -S . -B bld -DCMAKE_BUILD_TYPE=Release
 #+end_src
-Replace ~<build system>~ with one of the available build systems.
+Replace ~<build system>~ with one of the available build systems
+
+Optionally, build LITE with graphical user interface capabilities by
+adding the flag ~-DLITE_GFX=ON~ when generating the build tree.
+Ensure to read the README in the ~gfx~ subdirectory, if doing so.
 
 Once the build tree is generated, invoke it to generate an executable.
 #+begin_src sh
@@ -299,6 +301,10 @@ extra output concerning macros is produced.
 
 *** Misc
 
+- Buffer Table
+
+  Get the current buffer table with the ~BUF~ operator.
+
 - Symbol Table
 
   Get the current symbol table with the ~SYM~ operator.
@@ -323,9 +329,5 @@ extra output concerning macros is produced.
   There are environment variables that cause LITE to report output extra
   information regarding the topic the variable pertains to when non-nil.
 
-  Here is a list of debug variables that are currently valid.
-   - ~DEBUG/ENVIRONMENT~
-   - ~DEBUG/EVALUATE~
-   - ~DEBUG/MACRO~
-   - ~DEBUG/MEMORY~
-   - ~DEBUG/WHILE~
+  For a list of all debug variables that LITE internally responds to,
+  see the file that enables all of them at once, ~lisp/dbg.lt~.
