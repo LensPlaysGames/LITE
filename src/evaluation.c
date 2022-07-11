@@ -76,7 +76,7 @@ Error evaluate_bind_arguments(Atom *stack, Atom *expr, Atom *environment) {
   return evaluate_next_expression(stack, expr, environment);
 }
 
-Error evaluate_apply(Atom *stack, Atom *expr, Atom *environment, Atom *result) {
+Error evaluate_apply(Atom *stack, Atom *expr, Atom *environment) {
   Atom operator = list_get(*stack, 2);
   Atom arguments = list_get(*stack, 4);
   if (!nilp(arguments)) {
@@ -121,7 +121,7 @@ Error evaluate_return_value(Atom *stack, Atom *expr, Atom *environment, Atom *re
   Atom body = list_get(*stack, 5);
   Atom arguments;
   if (!nilp(body)) {
-    return evaluate_apply(stack, expr, environment, result);
+    return evaluate_apply(stack, expr, environment);
   }
   if (nilp(operator)) {
     // Operator has been evaluated.
@@ -242,7 +242,7 @@ Error evaluate_return_value(Atom *stack, Atom *expr, Atom *environment, Atom *re
   arguments = list_get(*stack, 3);
   if (nilp(arguments)) {
     // No arguments left to evaluate, apply operator.
-    return evaluate_apply(stack, expr, environment, result);
+    return evaluate_apply(stack, expr, environment);
   }
   // Evaluate next argument.
   *expr = car(arguments);
@@ -256,8 +256,8 @@ Error evaluate_expression(Atom expr, Atom environment, Atom *result) {
   Atom stack = nil;
   // These numbers are tailored to free around twenty mebibytes at a time,
   // and to have both of the reasons for garbage collection actually used.
-  const static size_t gcol_pair_allocations_threshold_default = 290500;
-  const static size_t gcol_evaluation_iteration_threshold_default = 100000;
+  static const size_t gcol_pair_allocations_threshold_default = 290500;
+  static const size_t gcol_evaluation_iteration_threshold_default = 100000;
   static size_t evaluation_iterations_until_gcol = gcol_evaluation_iteration_threshold_default;
   do {
     char should_gcol = 0;
@@ -271,7 +271,8 @@ Error evaluate_expression(Atom expr, Atom environment, Atom *result) {
       if (!integerp(pair_allocations_threshold) || pair_allocations_threshold.value.integer <= 0) {
         pair_allocations_threshold = make_int(gcol_pair_allocations_threshold_default);
       }
-      if (pair_allocations_count - pair_allocations_freed >= pair_allocations_threshold.value.integer) {
+      integer_t pairs_in_use = pair_allocations_count - pair_allocations_freed;
+      if (pairs_in_use >= pair_allocations_threshold.value.integer) {
         should_gcol = 1;
       }
     }

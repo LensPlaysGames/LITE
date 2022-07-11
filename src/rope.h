@@ -53,10 +53,9 @@ Rope *rope_remove_from_end(Rope *rope, size_t length);
 Rope *rope_remove_span(Rope *rope, size_t offset, size_t length);
 
 /// Convert a rope into a string.
-/// Pass NULL as PARENT if passing root node as ROPE.
 /// Pass NULL as STRING for a newly allocated string,
 /// otherwise STRING will be appended to.
-char *rope_string(Rope *parent, Rope *rope, char *string);
+char *rope_string(Rope *rope, char *string);
 
 /// Starting at line `lines` (zero-based), return `count` lines as a string.
 char *rope_lines(Rope *rope, size_t lines, size_t count);

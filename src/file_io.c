@@ -50,7 +50,7 @@ char *file_contents(const char* path) {
   return buffer;
 }
 
-const SimpleFile get_file(char *path) {
+SimpleFile get_file(char *path) {
   const char* error_prefix = "get_file(): ";
   SimpleFile smpl;
   smpl.path = NULL;

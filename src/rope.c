@@ -57,6 +57,7 @@ Rope *rope_from_buffer(uint8_t *bytes, size_t length) {
     it += 1;
     count += 1;
   }
+  *it = '\0';
 
   // Copy input string to heap.
   char *newstr = malloc(length + 1);
@@ -499,8 +500,7 @@ Rope *rope_append_byte(Rope *rope, char c) {
   return rope_insert_byte(rope, SIZE_MAX, c);
 }
 
-// Either create a new string or append to existing.
-char *rope_string(Rope *parent, Rope *rope, char *string) {
+char *rope_string(Rope *rope, char *string) {
   if (!rope) {
     return NULL;
   }
@@ -510,17 +510,17 @@ char *rope_string(Rope *parent, Rope *rope, char *string) {
   }
   if (rope->string) {
     size_t len = strlen(string);
-    size_t to_add = rope->weight; // strlen(rope->string);
+    size_t to_add = rope->weight;
     string = realloc(string, len+to_add+1);
     if (!string) { return NULL; }
     strncat(string, rope->string, to_add);
     string[len+to_add] = '\0';
   } else {
     if (rope->left) {
-      string = rope_string(rope, rope->left, string);
+      string = rope_string(rope->left, string);
     }
     if (rope->right) {
-      string = rope_string(rope, rope->right, string);
+      string = rope_string(rope->right, string);
     }
   }
   return string;
@@ -841,7 +841,7 @@ Rope *rope_remove_span(Rope *rope, size_t offset, size_t length) {
 
 char *rope_lines(Rope *rope, size_t start_line, size_t count) {
   if (!rope || count == 0) { return NULL; }
-  char *string = rope_string(NULL, rope, NULL);
+  char *string = rope_string(rope, NULL);
   if (!string) { return NULL; }
   char *it = string;
   size_t line_count = 0;

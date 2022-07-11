@@ -20,7 +20,7 @@ typedef struct SimpleFile {
   size_t size;
 } SimpleFile;
 
-const SimpleFile get_file(char* path);
+SimpleFile get_file(char* path);
 void free_file(SimpleFile file);
 
 size_t file_size(FILE *file);

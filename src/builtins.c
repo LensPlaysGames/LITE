@@ -347,7 +347,7 @@ int builtin_buffer_set_point(Atom arguments, Atom *result) {
   }
   size_t new_point_byte = 0;
   if (point.value.integer > 0) {
-    if (point.value.integer > buffer.value.buffer->rope->weight) {
+    if (point.value.integer > (integer_t)buffer.value.buffer->rope->weight) {
       new_point_byte = buffer.value.buffer->rope->weight;
     } else {
       new_point_byte = point.value.integer;
@@ -676,6 +676,7 @@ int builtin_save(Atom arguments, Atom *result) {
     print_error(err);
     return err.type;
   }
+  *result = make_sym("T");
   return ERROR_NONE;
 }
 

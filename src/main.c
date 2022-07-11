@@ -26,7 +26,7 @@ int main(int argc, char **argv) {
   if (argc > 1) {
     Atom result = nil;
     Error err = ok;
-    for (size_t i = 1; i < argc; ++i) {
+    for (int i = 1; i < argc; ++i) {
       err = evaluate_file(*genv(), argv[i], &result);
       if (err.type) {
         printf("%s: ", argv[i]);

@@ -29,7 +29,7 @@ Buffer *buffer_create(char *path) {
   buffer->path = path;
   buffer->point_byte = 0;
   Rope *rope = NULL;
-  SimpleFile file = get_file(path);
+  const SimpleFile file = get_file(path);
   if (file.flags & SMPL_FILE_FLAG_OK) {
     rope = rope_from_buffer(file.contents, file.size);
     free_file(file);
@@ -246,7 +246,9 @@ size_t buffer_seek_until_byte
       return 0;
     }
   if (direction >= 0) {
-    for (size_t i = buffer->point_byte + 1; i >= buffer->point_byte && i < buffer->rope->weight; ++i) {
+    for (size_t i = buffer->point_byte + 1;
+         i >= buffer->point_byte && i < buffer->rope->weight;
+         ++i) {
       if (strchr(control_string, rope_index(buffer->rope, i))) {
         size_t offset = i - buffer->point_byte;
         buffer->point_byte = i;
@@ -254,7 +256,9 @@ size_t buffer_seek_until_byte
       }
     }
   } else {
-    for (size_t i = buffer->point_byte - 1; i >= 0 && i <= buffer->point_byte; --i) {
+    for (long long i = buffer->point_byte - 1;
+         i >= 0 && i <= (long long)buffer->point_byte;
+         --i) {
       if (strchr(control_string, rope_index(buffer->rope, i))) {
         size_t offset = buffer->point_byte - i;
         buffer->point_byte = i;
@@ -288,7 +292,7 @@ size_t buffer_seek_until_substr
       }
     }
   } else {
-    for (size_t i = buffer->point_byte - 1; i >= 0 && i <= buffer->point_byte; --i) {
+    for (long long i = buffer->point_byte - 1; i >= 0 && i <= (long long)buffer->point_byte; --i) {
       string = allocated_string + i;
       size_t bytes_left = strnlen(string, substring_length + 1);
       if (bytes_left <= substring_length) { return 0; }
@@ -304,7 +308,7 @@ size_t buffer_seek_until_substr
 }
 
 char *buffer_string(Buffer buffer) {
-  return rope_string(NULL, buffer.rope, NULL);
+  return rope_string(buffer.rope, NULL);
 }
 
 char *buffer_lines(Buffer buffer, size_t line_number, size_t line_count) {
@@ -317,7 +321,7 @@ char *buffer_line(Buffer buffer, size_t line_number) {
 
 char *buffer_current_line(Buffer buffer) {
   if (!buffer.rope) { return NULL; }
-  char *contents = rope_string(NULL, buffer.rope, NULL);
+  char *contents = rope_string(buffer.rope, NULL);
   if (!contents) { return NULL; }
   // Search backward for newline, or point_byte of zero.
   size_t point = buffer.point_byte ? buffer.point_byte - 1 : 0;
@@ -409,6 +413,10 @@ Error buffer_save(Buffer buffer) {
   if (close_status != 0) {
     printf("Failure to save buffer at \"%s\" -- bad close\n"
            "errno=%d\n", buffer.path, errno);
+    MAKE_ERROR(err, ERROR_FILE, nil
+               , "buffer_save: Failed to save buffer -- bad close"
+               , NULL);
+    return err;
   }
   if (file_size != bytes) {
     MAKE_ERROR(err, ERROR_FILE, nil
