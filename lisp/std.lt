@@ -284,104 +284,99 @@ Useful for ensuring the user would like to do something before doing it."
   ;; TODO: Think about handling capitilization.
   (eq "yes" (read-prompted prompt)))
 
-;; STANDARD KEYBINDINGS
-
-(define keymap
-    (alist-set
-     keymap "CTRL"
-     (alist-set
-      (alist-get keymap "CTRL") "i"
-      '(search-forward))))
-
-(define keymap
-    (alist-set
-     keymap "CTRL"
-     (alist-set
-      (alist-get keymap "CTRL") "r"
-      '(search-backward))))
-
-(define keymap
-    (alist-set
-     keymap "CTRL"
-     (alist-set
-      (alist-get keymap "CTRL") "a"
-      '(beginning-of-line))))
-
-(define keymap
-    (alist-set
-     keymap "CTRL"
-     (alist-set
-      (alist-get keymap "CTRL") "e"
-      '(end-of-line))))
-
-(define keymap
-    (alist-set
-     keymap "CTRL"
-     (alist-set
-      (alist-get keymap "CTRL") "b"
-      '(backward-byte))))
-
-(define keymap
-    (alist-set
-     keymap "CTRL"
-     (alist-set
-      (alist-get keymap "CTRL") "f"
-      '(forward-byte))))
-
-(define keymap
-    (alist-set
-     keymap "CTRL"
-     (alist-set
-      (alist-get keymap "CTRL") "p"
-      '(backward-line))))
-
-(define keymap
-    (alist-set
-     keymap "CTRL"
-     (alist-set
-      (alist-get keymap "CTRL") "n"
-      '(forward-line))))
-
 (defun save-current-buffer-with-msg (msg)
   "Save buffer 'CURRENT-BUFFER' and return MSG."
   (save current-buffer)
   msg)
 
-;; Save current buffer with "CTRL" "s"
-(define keymap
-    (alist-set
-     keymap "CTRL"
-     (alist-set
-      (alist-get keymap "CTRL") "s"
-      '(save-current-buffer-with-msg "Saved."))))
-
-;; Evaluate zeroeth line with "LEFT-ALT" "0"
-(define keymap
-    (alist-set
-     keymap "LEFT-ALT"
-     (alist-set
-      (alist-get keymap "LEFT-ALT") "0"
-      '(evaluate-string
-        (buffer-line current-buffer 0)))))
-
-
-;; Evaluate current line with "LEFT-ALT" "e"
-(define keymap
-    (alist-set
-     keymap "LEFT-ALT"
-     (alist-set
-      (alist-get keymap "LEFT-ALT") "e"
-      '(evaluate-string
-        (buffer-current-line current-buffer)))))
-
 (defun switch-current-buffer ()
   "Prompt user for a filepath to open a buffer at, and set current-buffer."
   (set current-buffer (open-buffer (read-prompted "filepath: "))))
 
-;; Open new file buffer with "LEFT-ALT" "o"
-(define keymap
-    (alist-set
-     keymap "LEFT-ALT"
-     (alist-set
-      (alist-get keymap "LEFT-ALT") "o"
-      '(switch-current-buffer))))
+(defun evaluate-line ()
+  "Evaluate the current line in the current buffer as a LITE LISP expression."
+  (evaluate-string (buffer-current-line current-buffer)))
+
+(defun evaluate-first-line ()
+  "Evaluate the first line of the current buffer as a LITE LISP expression."
+  (evaluate-string (buffer-line current-buffer 0)))
+
+;; STANDARD KEYBINDINGS
+
+(macro keybind-low-level (keymap keystring keybind)
+       "Define keymap to a keymap with KEYSTRING bound to KEYBIND"
+       ;; TODO: Use `add-to-list`, once implemented, to avoid duplicates.
+       `(define ,keymap (alist-set ,keymap ,keystring ,keybind)))
+
+(defun make-simple-keymap ()
+  "Create a small keymap with the usual rebinds that are used for modifier keys."
+  (let ((simple-keymap nil))
+    (keybind-low-level simple-keymap "LEFT-CONTROL" "CTRL")
+    (keybind-low-level simple-keymap "RIGHT-CONTROL" "CTRL")
+    (keybind-low-level simple-keymap "LEFT-ALT" "ALTS")
+    (keybind-low-level simple-keymap "RIGHT-ALT" "ALTS")
+    (keybind-low-level simple-keymap "LEFT-SHIFT" "SHFT")
+    (keybind-low-level simple-keymap "RIGHT-SHIFT" "SHFT")
+    simple-keymap))
+
+(defmacro get-keymap-or-make-simple (keymap keystring)
+  "Get keymap within KEYMAP at KEYSTRING, or make a simple keymap if it doesn't already exist."
+  `(let ((keymap-at-keystring (alist-get ,keymap ,keystring)))
+    (if keymap-at-keystring keymap-at-keystring (make-simple-keymap))))
+
+(let ((ctrl-keymap (get-keymap-or-make-simple keymap "CTRL")))
+  (let ((ctrl-shft-keymap (get-keymap-or-make-simple ctrl-keymap "SHFT")))
+
+    ;; Default control keymap needs the standard modifier rebindings.
+    (keybind-low-level ctrl-keymap "LEFT-CONTROL" "CTRL")
+    (keybind-low-level ctrl-keymap "RIGHT-CONTROL" "CTRL")
+    (keybind-low-level ctrl-keymap "LEFT-SHIFT" "SHFT")
+    (keybind-low-level ctrl-keymap "RIGHT-SHIFT" "SHFT")
+
+    ;; keybinds: Backspace and... forwardspace?
+    (keybind-low-level
+     ctrl-shft-keymap "d"
+     '(buffer-remove current-buffer 1))
+
+    (keybind-low-level
+     ctrl-keymap "d"
+     '(buffer-remove-forward current-buffer 1))
+
+    ;; keybinds: Simple buffer navigation
+    (keybind-low-level ctrl-keymap "f" '(forward-byte))
+    (keybind-low-level ctrl-keymap "b" '(backward-byte))
+    (keybind-low-level ctrl-keymap "n" '(forward-line))
+    (keybind-low-level ctrl-keymap "p" '(backward-line))
+    (keybind-low-level ctrl-keymap "a" '(beginning-of-line))
+    (keybind-low-level ctrl-keymap "e" '(end-of-line))
+
+    ;; keybinds: Prompted
+    (keybind-low-level ctrl-keymap "i" '(search-forward))
+    (keybind-low-level ctrl-keymap "r" '(search-backward))
+    (keybind-low-level
+     ctrl-keymap "s"
+     '(save-current-buffer-with-msg "Saved"))
+
+    ;; Update nested keymap(s) in local keymap.
+    (keybind-low-level ctrl-keymap "SHFT" ctrl-shft-keymap)
+    ;; Update keymap in global environment from local keymap.
+    (set keymap (alist-set keymap "CTRL" ctrl-keymap))))
+
+(keybind-low-level keymap "LEFT-ALT"  "ALTS")
+(keybind-low-level keymap "RIGHT-ALT" "ALTS")
+(let ((alts-keymap (get-keymap-or-make-simple keymap "ALTS")))
+  ;; keybinds: Evaluation
+  (keybind-low-level alts-keymap "e" '(evaluate-line))
+  (keybind-low-level alts-keymap "0" '(evaluate-first-line))
+
+  ;; keybinds: Prompted
+  (keybind-low-level alts-keymap "o" '(switch-current-buffer))
+
+  ;; Update keymap in global environemt from local keymap.
+  (set keymap (alist-set keymap "ALTS" alts-keymap)))
+
+(let ((shft-keymap (get-keymap-or-make-simple keymap "SHFT")))
+  ;; keybind: Shift enter to insert DOS newline (CRLF).
+  (keybind-low-level shft-keymap "\\r" '(buffer-insert current-buffer "\\r\\n"))
+  ;; Update keymap in global environemt from local keymap.
+  (set keymap (alist-set keymap "SHFT" shft-keymap)))
