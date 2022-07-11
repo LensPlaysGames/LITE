@@ -853,7 +853,7 @@ int builtin_read_prompted(Atom arguments, Atom *result) {
   alist_set(&keymap, make_string(return_character), original_return_binding);
   env_set(*genv(), make_sym("KEYMAP"), keymap);
 
-#else
+#else /* #ifdef LITE_GFX */
 
   char *input = readline((char *)prompt.value.symbol);
   if (!input) {
@@ -866,7 +866,6 @@ int builtin_read_prompted(Atom arguments, Atom *result) {
       input[input_length - 1] = '\0';
     }
   *result = make_string(input);
-  printf("string: ");
   print_atom(*result);
   free(input);
 

@@ -29,6 +29,7 @@ endif ()
 
 add_executable(
   LITE
+  $<$<BOOL:${LITE_GFX}>:src/api.c>
   src/builtins.c
   src/buffer.c
   src/error.c
