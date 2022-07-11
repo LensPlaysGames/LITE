@@ -296,10 +296,7 @@ static inline void draw_gui_string_into_surface_within_rect
     SDL_Rect destination = *rect;
     SDL_Rect destination_copy = destination;
     while (1) {
-      if (*string_contents == '\r'
-          || *string_contents == '\n'
-          || *string_contents == '\0')
-        {
+      if (*string_contents == '\n' || *string_contents == '\0') {
           size_t start_of_line_offset =
             (last_newline_offset == 0 ? 0 : last_newline_offset + 1);
           GUIStringProperty *it = string.properties;
@@ -386,13 +383,10 @@ static inline void draw_gui_string_into_surface_within_rect
                   (string.string, it->offset, it->length);
                 if (propertized_text) {
                   // Correctly display newline/end of string by inserting space.
-                  if (propertized_text[0] == '\n'
-                      || propertized_text[0] == '\r'
-                      || propertized_text[0] == '\0')
-                    {
-                      propertized_text[0] = ' ';
-                      propertized_text[1] = '\0';
-                    }
+                  if (propertized_text[0] == '\n' || propertized_text[0] == '\0') {
+                    propertized_text[0] = ' ';
+                    propertized_text[1] = '\0';
+                  }
                   SDL_Color prop_fg;
                   gui_color_to_sdl(&prop_fg, &it->fg);
                   SDL_Color prop_bg;

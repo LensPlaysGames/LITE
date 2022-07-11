@@ -513,7 +513,7 @@ char *rope_string(Rope *rope, char *string) {
     size_t to_add = rope->weight;
     string = realloc(string, len+to_add+1);
     if (!string) { return NULL; }
-    strncat(string, rope->string, to_add);
+    memcpy(string+len, rope->string, to_add);
     string[len+to_add] = '\0';
   } else {
     if (rope->left) {

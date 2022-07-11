@@ -156,8 +156,8 @@ int handle_character_dn_modifiers(Atom current_keymap, size_t *keybind_recurse_c
   }
   if (modkey_state(GUI_MODKEY_LALT)) {
     Atom lalt_bind = alist_get(current_keymap, make_string("LEFT-ALT"));
-    // Allow string-rebinding of ctrl to another character.
-    // Mostly, this is used to rebind to 'CTRL', the generic L/R ctrl keymap.
+    // Allow string-rebinding of alt to another character.
+    // Mostly, this is used to rebind to 'ALTS', the generic L/R alt keymap.
     if (stringp(lalt_bind)) {
       lalt_bind = alist_get(current_keymap, lalt_bind);
       *keybind_recurse_count += 1;

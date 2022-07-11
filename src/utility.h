@@ -9,14 +9,14 @@
  * - `DEBUG/MEMORY`
  * .
  *
- * @param code The exit code that is passed to `exit()`.
+ * @param[in] code The exit code that is passed to `exit()`.
  */
 void exit_lite(int code);
 
 /** Allocate the given string on the heap and return it's address.
  *
- * @param string A null-terminated string that will be copied onto the
- *               heap.
+ * @param[in] string A null-terminated string that will be copied onto
+ *                   the heap.
  *
  * @return A heap-allocated copy of the passed string, or NULL if the
  *         action can not be completed.

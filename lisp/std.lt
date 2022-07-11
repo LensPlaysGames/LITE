@@ -162,28 +162,19 @@ also known as the absolute value.")
        "Return ALIST with KEY associated to VALUE."
        `(cons (cons ,key ,value) ,alist))
 
-(define alist-get
-    (lambda (alist key)
-      (if (eq key (car (car alist)))
-          ;;then
-          (cdr (car alist))
-          ;;else
-          (if (cdr alist)
-              (alist-get (cdr alist) key)
-              nil)))
-  "Get the value associated with KEY in ALIST, or nil if not found.")
+(defun alist-get (alist key)
+  "Get the value associated with KEY in ALIST, or nil if not found."
+  (if (eq key (caar alist))
+      (cdr (car alist))
+      (when (cdr alist)
+        (alist-get (cdr alist) key))))
 
 ;; BUFFERS
-
-(define newline-bytes "\\r\\n"
-  "A sequence of bytes that may be at the or signify a newline.
-
-This is not the newline encoding, simply all possible newline byte values.")
 
 (defun buffer-prev-line (buffer)
   "Get the line before the current line, if possible."
   (let ((original-point (buffer-point current-buffer)))
-    (if (= (buffer-seek-byte current-buffer newline-bytes -1) 0)
+    (if (= (buffer-seek-byte current-buffer "\\n" -1) 0)
         (buffer-set-point current-buffer 0)
         nil)
     (let ((output (buffer-current-line current-buffer)))
@@ -193,7 +184,7 @@ This is not the newline encoding, simply all possible newline byte values.")
 (defun buffer-next-line (buffer)
   "Get the line after the current line, if possible."
   (let ((original-point (buffer-point current-buffer)))
-    (buffer-seek-byte current-buffer newline-bytes 1)
+    (buffer-seek-byte current-buffer "\\n" 1)
     (let ((output (buffer-current-line current-buffer)))
       (buffer-set-point current-buffer original-point)
       output)))
@@ -208,36 +199,36 @@ This is not the newline encoding, simply all possible newline byte values.")
   "Increment point of `CURRENT-BUFFER` by N bytes."
   (buffer-set-point current-buffer (+ (buffer-point current-buffer) n)))
 
-(macro backward-byte ()
+(defun backward-byte ()
   "Decrement point of `CURRENT-BUFFER` by one byte."
   (backward-bytes 1))
 
-(macro forward-byte ()
+(defun forward-byte ()
   "Increment point of `CURRENT-BUFFER` by one byte."
   (forward-bytes 1))
 
 (defun beginning-of-line ()
   "Move to the beginning of the current line"
-  (if (= (buffer-seek-byte current-buffer newline-bytes -1) 0)
+  (if (= (buffer-seek-byte current-buffer "\\n" -1) 0)
       (buffer-set-point current-buffer 0)
       (forward-byte)))
 
 (defun end-of-line ()
   "Move to the end of the current line."
-  (if (eq (buffer-index current-buffer (buffer-point current-buffer)) "\\r")
-      "\r"
-      (if (eq (buffer-index current-buffer (buffer-point current-buffer)) "\\n")
-          "\n"
-          (if (= (buffer-seek-byte current-buffer newline-bytes 1) 0)
-              (forward-bytes 999999999999) ;; get to end of last line.
-              "End of line."))))
+  (if (eq (buffer-index current-buffer (buffer-point current-buffer)) "\\n")
+      "\n"
+      (if (= (buffer-seek-byte current-buffer "\\n" 1) 0)
+          (forward-bytes 999999999999) ;; get to end of last line.
+          "End of line.")))
 
 (defun backward-line ()
   "Move backward one line, if possible.
 
 Attempts to keep point column the same."
   ;; Calculate column offset and move to end of previous line.
-  (let ((column-offset (buffer-seek-byte current-buffer newline-bytes -1)))
+  (let ((column-offset (buffer-seek-byte current-buffer "\\n" -1)))
+    (when (eq (buffer-index current-buffer (buffer-point current-buffer)) "\\r")
+      (forward-byte))
     ;; If on the first line, do nothing.
     (unless (= column-offset 0)
       (let ((distance-from-end-to-column (+ (- (string-length (buffer-current-line current-buffer)) column-offset) 1)))
@@ -251,7 +242,7 @@ Attempts to keep point column the same."
   (let ((original-point (buffer-point current-buffer)))
     ;; Seek backwards to newline and keep track of originating column.
     (let ((column-offset
-           (let ((column-offset-impl (buffer-seek-byte current-buffer newline-bytes -1)))
+           (let ((column-offset-impl (buffer-seek-byte current-buffer "\\n" -1)))
              ;; If cursor is on the first line of the buffer,
              (if (= column-offset-impl 0)
                  ;; then column offset is one above cursor byte offset.
@@ -262,13 +253,13 @@ Attempts to keep point column the same."
                  ;; otherwise, return bytes moved.
                  column-offset-impl))))
       ;; Seek forward to next newline.
-      (buffer-seek-byte current-buffer newline-bytes 1)
+      (buffer-seek-byte current-buffer "\\n" 1)
       ;; if next line has space to navigate to originating column,
       (if (<= column-offset (string-length (buffer-next-line current-buffer)))
           ;; then navigate to the originating column.
           (forward-bytes column-offset)
           ;; Otherwise, seek to the next newline.
-          (when (= (buffer-seek-byte current-buffer newline-bytes 1) 0)
+          (when (= (buffer-seek-byte current-buffer "\\n" 1) 0)
             ;; If no newline is found, move to end of buffer.
             (forward-bytes 999999999999))))))
 

@@ -326,13 +326,13 @@ char *buffer_current_line(Buffer buffer) {
   // Search backward for newline, or point_byte of zero.
   size_t point = buffer.point_byte ? buffer.point_byte - 1 : 0;
   char *beg = contents + point;
-  while (point && *beg != '\r' && *beg != '\n') {
+  while (point && *beg != '\n') {
     beg -= 1;
     point -= 1;
   }
   char *current_line = NULL;
   size_t line_length = 0;
-  if (*beg == '\r' || *beg == '\n') {
+  if (*beg == '\n') {
     beg += 1;
   }
   char *end = contents + buffer.point_byte;

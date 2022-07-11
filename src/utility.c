@@ -24,7 +24,7 @@ void exit_lite(int code) {
   assert(0 && "UNREACHABLE: exit_lite() must never return.");
 }
 
-char *allocate_string(const char *string) {
+char *allocate_string(const char *const string) {
   if (!string) { return NULL; }
   size_t string_length = strlen(string);
   if (!string_length) { return NULL; }
