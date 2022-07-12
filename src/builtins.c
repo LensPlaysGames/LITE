@@ -634,6 +634,21 @@ int builtin_string_length(Atom arguments, Atom *result) {
   return ERROR_NONE;
 }
 
+symbol_t *builtin_evaluate_docstring =
+  "(evaluate EXPRESSION)\n"
+  "\n"
+  "Evaluate EXPRESSION as LITE LISP.";
+int builtin_evaluate(Atom arguments, Atom *result) {
+  BUILTIN_ENSURE_ONE_ARGUMENT(arguments);
+  Error err = evaluate_expression(car(arguments), *genv(), result);
+  if (err.type) {
+    printf("EVALUATE EVALUATION ");
+    print_error(err);
+    return err.type;
+  }
+  return ERROR_NONE;
+}
+
 symbol_t *builtin_evaluate_string_docstring =
   "(evaluate-string STRING)\n"
   "\n"
