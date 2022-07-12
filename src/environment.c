@@ -160,6 +160,7 @@ Atom default_environment() {
   env_set(environment, make_sym("CAR"),      make_builtin(builtin_car,          builtin_car_docstring));
   env_set(environment, make_sym("CDR"),      make_builtin(builtin_cdr,          builtin_cdr_docstring));
   env_set(environment, make_sym("CONS"),     make_builtin(builtin_cons,         builtin_cons_docstring));
+  env_set(environment, make_sym("SETCAR"),   make_builtin(builtin_setcar,       builtin_setcar_docstring));
   env_set(environment, make_sym("NILP"),     make_builtin(builtin_nilp,         builtin_nilp_docstring));
   env_set(environment, make_sym("PAIRP"),    make_builtin(builtin_pairp,        builtin_pairp_docstring));
   env_set(environment, make_sym("SYMBOLP"),  make_builtin(builtin_symbolp,      builtin_symbolp_docstring));

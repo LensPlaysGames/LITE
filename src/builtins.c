@@ -186,6 +186,21 @@ int builtin_cons(Atom arguments, Atom *result) {
   return ERROR_NONE;
 }
 
+symbol_t *builtin_setcar_docstring =
+  "(setcar PAIR VALUE)\n"
+  "\n"
+  "Set the left side of PAIR to the given VALUE.";
+int builtin_setcar(Atom arguments, Atom *result) {
+  BUILTIN_ENSURE_TWO_ARGUMENTS(arguments);
+  if (!pairp(car(arguments))) {
+    return ERROR_TYPE;
+  }
+  Atom value = car(cdr(arguments));
+  car(car(arguments)) = value;
+  *result = nil;
+  return ERROR_NONE;
+}
+
 symbol_t *builtin_add_docstring =
   "(+ A B)\n"
   "\n"
