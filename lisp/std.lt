@@ -106,15 +106,15 @@ as well as places INITIAL-VALUE at the end of SOME-LIST.")
 
 ;; HELPER MACROS
 
-;; This enforces a docstring when defining a named lambda.
+;; `DEFUN` enforces a docstring when defining a named lambda.
 (macro defun (name args docstring . body)
        "Define a named lambda function with a given docstring."
        `(define ,name (lambda ,args ,@body) ,docstring))
 
-;; This copies `MACRO` exactly, it's purely visual.
+;; `DEFMACRO` allows for macro bodies to be evaluated sequentially, like progn.
 (macro defmacro (macro-name args docstring . body)
        "Define a macro."
-       `(macro ,macro-name ,args ,docstring ,@body))
+       `(macro ,macro-name ,args ,docstring ((lambda () ,@body))))
 
 (macro let (defs . body)
        "Bind the given symbols to the given values while evaluating body."
@@ -168,6 +168,56 @@ also known as the absolute value.")
       (cdr (car alist))
       (when (cdr alist)
         (alist-get (cdr alist) key))))
+
+;; STRUCTURES
+
+(defun structurep (structure)
+  "Return T iff STRUCTURE has the structure of a structure, otherwise nil. :^)"
+  (progn
+    (let ((member (car structure)))
+      (if (pairp member)
+          (if (symbolp (car member))
+              (if (cdr structure) (structurep (cdr structure)) t)
+              (progn
+                (print "structure member identifying symbol must be a symbol.")
+                (print (car member))
+                nil))
+          (progn
+            (print "structure member is not a pair")
+            (print member)
+            nil)))))
+
+;; TODO Create API to copy existing structure and bind it to a symbol.
+;;      This would allow for multiples of a single structure definition.
+(defmacro defstruct (id-symbol docstring structure)
+  "Set ID-SYMBOL to STRUCTURE after type-checking."
+  (if (symbolp `,id-symbol)
+      `(if (structurep ',structure)
+           (set ,id-symbol ',structure ,docstring)
+           (progn
+             (print "ERROR: defstruct argument STRUCTURE must be a structure.")
+             "defstruct argument STRUCTURE must be a structure."))
+      (progn
+        (print "ERROR: defstruct argument ID-SYMBOL must be a symbol.")
+        "defstruct argument ID-SYMBOL must be a symbol.")))
+
+(defmacro access (struct-symbol . body)
+  "Bind member identifiers to member values from structure bound to STRUCT-SYMBOL."
+  (let ((structure (evaluate struct-symbol)))
+    `((lambda ,(map car structure) ,@body) ,@(map cadr structure))))
+
+(defmacro get-member (struct-symbol member-id)
+  "Get value of member within struct bound to STRUCT-SYMBOL with identifier of MEMBER-ID."
+  `(car (alist-get ,struct-symbol ',member-id)))
+
+(defmacro call-member (struct-symbol member-id . args)
+  "Get value of member within struct bound to STRUCT-SYMBOL with identifier of MEMBER-ID."
+  `((car (alist-get ,struct-symbol ',member-id)) ,@args))
+
+(defmacro set-member (struct-symbol member-id member-value)
+  "Set value of member with identifier of MEMBER-ID in struct
+ bound to STRUCT-SYMBOL to value of MEMBER-VALUE."
+  `(setcar (alist-get ,struct-symbol ',member-id) ,(evaluate member-value)))
 
 ;; BUFFERS
 
@@ -324,10 +374,13 @@ Useful for ensuring the user would like to do something before doing it."
   `(let ((keymap-at-keystring (alist-get ,keymap ,keystring)))
     (if keymap-at-keystring keymap-at-keystring (make-simple-keymap))))
 
+(set-docstring keymap "The global keymap containing keybindings.")
+;; TODO Bind default SHFT remappings (need double quote escape sequence, as well as better single backslash support.)
 (let ((ctrl-keymap (get-keymap-or-make-simple keymap "CTRL")))
   (let ((ctrl-shft-keymap (get-keymap-or-make-simple ctrl-keymap "SHFT")))
 
     ;; Default control keymap needs the standard modifier rebindings.
+    ;; FIXME: This can eventually be removed, once we define the keymap entirely from LISP.
     (keybind-low-level ctrl-keymap "LEFT-CONTROL" "CTRL")
     (keybind-low-level ctrl-keymap "RIGHT-CONTROL" "CTRL")
     (keybind-low-level ctrl-keymap "LEFT-SHIFT" "SHFT")

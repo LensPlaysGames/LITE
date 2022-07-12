@@ -299,6 +299,75 @@ When including the standard library, ~DEFMACRO~ operates exactly the same as ~MA
 When the environment variable ~DEBUG/MACRO~ is non-nil,
 extra output concerning macros is produced.
 
+*** Structures
+
+Structures are defined in the standard library, and can not be used
+unless it is included. You have been warned :^).
+
+In LITE LISP, structures are basically an associative list with
+stricter rules.
+
+Each association within the structure is referred to as a /member/.
+
+Each member must be a pair with a symbol on the left side. This symbol
+is the member's /identifier/, or ID.
+
+Let's look at how to define a new structure:
+#+begin_src lisp
+  (defstruct my-struct
+    "my docstring"
+    ((my-member 0)))
+#+end_src
+
+Here, we have a structure, ~my-struct~, with a single member, ~my-member~.
+
+It should be noted that the syntax for defining members matches ~let~
+exactly, at least for now.
+
+One important thing to note is that initial values given to members
+are not evaluated, and so must be a self-evaluating value (a literal).
+For example, attempting to put the name of a function as an initial
+value *does not work* (at least not as expected). The member will be
+bound to the symbol that matches the name of the function, not the
+function itself.
+
+To access the value of any given member within a structure, use ~get-member~:
+#+begin_src lisp
+  (get-member my-struct my-member)
+#+end_src
+
+This will return the value of the member with an ID of ~my-member~
+within ~my-struct~. If one does not exist, it will return nil. Because
+we gave the member an initial value of zero, that is what is returned.
+
+~set-member~ can be used to update a member's value.
+#+begin_src lisp
+  (set-member my-struct my-member 42)
+#+end_src
+
+To define a member to a function, you must first define the structure.
+Afterwards, use ~set-member~, which evaluates the value argument:
+#+begin_src lisp
+  (set-member my-struct my-member +)
+#+end_src
+
+At this point, ~my-member~ of ~my-struct~ has a value of the closure
+which was bound to the symbol ~+~.
+
+We can now call this member function using ~call-member~:
+#+begin_src lisp
+  (call-member my-struct my-member 34 35)
+#+end_src
+
+Any arguments after the structure symbol and member ID are passed to
+the called function.
+
+For now, there is no way to create a new instance of a struct.
+I understand this isn't how structures are expected to work.
+This is a WIP and the API to copy atoms is not there yet, but as soon
+as it is, we will add the capability to get a new instance of a
+previously defined structure.
+
 *** Misc
 
 - Buffer Table
