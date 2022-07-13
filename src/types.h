@@ -139,6 +139,14 @@ Atom *buf_table();
 
 char *atom_string(Atom atom, char *str);
 
+/** Compare two atoms.
+ *
+ * This is how 'EQ' is declared.
+ *
+ * @return T iff atoms a and b are equal, otherwise NIL.
+ */
+Atom compare_atoms(Atom a, Atom b);
+
 void print_atom(Atom atom);
 /// Print lists' CDR on newline.
 void pretty_print_atom(Atom atom);

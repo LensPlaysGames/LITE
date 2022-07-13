@@ -39,6 +39,11 @@ int builtin_cdr         (Atom arguments, Atom *result);
 extern symbol_t         *builtin_setcar_docstring;
 int builtin_setcar      (Atom arguments, Atom *result);
 
+// LISTS
+
+extern symbol_t         *builtin_member_docstring;
+int builtin_member      (Atom arguments, Atom *result);
+
 // LOGICAL
 
 extern symbol_t         *builtin_not_docstring;

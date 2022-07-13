@@ -342,13 +342,13 @@ we gave the member an initial value of zero, that is what is returned.
 
 ~set-member~ can be used to update a member's value.
 #+begin_src lisp
-  (set-member my-struct my-member 42)
+  (set-member my-struct 'my-member 42)
 #+end_src
 
 To define a member to a function, you must first define the structure.
 Afterwards, use ~set-member~, which evaluates the value argument:
 #+begin_src lisp
-  (set-member my-struct my-member +)
+  (set-member my-struct 'my-member +)
 #+end_src
 
 At this point, ~my-member~ of ~my-struct~ has a value of the closure
@@ -362,11 +362,28 @@ We can now call this member function using ~call-member~:
 Any arguments after the structure symbol and member ID are passed to
 the called function.
 
-For now, there is no way to create a new instance of a struct.
-I understand this isn't how structures are expected to work.
-This is a WIP and the API to copy atoms is not there yet, but as soon
-as it is, we will add the capability to get a new instance of a
-previously defined structure.
+As you may already be thinking, you don't always want to use structures
+in the way shown above, where the actual structure definition is the
+mutable data. In most cases, it is preferable to define a structure
+once, and have multiple instances of the defined structure for different
+tasks and such. This is possible with the ~make~ macro:
+#+begin_src lisp
+  (defstruct vector3
+    "Three integers named X, Y, and Z."
+    (x 0)
+    (y 0)
+    (z 0))
+
+  (set my-coordinates (make vector3))
+  (set-member my-coordinates 'x 33)
+  (set-member my-coordinates 'y 12)
+  (set-member my-coordinates 'z 22)
+  (let ((coordinate-members (map car my-coordinates))
+        (coordinate-values (map cadr my-coordinates)))
+    (print coordinate-members)
+    (print coordinate-values))
+  (print my-coordinates)
+#+end_src
 
 *** Misc
 

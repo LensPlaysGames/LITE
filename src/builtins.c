@@ -202,6 +202,22 @@ int builtin_setcar(Atom arguments, Atom *result) {
   return ERROR_NONE;
 }
 
+symbol_t *builtin_member_docstring =
+  "(member ELEMENT LIST)\n"
+  "\n"
+  "Return non-nil iff ELEMENT is an element of LIST.";
+int builtin_member(Atom arguments, Atom *result) {
+  BUILTIN_ENSURE_TWO_ARGUMENTS(arguments);
+  Atom key = car(arguments);
+  Atom list = car(cdr(arguments));
+  *result = nil;
+  for (; !nilp(list); list = cdr(list)) {
+    Atom equal = compare_atoms(key, car(list));
+    if (!nilp(equal)) { *result = equal; }
+  }
+  return ERROR_NONE;
+}
+
 symbol_t *builtin_add_docstring =
   "(+ A B)\n"
   "\n"
@@ -809,42 +825,9 @@ symbol_t *builtin_eq_docstring =
   "\n"
   "Return 'T' iff A and B refer to the same Atomic LISP object.";
 int builtin_eq(Atom arguments, Atom *result) {
-  BUILTIN_ENSURE_TWO_ARGUMENTS(arguments);
-  Atom a = car(arguments);
-  Atom b = car(cdr(arguments));
-  int equal = 0;
   assert(ATOM_TYPE_MAX == 9);
-  if (a.type == b.type) {
-    switch (a.type) {
-    case ATOM_TYPE_NIL:
-      equal = 1;
-      break;
-    case ATOM_TYPE_PAIR:
-    case ATOM_TYPE_CLOSURE:
-    case ATOM_TYPE_MACRO:
-      equal = (a.value.pair == b.value.pair);
-      break;
-    case ATOM_TYPE_SYMBOL:
-      equal = (a.value.symbol == b.value.symbol);
-      break;
-    case ATOM_TYPE_STRING:
-      equal = (strcmp(a.value.symbol, b.value.symbol) == 0);
-      break;
-    case ATOM_TYPE_INTEGER:
-      equal = (a.value.integer == b.value.integer);
-      break;
-    case ATOM_TYPE_BUILTIN:
-      equal = (a.value.builtin == b.value.builtin);
-      break;
-    case ATOM_TYPE_BUFFER:
-      equal = (a.value.buffer == b.value.buffer);
-      break;
-    default:
-      equal = 0;
-      break;
-    }
-  }
-  *result = equal ? make_sym("T") : nil;
+  BUILTIN_ENSURE_TWO_ARGUMENTS(arguments);
+  *result = compare_atoms(car(arguments), car(cdr(arguments)));
   return ERROR_NONE;
 }
 

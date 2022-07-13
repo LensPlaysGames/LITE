@@ -215,6 +215,8 @@ Atom default_environment() {
   env_set(environment, make_sym("BUFFER-SEEK-SUBSTRING")
           , make_builtin(builtin_buffer_seek_substring, builtin_buffer_seek_substring_docstring));
 
+  env_set(environment, make_sym("MEMBER"), make_builtin(builtin_member, builtin_member_docstring));
+
   env_set(environment, make_sym("READ-PROMPTED")
           , make_builtin(builtin_read_prompted, builtin_read_prompted_docstring));
   env_set(environment, make_sym("FINISH-READ")

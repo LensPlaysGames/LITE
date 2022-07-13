@@ -425,34 +425,18 @@ Atom alist_get(Atom alist, Atom key) {
     return nil;
   }
   size_t i = 0;
-  Atom list;
-  Atom item;
-  while (1) {
-    list = list_get_past(alist, i);
-    item = car(list);
+  for (Atom list = alist; !nilp(list); list = cdr(list)) {
+    Atom item = car(list);
     // Every item within an association list needs to be a pair!
     if (!pairp(item)) {
       return nil;
     }
-    // Test if key matches.
-    Atom is_match = nil;
-    Error err;
-    err.type = builtin_eq(cons(key, cons(car(item), nil)), &is_match);
-    if (err.type) {
-      printf("alist_get() ");
-      print_error(err);
-      return nil;
-    }
-    // Return value if key matched.
-    if (!nilp(is_match)) {
+    // Return value if key matches.
+    if (!nilp(compare_atoms(key, car(item)))) {
       return cdr(item);
     }
-    // Don't extend past end of alist.
-    if (nilp(cdr(list))) {
-      return nil;
-    }
-    i++;
   }
+  return nil;
 }
 
 void alist_set(Atom *alist, Atom key, Atom value) {
@@ -676,4 +660,40 @@ char *atom_string(Atom atom, char *buffer) {
     break;
   }
   return buffer;
+}
+
+Atom compare_atoms(Atom a, Atom b) {
+  int equal = 0;
+  assert(ATOM_TYPE_MAX == 9);
+  if (a.type == b.type) {
+    switch (a.type) {
+    case ATOM_TYPE_NIL:
+      equal = 1;
+      break;
+    case ATOM_TYPE_PAIR:
+    case ATOM_TYPE_CLOSURE:
+    case ATOM_TYPE_MACRO:
+      equal = (a.value.pair == b.value.pair);
+      break;
+    case ATOM_TYPE_SYMBOL:
+      equal = (a.value.symbol == b.value.symbol);
+      break;
+    case ATOM_TYPE_STRING:
+      equal = (strcmp(a.value.symbol, b.value.symbol) == 0);
+      break;
+    case ATOM_TYPE_INTEGER:
+      equal = (a.value.integer == b.value.integer);
+      break;
+    case ATOM_TYPE_BUILTIN:
+      equal = (a.value.builtin == b.value.builtin);
+      break;
+    case ATOM_TYPE_BUFFER:
+      equal = (a.value.buffer == b.value.buffer);
+      break;
+    default:
+      equal = 0;
+      break;
+    }
+  }
+  return equal ? make_sym("T") : nil;
 }
