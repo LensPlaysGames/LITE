@@ -200,14 +200,29 @@ Error parse_string(const char *beg, const char **end, Atom *result) {
           contents[written_offset] = '\r';
           written_offset += 1;
           break;
-        default:
-          // Unrecognized escape sequence, print literally.
-          contents[written_offset] = '\\';
+        case '"':
+          // "\\"" -> '"'
+          contents[written_offset] = '"';
           written_offset += 1;
-          contents[written_offset] = '\\';
-          written_offset += 1;
-          write_this_iteration = 1;
           break;
+        case '\r':
+          // "\\" + CRLF -> 0xa 0xd ("\r\n")
+          contents[written_offset] = '\r';
+          written_offset += 1;
+          contents[written_offset] = '\n';
+          written_offset += 1;
+          break;
+        case '\n':
+          // "\\" + LF -> 0xa ('\n')
+          contents[written_offset] = '\n';
+          written_offset += 1;
+          break;
+        default:
+          // Unrecognized escape sequence, print single backslash.
+          contents[written_offset] = '\\';
+          written_offset += 1;
+          prev_was_backslash = 0;
+          write_this_iteration = 1;
         }
       }
     }
@@ -228,6 +243,11 @@ Error parse_string(const char *beg, const char **end, Atom *result) {
       written_offset += 1;
     }
     p++;
+  }
+  prev_was_backslash -= 1;
+  while (--prev_was_backslash >= 0 && written_offset < string_length) {
+    contents[written_offset] = '\\';
+    written_offset += 1;
   }
   contents[written_offset] = '\0';
   contents[string_length] = '\0';

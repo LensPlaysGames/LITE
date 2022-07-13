@@ -120,7 +120,39 @@ inline GUIContext *gui_ctx() { return gctx; }
 /// Returns boolean-like value (0 == discard keypress, 1 == use keypress)
 int handle_character_dn_modifiers(Atom current_keymap, size_t *keybind_recurse_count) {
   // HANDLE MODIFIER KEYMAPS
-
+  if (modkey_state(GUI_MODKEY_LSUPER)) {
+    Atom lsuper_bind = alist_get(current_keymap, make_string("LEFT-SUPER"));
+    // Allow string-rebinding of super to another character.
+    // Mostly, this is used to rebind to 'SUPR', the generic L/R super keymap.
+    if (stringp(lsuper_bind)) {
+      lsuper_bind = alist_get(current_keymap, lsuper_bind);
+      *keybind_recurse_count += 1;
+    }
+    if (alistp(lsuper_bind)) {
+      current_keymap = lsuper_bind;
+    } else {
+      // TODO: What keybind is undefined???
+      // I guess we need to keep track of how we got here.
+      // This could be done by saving keys of each keybind.
+      update_gui_string(&gctx->footline, allocate_string("Undefined keybinding!"));
+      // Discard character if no keybind was found.
+      return 0;
+    }
+  } else if (modkey_state(GUI_MODKEY_RSUPER)) {
+    Atom rsuper_bind = alist_get(current_keymap, make_string("RIGHT-SUPER"));
+    if (stringp(rsuper_bind)) {
+      rsuper_bind = alist_get(current_keymap, rsuper_bind);
+      *keybind_recurse_count += 1;
+    }
+    if (alistp(rsuper_bind)) {
+      current_keymap = rsuper_bind;
+    } else {
+      // TODO: What keybind is undefined???
+      update_gui_string(&gctx->footline, allocate_string("Undefined keybinding!"));
+      // Discard character if no keybind was found.
+      return 0;
+    }
+  }
   if (modkey_state(GUI_MODKEY_LCTRL)) {
     Atom lctrl_bind = alist_get(current_keymap, make_string("LEFT-CONTROL"));
     // Allow string-rebinding of ctrl to another character.
@@ -300,6 +332,9 @@ void handle_keydown(char *keystring) {
       if (symbolp(keybind)) {
         // Explicitly insert with 'SELF-INSERT' symbol.
         if (keybind.value.symbol && keybind.value.symbol[0] != '\0') {
+          if (strcmp(keybind.value.symbol, "IGNORE") == 0) {
+            return;
+          }
           if (strcmp(keybind.value.symbol, "SELF-INSERT") == 0) {
             // FIXME: This assumes one-byte content.
             Error err = buffer_insert(current_buffer.value.buffer, keystring);

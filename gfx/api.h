@@ -24,6 +24,8 @@ GUIContext *gui_ctx();
 void handle_keydown(char *keystring);
 
 typedef enum GUIModifierKey {
+  GUI_MODKEY_LSUPER,
+  GUI_MODKEY_RSUPER,
   GUI_MODKEY_LCTRL,
   GUI_MODKEY_RCTRL,
   GUI_MODKEY_LALT,
