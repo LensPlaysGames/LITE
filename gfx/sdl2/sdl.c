@@ -269,6 +269,7 @@ static inline void draw_gui_string_into_surface_within_rect
   SDL_Surface *text_surface = NULL;
   // srcrect is the rectangle within text_surface that will be copied from.
   SDL_RECT_EMPTY(srcrect);
+  rect_copy_size(&srcrect, rect);
   if (!string.properties) {
 #if SDL_TTF_VERSION_ATLEAST(2,0,18)
     text_surface = TTF_RenderUTF8_Shaded_Wrapped
@@ -279,8 +280,6 @@ static inline void draw_gui_string_into_surface_within_rect
 #endif
     if (!text_surface) { return; }
   } else {
-    // First line is blank for some reason.
-    srcrect.y += font_height;
     text_surface = SDL_CreateRGBSurfaceWithFormat
       (0, rect->w, rect->h, 32, SDL_PIXELFORMAT_RGBA32);
     if (!text_surface) { return; }
@@ -293,7 +292,7 @@ static inline void draw_gui_string_into_surface_within_rect
     // Destination within text_surface to render text into.
     // SDL_BlitSurface overrides the destination rect w and h,
     // so we must use a copy to prevent clobbering our data.
-    SDL_Rect destination = *rect;
+    SDL_Rect destination = srcrect;
     SDL_Rect destination_copy = destination;
     while (1) {
       if (*string_contents == '\n' || *string_contents == '\0') {
@@ -454,7 +453,6 @@ static inline void draw_gui_string_into_surface_within_rect
       offset += 1;
     }
   }
-  rect_copy_size(&srcrect, rect);
   // dstrect stores the position that text_surface will be copied into surface.
   SDL_RECT_EMPTY(dstrect);
   rect_copy_position(&dstrect, rect);
