@@ -182,6 +182,7 @@ Atom default_environment() {
   env_set(environment, make_sym(">"),        make_builtin(builtin_numgt,        builtin_numgt_docstring));
   env_set(environment, make_sym(">="),       make_builtin(builtin_numgt_or_eq,  builtin_numgt_or_eq_docstring));
   env_set(environment, make_sym("EQ"),       make_builtin(builtin_eq,           builtin_eq_docstring));
+  env_set(environment, make_sym("COPY"),     make_builtin(builtin_copy,         builtin_copy_docstring));
   env_set(environment, make_sym("SAVE"),     make_builtin(builtin_save,         builtin_save_docstring));
   env_set(environment, make_sym("APPLY"),    make_builtin(builtin_apply,        builtin_apply_docstring));
   env_set(environment, make_sym("PRINT"),    make_builtin(builtin_print,        builtin_print_docstring));

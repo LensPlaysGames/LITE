@@ -1,5 +1,6 @@
 #include <builtins.h>
 
+#include <assert.h>
 #include <buffer.h>
 #include <error.h>
 #include <environment.h>
@@ -621,6 +622,49 @@ int builtin_buffer_seek_substring(Atom arguments, Atom *result) {
   return ERROR_NONE;
 }
 
+int copy_impl(Atom *copy, Atom *result) {
+  assert(ATOM_TYPE_MAX == 9);
+  switch (copy->type) {
+  case ATOM_TYPE_NIL:
+    *result = nil;
+    break;
+  case ATOM_TYPE_CLOSURE:
+  case ATOM_TYPE_MACRO:
+  case ATOM_TYPE_PAIR:
+    *result = cons(nil, nil);
+    copy_impl(&copy->value.pair->atom[0], &result->value.pair->atom[0]);
+    copy_impl(&copy->value.pair->atom[1], &result->value.pair->atom[1]);
+    break;
+  case ATOM_TYPE_SYMBOL:
+    *result = make_sym(copy->value.symbol);
+    break;
+  case ATOM_TYPE_INTEGER:
+    *result = make_int(copy->value.integer);
+    break;
+  case ATOM_TYPE_BUILTIN:
+    *result = make_builtin(copy->value.builtin, copy->docstring);
+    break;
+  case ATOM_TYPE_STRING:
+    *result = make_string(copy->value.symbol);
+    break;
+  case ATOM_TYPE_BUFFER:
+    *result = make_buffer(copy->value.buffer->environment, copy->value.buffer->path);
+    break;
+  default:
+    break;
+  }
+  return ERROR_NONE;
+}
+
+symbol_t *builtin_copy_docstring =
+  "(copy ATOM)\n"
+  "\n"
+  "Return a deep copy of ATOM.";
+int builtin_copy(Atom arguments, Atom *result) {
+  BUILTIN_ENSURE_ONE_ARGUMENT(arguments);
+  return copy_impl(&car(arguments), result);
+}
+
 symbol_t *builtin_string_length_docstring =
   "(string-length string)\n"
   "\n"
@@ -769,6 +813,7 @@ int builtin_eq(Atom arguments, Atom *result) {
   Atom a = car(arguments);
   Atom b = car(cdr(arguments));
   int equal = 0;
+  assert(ATOM_TYPE_MAX == 9);
   if (a.type == b.type) {
     switch (a.type) {
     case ATOM_TYPE_NIL:
@@ -790,6 +835,9 @@ int builtin_eq(Atom arguments, Atom *result) {
       break;
     case ATOM_TYPE_BUILTIN:
       equal = (a.value.builtin == b.value.builtin);
+      break;
+    case ATOM_TYPE_BUFFER:
+      equal = (a.value.buffer == b.value.buffer);
       break;
     default:
       equal = 0;

@@ -1,5 +1,6 @@
 #include <types.h>
 
+#include <assert.h>
 #include <buffer.h>
 #include <builtins.h>
 #include <error.h>
@@ -462,6 +463,7 @@ void alist_set(Atom *alist, Atom key, Atom value) {
 }
 
 void print_atom(Atom atom) {
+  assert(ATOM_TYPE_MAX == 9);
   switch (atom.type) {
   default:
     printf("#<UNKNOWN>:%d", atom.type);
@@ -547,6 +549,7 @@ int format_bufsz(const char *format, ...) {
 }
 
 char *atom_string(Atom atom, char *buffer) {
+  assert(ATOM_TYPE_MAX == 9);
   char *left;
   char *right;
   size_t rightlen;
@@ -559,7 +562,7 @@ char *atom_string(Atom atom, char *buffer) {
   const char *builtin_format = "#<BUILTIN>:%p";
   const char *closure_format = "#<CLOSURE>:%p";
   const char *macro_format   = "#<MACRO>:%p";
-  const char *buffer_format  = "#<BUFFER>:%p";
+  const char *buffer_format  = "#<BUFFER>:\"%s\":%zu";
   switch (atom.type) {
   case ATOM_TYPE_NIL:
     to_add = 4;
@@ -664,10 +667,12 @@ char *atom_string(Atom atom, char *buffer) {
     snprintf(buffer+length, to_add, macro_format, atom.value.builtin);
     break;
   case ATOM_TYPE_BUFFER:
-    to_add = format_bufsz(buffer_format, atom.value.buffer);
+    to_add = format_bufsz(buffer_format, atom.value.buffer->path, atom.value.buffer->point_byte);
     buffer = realloc(buffer, length+to_add);
     if (!buffer) { return NULL; }
-    snprintf(buffer+length, to_add, buffer_format, atom.value.builtin);
+    snprintf(buffer+length, to_add, buffer_format, atom.value.buffer->path, atom.value.buffer->point_byte);
+    break;
+  default:
     break;
   }
   return buffer;

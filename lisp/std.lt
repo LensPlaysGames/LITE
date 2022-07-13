@@ -201,23 +201,30 @@ also known as the absolute value.")
         (print "ERROR: defstruct argument ID-SYMBOL must be a symbol.")
         "defstruct argument ID-SYMBOL must be a symbol.")))
 
-(defmacro access (struct-symbol . body)
-  "Bind member identifiers to member values from structure bound to STRUCT-SYMBOL."
-  (let ((structure (evaluate struct-symbol)))
+(defmacro make (symbol)
+  "Return a copy of the structure bound to SYMBOL, or nil if SYMBOL is not bound to a structure."
+  (let ((structure (evaluate symbol)))
+    `(if ,(structurep structure)
+         ',(copy structure)
+         (print "ERROR: STRUCT-SYMBOL passed to MAKE must be bound to a structure."))))
+
+(defmacro access (symbol . body)
+  "Bind member identifiers to member values from structure bound to SYMBOL."
+  (let ((structure (evaluate symbol)))
     `((lambda ,(map car structure) ,@body) ,@(map cadr structure))))
 
-(defmacro get-member (struct-symbol member-id)
-  "Get value of member within struct bound to STRUCT-SYMBOL with identifier of MEMBER-ID."
-  `(car (alist-get ,struct-symbol ',member-id)))
+(defmacro get-member (symbol member-id)
+  "Get value of member within struct bound to SYMBOL with identifier of MEMBER-ID."
+  `(car (alist-get ,symbol ',member-id)))
 
-(defmacro call-member (struct-symbol member-id . args)
-  "Get value of member within struct bound to STRUCT-SYMBOL with identifier of MEMBER-ID."
-  `((car (alist-get ,struct-symbol ',member-id)) ,@args))
+(defmacro call-member (symbol member-id . args)
+  "Get value of member within struct bound to SYMBOL with identifier of MEMBER-ID."
+  `((car (alist-get ,symbol ',member-id)) ,@args))
 
-(defmacro set-member (struct-symbol member-id member-value)
-  "Set value of member with identifier of MEMBER-ID in struct
- bound to STRUCT-SYMBOL to value of MEMBER-VALUE."
-  `(setcar (alist-get ,struct-symbol ',member-id) ,(evaluate member-value)))
+(defmacro set-member (symbol member-id member-value)
+  "Within structure bound to SYMBOL, set value of member with
+identifier of MEMBER-ID to MEMBER-VALUE."
+  `(setcar (alist-get ,symbol ',member-id) ,(evaluate member-value)))
 
 ;; BUFFERS
 

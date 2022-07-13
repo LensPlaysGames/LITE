@@ -27,6 +27,7 @@ typedef struct Atom {
     ATOM_TYPE_MACRO,
     ATOM_TYPE_STRING,
     ATOM_TYPE_BUFFER,
+    ATOM_TYPE_MAX,
   } type;
   union AtomValue {
     struct Pair *pair;
