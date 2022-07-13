@@ -21,6 +21,6 @@ void exit_lite(int code);
  * @return A heap-allocated copy of the passed string, or NULL if the
  *         action can not be completed.
  */
-char *allocate_string(const char *string);
+char *allocate_string(const char *const string);
 
 #endif /* LITE_UTILITY_H */

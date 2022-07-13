@@ -4,6 +4,9 @@
 #include <stddef.h>
 #include <stdint.h>
 
+// Uncomment the following pre-processor directive to enable debug output.
+//#define DEBUG_ROPE
+
 typedef struct Rope {
   size_t weight;
   char *string;

@@ -424,7 +424,6 @@ Atom alist_get(Atom alist, Atom key) {
   if (!alistp(alist) || nilp(key)) {
     return nil;
   }
-  size_t i = 0;
   for (Atom list = alist; !nilp(list); list = cdr(list)) {
     Atom item = car(list);
     // Every item within an association list needs to be a pair!
