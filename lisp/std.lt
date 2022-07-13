@@ -226,7 +226,7 @@ Like 'LET', but for a structure's members."
 
 (defun set-member (structure id value)
   "Within STRUCTURE, bind ID to VALUE."
-  (if (member id structure)
+  (if (member id (map car structure))
       (setcar (alist-get structure id) value)
       (progn
         (print "ERROR: ID passed to SET-MEMBER must be a member of STRUCTURE.")
