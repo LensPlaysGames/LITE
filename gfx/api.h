@@ -16,8 +16,12 @@
 typedef struct GUIContext GUIContext;
 GUIContext *gui_ctx();
 
-// TODO: Pass strings (left arrow could be "<left-arrow>", 'a' could be "a", etc).
-void handle_character_dn(uint64_t c);
+/** Handle a character down event sent from the OS to the application.
+ * Characters are converted to strings. Most of the time the string is
+ * just the bytes of a character, but certain strings are handled
+ * specially.
+ */
+void handle_keydown(char *keystring);
 
 typedef enum GUIModifierKey {
   GUI_MODKEY_LCTRL,

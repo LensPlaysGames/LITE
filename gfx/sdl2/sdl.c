@@ -8,6 +8,7 @@
 #define SDL_MAIN_HANDLED
 #include <SDL.h>
 #include <SDL_events.h>
+#include <SDL_keycode.h>
 #include <SDL_rect.h>
 #include <SDL_render.h>
 #include <SDL_surface.h>
@@ -574,8 +575,30 @@ int handle_events() {
       if ((mod = is_modifier(event.key.keysym.sym)) != GUI_MODKEY_MAX) {
         handle_modifier_dn(mod);
       } else {
-        uint64_t c = event.key.keysym.sym;
-        handle_character_dn(c);
+        int32_t c = event.key.keysym.sym;
+        const size_t max_size = 32;
+        char *string = malloc(max_size);
+        if (!string) { break; }
+        switch (event.key.keysym.sym) {
+        case SDLK_LEFT:
+          strncpy(string, "<left-arrow>"                   , max_size);
+          break;
+        case SDLK_RIGHT:
+          strncpy(string, "<right-arrow>"                  , max_size);
+          break;
+        case SDLK_UP:
+          strncpy(string, "<up-arrow>"                     , max_size);
+          break;
+        case SDLK_DOWN:
+          strncpy(string, "<down-arrow>"                   , max_size);
+          break;
+        default:
+          memcpy(string, &event.key.keysym.sym, sizeof(SDL_Keycode));
+          break;
+        }
+        string[max_size - 1] = '\0';
+        handle_keydown(string);
+        free(string);
       }
       break;
     case SDL_KEYUP:

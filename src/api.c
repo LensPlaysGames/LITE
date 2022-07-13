@@ -209,21 +209,21 @@ int handle_character_dn_modifiers(Atom current_keymap, size_t *keybind_recurse_c
   return 1;
 }
 
-void handle_character_dn(uint64_t c) {
-  const char *ignored_bytes = "\e\f\v";
-  if (strchr(ignored_bytes, (unsigned char)c)) {
-    return;
-  }
+void handle_keydown(char *keystring) {
   int debug_keybinding = env_non_nil(*genv(), make_sym("DEBUG/KEYBINDING"));
   if (debug_keybinding) {
-    if (c > 255) {
-      printf("Keydown: %llu\n", c);
-    } else {
-      printf("Keydown: %c\n", (char)c);
-    }
+    printf("Keydown: %s\n", keystring ? keystring : "NULL");
+  }
+  if (!keystring) {
+    return;
+  }
+  const char *ignored_bytes = "\e\f\v";
+  if (strpbrk(keystring, ignored_bytes)) {
+    return;
   }
   const size_t keybind_recurse_limit = 256;
   size_t keybind_recurse_count = 0;
+
   // Get current keymap from LISP environment.
   Atom current_keymap = nil;
   env_get(*genv(), make_sym("CURRENT-KEYMAP"), &current_keymap);
@@ -240,10 +240,11 @@ void handle_character_dn(uint64_t c) {
   if (!bufferp(current_buffer)) {
     return;
   }
+
   if (!handle_character_dn_modifiers(current_keymap, &keybind_recurse_count)) {
     return;
   }
-  while (c && keybind_recurse_count < keybind_recurse_limit) {
+  while (keystring && keybind_recurse_count < keybind_recurse_limit) {
     env_get(*genv(), make_sym("CURRENT-KEYMAP"), &current_keymap);
     if (debug_keybinding) {
       printf("Current keymap: ");
@@ -251,12 +252,7 @@ void handle_character_dn(uint64_t c) {
       putchar('\n');
     }
 
-    const size_t tmp_str_sz = 2;
-    char tmp_str[tmp_str_sz];
-    memset(&tmp_str[0], '\0', tmp_str_sz);
-    // TODO+FIXME: This falsely assumes one-byte character.
-    tmp_str[0] = (char)c;
-    Atom keybind = alist_get(current_keymap, make_string(tmp_str));
+    Atom keybind = alist_get(current_keymap, make_string(keystring));
 
     if (debug_keybinding) {
       printf("Got keybind: ");
@@ -270,7 +266,7 @@ void handle_character_dn(uint64_t c) {
         printf("Nested keymap found, updating CURRENT-KEYMAP\n");
       }
       env_set(*genv(), make_sym("CURRENT-KEYMAP"), keybind);
-      c = 0;
+      keystring = NULL;
       continue;
     } else {
       Atom root_keymap = nil;
@@ -281,18 +277,17 @@ void handle_character_dn(uint64_t c) {
           {
             // If current keymap is root keymap, key is not bound.
             if (debug_keybinding) {
-              printf("Key not bound: %c\n", (char)c);
+              printf("Key not bound: \"%s\"\n", keystring);
             }
             // Default behaviour of un-bound input, just insert it.
             // Maybe this should change? I'm not certain.
-            // FIXME: This assumes one-byte content.
-            Error err = buffer_insert_byte(current_buffer.value.buffer, (char)c);
+            Error err = buffer_insert(current_buffer.value.buffer, keystring);
             if (err.type) {
               print_error(err);
               update_gui_string(&gctx->footline, error_string(err));
               return;
             }
-            c = 0;
+            keystring = NULL;
             continue;
           }
         env_set(*genv(), make_sym("CURRENT-KEYMAP"), root_keymap);
@@ -307,20 +302,20 @@ void handle_character_dn(uint64_t c) {
         if (keybind.value.symbol && keybind.value.symbol[0] != '\0') {
           if (strcmp(keybind.value.symbol, "SELF-INSERT") == 0) {
             // FIXME: This assumes one-byte content.
-            Error err = buffer_insert_byte(current_buffer.value.buffer, (char)c);
+            Error err = buffer_insert(current_buffer.value.buffer, keystring);
             if (err.type) {
               print_error(err);
               update_gui_string(&gctx->footline, error_string(err));
               return;
             }
-            c = 0;
+            keystring = NULL;
             continue;
           }
         }
       } else if (stringp(keybind)) {
-        // Rebind characters (only one byte for now) using a string associated value.
+        // Rebind characters using a string associated value.
         if (keybind.value.symbol && keybind.value.symbol[0] != '\0') {
-          c = keybind.value.symbol[0];
+          keystring = (char *)keybind.value.symbol;
           // Go around again!
           keybind_recurse_count += 1;
           if (debug_keybinding) {
@@ -363,7 +358,7 @@ void handle_character_dn(uint64_t c) {
       printf("keybind_recurse_count: %zu\n", keybind_recurse_count);
     }
     // End keybind loop.
-    c = 0;
+    keystring = NULL;
   }
 }
 
