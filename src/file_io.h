@@ -27,7 +27,7 @@ size_t file_size(FILE *file);
 
 /// Returns a heap-allocated buffer containing the
 /// contents of the file found at the given path.
-char *file_contents(const char* path);
+Error file_contents(const char* path, char **result);
 
 Error evaluate_file(Atom environment, const char* path, Atom *result);
 

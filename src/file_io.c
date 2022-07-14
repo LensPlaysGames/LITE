@@ -21,33 +21,40 @@ size_t file_size(FILE *file) {
 
 /// Returns a heap-allocated buffer containing the
 /// contents of the file found at the given path.
-char *file_contents(const char* path) {
-  const char* error_prefix = "file_contents(): ";
+Error file_contents(const char* path, char **result) {
   if (!path) {
-    printf("%sPath must not be NULL.\n", error_prefix);
-    return NULL;
+    MAKE_ERROR(err, ERROR_ARGUMENTS, nil,
+               "file_contents(): PATH must not be NULL.",
+               NULL);
+    return err;
   }
   char *buffer = NULL;
   FILE *file = fopen(path, "rb");
   if (!file) {
-    printf("%sCouldn't open file at %s\n", error_prefix, path);
-    return NULL;
+    MAKE_ERROR(err, ERROR_FILE, nil,
+               "file_contents(): Failed to open file: fopen() returned NULL.",
+               NULL);
+    return err;
   }
   size_t size = file_size(file);
   if (size == 0) {
-    printf("%sFile has zero size at %s\n", error_prefix, path);
-    return NULL;
+    MAKE_ERROR(err, ERROR_FILE, nil,
+               "file_contents(): File has zero size.",
+               NULL);
+    return err;
   }
   buffer = malloc(size + 1);
   if (!buffer) {
-    printf("%sCould not allocate buffer for file at %s\n",
-           error_prefix, path);
-    return NULL;
+    MAKE_ERROR(err, ERROR_MEMORY, nil,
+               "file_contents(): Could not allocate buffer for file.",
+               NULL);
+    return err;
   }
   fread(buffer, 1, size, file);
   buffer[size] = '\0';
   fclose(file);
-  return buffer;
+  *result = buffer;
+  return ok;
 }
 
 SimpleFile get_file(char *path) {
@@ -124,17 +131,18 @@ Error evaluate_file(Atom environment, const char* path, Atom *result) {
                , NULL);
     return err;
   }
-  char *input = file_contents(path);
-  if (!input) {
+  if (!result) {
     PREP_ERROR(err, ERROR_ARGUMENTS, nil
-               , "Could not get contents of file."
-               , path);
+               , "Result atom must not be NULL."
+               , NULL);
     return err;
   }
+  char *input = NULL;
+  err = file_contents(path, &input);
+  if (err.type) { return err; }
 
   Atom debug_eval_file = nil;
   env_get(*genv(), make_sym("DEBUG/EVALUATE-FILE"), &debug_eval_file);
-
   if (!nilp(debug_eval_file)) {
     printf("Evaluating file at \"%s\"\n", path);
     //printf("Contents:\n"
@@ -145,7 +153,7 @@ Error evaluate_file(Atom environment, const char* path, Atom *result) {
   }
 
   const char* source = input;
-  Atom expr;
+  Atom expr = nil;
   Atom dummy_result = nil;
   if (!result) {
     result = &dummy_result;
