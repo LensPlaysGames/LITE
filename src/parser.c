@@ -157,7 +157,17 @@ Error parse_string(const char *beg, const char **end, Atom *result) {
   // Opening quote is eaten here.
   const char *p = beg + 1;
   // Find end double quote.
-  while (*p && *p != '"') { p++; }
+  while (*p) {
+    if (*p == '"') {
+      // After there have been two characters, check for escape sequence!
+      if (p - 2 > beg && *(p - 2) == '\\' && *(p - 1) == '\\') {
+        p++;
+        continue;
+      }
+      break;
+    }
+    p++;
+  }
   if (!*p) {
     PREP_ERROR(err, ERROR_SYNTAX, nil
                , "Expected a closing double quote."
@@ -183,13 +193,27 @@ Error parse_string(const char *beg, const char **end, Atom *result) {
   char prev_was_backslash = 0;
   char write_this_iteration = 1;
   p = beg + 1;
-  while (*p && *p != '"' && written_offset <= string_length) {
+  while (*p && written_offset <= string_length) {
     //printf("%zu: \"%.*s\" -> \"%s\"\n", written_offset, (int)string_length, beg + 1, contents);
     write_this_iteration = 1;
     if (prev_was_backslash) {
       write_this_iteration = 0;
       if (prev_was_backslash >= 2) {
         switch (*p) {
+        default:
+          // Unrecognized escape sequence, print single backslash as
+          // well as the current character.
+          contents[written_offset] = '\\';
+          written_offset += 1;
+          contents[written_offset] = '\\';
+          written_offset += 1;
+          write_this_iteration = 1;
+          break;
+        case '_':
+          // "\\_" -> ""
+          // The unescape escape character, mostly for strings that
+          // need a backslash at the end.
+          break;
         case 'n':
           // "\\n" -> 0xa ('\n')
           contents[written_offset] = '\n';
@@ -217,13 +241,8 @@ Error parse_string(const char *beg, const char **end, Atom *result) {
           contents[written_offset] = '\n';
           written_offset += 1;
           break;
-        default:
-          // Unrecognized escape sequence, print single backslash.
-          contents[written_offset] = '\\';
-          written_offset += 1;
-          prev_was_backslash = 0;
-          write_this_iteration = 1;
         }
+        prev_was_backslash = 0;
       }
     }
     if (*p == '\\') {
@@ -239,6 +258,7 @@ Error parse_string(const char *beg, const char **end, Atom *result) {
       prev_was_backslash = 0;
     }
     if (write_this_iteration) {
+      if (*p == '"') { break; }
       contents[written_offset] = *p;
       written_offset += 1;
     }

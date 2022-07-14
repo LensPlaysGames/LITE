@@ -561,7 +561,7 @@ Useful for ensuring the user would like to do something before doing it."
   (keybind-low-level shft-keymap "p" "P")
   (keybind-low-level shft-keymap "[" "{")
   (keybind-low-level shft-keymap "]" "}")
-  (keybind-low-level shft-keymap "\\" "|")
+  (keybind-low-level shft-keymap "\\\\_" "|")
   (keybind-low-level shft-keymap "a" "A")
   (keybind-low-level shft-keymap "s" "S")
   (keybind-low-level shft-keymap "d" "D")
@@ -572,7 +572,7 @@ Useful for ensuring the user would like to do something before doing it."
   (keybind-low-level shft-keymap "k" "K")
   (keybind-low-level shft-keymap "l" "L")
   (keybind-low-level shft-keymap ";" ":")
-  (keybind-low-level shft-keymap "'" "\\"") ;"
+  (keybind-low-level shft-keymap "'" "\\"") ;;") << syntax highlight fix
   (keybind-low-level shft-keymap "z" "Z")
   (keybind-low-level shft-keymap "x" "X")
   (keybind-low-level shft-keymap "c" "C")

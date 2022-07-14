@@ -1,5 +1,6 @@
 #include <api.h>
 
+#include <assert.h>
 #include <buffer.h>
 #include <environment.h>
 #include <evaluation.h>
@@ -91,11 +92,15 @@ typedef struct GUIModifierKeyState {
 static GUIModifierKeyState gmodkeys;
 
 // Return bit value of given modifier key. 1 if pressed.
-int modkey_state(GUIModifierKey key);
 int modkey_state(GUIModifierKey key) {
+  assert(GUI_MODKEY_MAX == 8);
   switch (key) {
   default:
     return 0;
+  case GUI_MODKEY_LSUPER:
+    return ((uint64_t)1 << GUI_MODKEY_LSUPER) & gmodkeys.bitfield;
+  case GUI_MODKEY_RSUPER:
+    return ((uint64_t)1 << GUI_MODKEY_RSUPER) & gmodkeys.bitfield;
   case GUI_MODKEY_LALT:
     return ((uint64_t)1 << GUI_MODKEY_LALT) & gmodkeys.bitfield;
   case GUI_MODKEY_RALT:
@@ -394,6 +399,7 @@ void handle_keydown(char *keystring) {
 }
 
 void handle_modifier_dn(GUIModifierKey mod) {
+  assert(GUI_MODKEY_MAX == 8);
   if (mod >= GUI_MODKEY_MAX) {
     return;
   }
@@ -431,6 +437,7 @@ void handle_modifier_dn(GUIModifierKey mod) {
 }
 
 void handle_modifier_up(GUIModifierKey mod) {
+  assert(GUI_MODKEY_MAX == 8);
   if (mod >= GUI_MODKEY_MAX) {
     return;
   }
@@ -439,6 +446,12 @@ void handle_modifier_up(GUIModifierKey mod) {
     printf("API::GFX:ERROR: Unhandled modifier keyup: %d\n"
            "              : Please report as issue on LITE GitHub.\n"
            , mod);
+    break;
+  case GUI_MODKEY_LSUPER:
+    gmodkeys.bitfield &= ~((uint64_t)1 << GUI_MODKEY_LSUPER);
+    break;
+  case GUI_MODKEY_RSUPER:
+    gmodkeys.bitfield &= ~((uint64_t)1 << GUI_MODKEY_RSUPER);
     break;
   case GUI_MODKEY_LCTRL:
     gmodkeys.bitfield &= ~((uint64_t)1 << GUI_MODKEY_LCTRL);
