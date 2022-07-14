@@ -14,10 +14,16 @@ On most Linux distros: ~sudo apt install libsdl2-dev libsdl2-ttf-dev~
 
 ** Notes
 
+*** Version
+
+This library has been successfully built for Windows and Linux using
+SDL2 ~2.0.18~ with both of SDL2_ttf ~2.0.18~ and ~2.20.0~.
+
 *** Working Directory
 
 Currently, it is important to start LITE with a working directory of the base
-of the repository or a subdirectory so that fonts may be properly found. \\
+of the repository or a subdirectory so that fonts may be properly found.
+
 In the future, we hope to provide better methods of handling fonts.
 
 *** Windows
@@ -36,10 +42,16 @@ In the future, we hope to provide better methods of handling fonts.
   upon launching the executable, it is likely that the necessary DLLs, ~SDL2.dll~
   and ~SDL2_ttf.dll~, are not located in the same folder as the executable.
 
+  The DLLs can be found in the ~lib~ subdirectory of the SDL
+  development binaries, linked above.
+
 - Debug Output
 
-  Because graphical applications exit immediately (at least on Windows),
-  it is necessary to use IO redirection if you wish to see ~printf()~ output.
+  On Windows, when launching LITE GFX compiled with a toolchain,
+  it launches with no console, and no output when launched from a
+  terminal. Because of this, it is necessary to use IO redirection if
+  you wish to see ~printf()~ output, and you can only see it once the
+  program has exited entirely.
 
   Nushell:
   : bin/LITE | save bin/log.txt ; cat bin/log.txt

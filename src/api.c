@@ -113,7 +113,7 @@ int modkey_state(GUIModifierKey key) {
 // All these global variables may be bad :^|
 
 GUIContext *gctx = NULL;
-inline GUIContext *gui_ctx() { return gctx; }
+GUIContext *gui_ctx() { return gctx; }
 
 /// This will set the environment variable `CURRENT-KEYMAP` based on modifiers
 /// that are currently being held down. This is to be used in `handle_character_dn()`.
@@ -402,6 +402,12 @@ void handle_modifier_dn(GUIModifierKey mod) {
            "              : Please report as issue on LITE GitHub.\n"
            , mod);
     break;
+  case GUI_MODKEY_LSUPER:
+    gmodkeys.bitfield |= ((uint64_t)1 << GUI_MODKEY_LSUPER);
+    break;
+  case GUI_MODKEY_RSUPER:
+    gmodkeys.bitfield |= ((uint64_t)1 << GUI_MODKEY_RSUPER);
+    break;
   case GUI_MODKEY_LCTRL:
     gmodkeys.bitfield |= ((uint64_t)1 << GUI_MODKEY_LCTRL);
     break;
@@ -488,12 +494,12 @@ GUIContext *initialize_lite_gui_ctx() {
 static GUIColor cursor_fg = { 0,0,0,UINT8_MAX };
 static GUIColor cursor_bg = { UINT8_MAX,UINT8_MAX,
                               UINT8_MAX,UINT8_MAX };
-
+HOTFUNCTION
 int gui_loop() {
   char *new_contents = NULL;
   Atom current_buffer = nil;
-  env_get(*genv(), make_sym("CURRENT-BUFFER"), &current_buffer);
-  if (bufferp(current_buffer)) {
+  Error err = env_get(*genv(), make_sym("CURRENT-BUFFER"), &current_buffer);
+  if (!err.type) {
     new_contents = buffer_string(*current_buffer.value.buffer);
   }
 
@@ -505,17 +511,7 @@ int gui_loop() {
      , cursor_fg, cursor_bg);
   add_property(to_update, cursor_property);
 
-  int open = do_gui(gctx);
-  if (!open) { return open; }
-
-  Atom sleep_ms = nil;
-  env_get(*genv(), make_sym("REDISPLAY-IDLE-MS"), &sleep_ms);
-  if (integerp(sleep_ms)) {
-    SLEEP(sleep_ms.value.integer);
-  } else {
-    SLEEP(20);
-  }
-  return 1;
+  return do_gui(gctx);
 }
 
 int enter_lite_gui() {
