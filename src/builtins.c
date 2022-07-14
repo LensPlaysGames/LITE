@@ -146,8 +146,11 @@ int builtin_not(Atom arguments, Atom *result) {
 symbol_t *builtin_car_docstring =
   "(car ARG)\n"
   "\n"
-  "Given ARG is a pair, return the value on the left side.\n"
-  "Otherwise, return nil.";
+  "Given ARG is a pair, return the value on the left side. Otherwise,\n"
+  "return nil.\n"
+  "CAR stands for \"Contents of the Address part of Register N\".\n"
+  "This was in reference to the machine instructions used to implement\n"
+  "LISP originally, in the 1950s.";
 int builtin_car(Atom arguments, Atom *result) {
   BUILTIN_ENSURE_ONE_ARGUMENT(arguments);
   if (nilp(car(arguments))) {
@@ -163,8 +166,11 @@ int builtin_car(Atom arguments, Atom *result) {
 symbol_t *builtin_cdr_docstring =
   "(cdr ARG)\n"
   "\n"
-  "Given ARG is a pair, return the value on the right side.\n"
-  "Otherwise, return nil.";
+  "Given ARG is a pair, return the value on the right side. Otherwise,\n"
+  "return nil.\n"
+  "CDR stands for \"Contents of the Decrement part of the Register N\".\n"
+  "This was in reference to the machine instructions used to implement\n"
+  "LISP originally, in the 1950s.";
 int builtin_cdr(Atom arguments, Atom *result) {
   BUILTIN_ENSURE_ONE_ARGUMENT(arguments);
   if (nilp(car(arguments))) {

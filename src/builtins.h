@@ -35,7 +35,6 @@ extern symbol_t         *builtin_car_docstring;
 int builtin_car         (Atom arguments, Atom *result);
 extern symbol_t         *builtin_cdr_docstring;
 int builtin_cdr         (Atom arguments, Atom *result);
-
 extern symbol_t         *builtin_setcar_docstring;
 int builtin_setcar      (Atom arguments, Atom *result);
 
@@ -110,20 +109,24 @@ int builtin_buffer_seek_byte(Atom arguments, Atom *result);
 extern symbol_t          *builtin_buffer_seek_substring_docstring;
 int builtin_buffer_seek_substring(Atom arguments, Atom *result);
 
+extern symbol_t         *builtin_save_docstring;
+int builtin_save        (Atom arguments, Atom *result);
+
+// STRINGS
+
+extern symbol_t         *builtin_string_length_docstring;
+int builtin_string_length(Atom arguments, Atom *result);
+
 // OTHER
 
 extern symbol_t         *builtin_copy_docstring;
 int builtin_copy        (Atom arguments, Atom *result);
-extern symbol_t         *builtin_string_length_docstring;
-int builtin_string_length(Atom arguments, Atom *result);
 extern symbol_t         *builtin_evaluate_docstring;
 int builtin_evaluate    (Atom arguments, Atom *result);
 extern symbol_t         *builtin_evaluate_string_docstring;
 int builtin_evaluate_string(Atom arguments, Atom *result);
 extern symbol_t         *builtin_evaluate_file_docstring;
 int builtin_evaluate_file(Atom arguments, Atom *result);
-extern symbol_t         *builtin_save_docstring;
-int builtin_save        (Atom arguments, Atom *result);
 extern symbol_t         *builtin_apply_docstring;
 int builtin_apply       (Atom arguments, Atom *result);
 extern symbol_t         *builtin_symbol_table_docstring;
