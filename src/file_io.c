@@ -80,7 +80,7 @@ SimpleFile get_file(char *path) {
   smpl.size = size;
 
   uint8_t *buffer = NULL;
-  buffer = malloc(size);
+  buffer = malloc(size + 1);
   if (!buffer) {
     fclose(file);
     free(smpl.path);
@@ -97,10 +97,8 @@ SimpleFile get_file(char *path) {
            error_prefix, size, path);
     return smpl;
   }
-
   smpl.contents = buffer;
   fclose(file);
-
   smpl.flags &= ~SMPL_FILE_FLAG_INVALID;
   smpl.flags |= SMPL_FILE_FLAG_OK;
   return smpl;

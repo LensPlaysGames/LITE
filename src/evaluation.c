@@ -256,8 +256,8 @@ Error evaluate_expression(Atom expr, Atom environment, Atom *result) {
   Atom stack = nil;
   // These numbers are tailored to free around twenty mebibytes at a time,
   // and to have both of the reasons for garbage collection actually used.
-  static const size_t gcol_pair_allocations_threshold_default = 290500;
-  static const size_t gcol_evaluation_iteration_threshold_default = 100000;
+# define gcol_pair_allocations_threshold_default     290500
+# define gcol_evaluation_iteration_threshold_default 100000
   static size_t evaluation_iterations_until_gcol = gcol_evaluation_iteration_threshold_default;
   do {
     char should_gcol = 0;
@@ -525,7 +525,7 @@ Error evaluate_expression(Atom expr, Atom environment, Atom *result) {
                   size_t newlen = strlen(atom.docstring) + siglen + 10;
                   char *newdoc = (char *)malloc(newlen);
                   if (newdoc) {
-                    memcpy(newdoc, "ARGS: ", 7);
+                    memcpy(newdoc, "ARGS: \0", 7);
                     strcat(newdoc, signature);
                     strcat(newdoc, "\n\n");
                     strcat(newdoc, atom.docstring);

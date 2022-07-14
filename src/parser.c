@@ -7,10 +7,10 @@
 #include <string.h>
 
 // Whitespace characters that may safely be skipped by the lexer.
-const char *lite_ws = " \t\r\n\e\f\v";
+const char *lite_ws = " \t\r\n\f\v";
 // Delimiting characters separate different atoms.
 // NOTE: lite_delimiters is suffixed with lite_ws.
-const char *lite_delimiters = "()\" \t\r\n\e\f\v";
+const char *lite_delimiters = "()\" \t\r\n\f\v";
 // Characters that may come before an atom but not after.
 const char *lite_prefixes = "()\'`";
 

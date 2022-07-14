@@ -41,9 +41,6 @@ char rope_index(Rope *rope, size_t index) {
 
 Rope *rope_from_buffer(uint8_t *bytes, size_t length) {
   if (!bytes || length == 0) { return NULL; }
-
-  // FIXME: This doesn't feel right, but I can't write all the
-  // buffer + length versions functions right now...
   // Replace null terminators with space for now.
   // Otherwise `rope_string()` seriously breaks (among other things).
   uint8_t *it = bytes;

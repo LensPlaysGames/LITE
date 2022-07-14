@@ -249,13 +249,8 @@ void handle_keydown(char *keystring) {
   if (!keystring) {
     return;
   }
-  const char *ignored_bytes = "\e\f\v";
-  if (strpbrk(keystring, ignored_bytes)) {
-    return;
-  }
   const size_t keybind_recurse_limit = 256;
   size_t keybind_recurse_count = 0;
-
   // Get current keymap from LISP environment.
   Atom current_keymap = nil;
   env_get(*genv(), make_sym("CURRENT-KEYMAP"), &current_keymap);

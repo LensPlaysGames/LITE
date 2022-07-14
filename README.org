@@ -62,7 +62,7 @@ designed for use in conjunction with CMake.
 
 First, generate an out-of-source build tree:
 #+begin_src sh
-  cmake -G <build system> -S . -B bld -DCMAKE_BUILD_TYPE=Release
+  cmake -G <build system> -B bld -DCMAKE_BUILD_TYPE=Release
 #+end_src
 Replace ~<build system>~ with one of the available build systems
 
