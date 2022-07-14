@@ -152,8 +152,8 @@ Error evaluate_return_value(Atom *stack, Atom *expr, Atom *environment, Atom *re
       Atom symbol = car(arguments);
       Atom docstring = cdr(arguments);
       if(!nilp(docstring)) {
-        // FIXME: These docstrings are leaked.
-        (*result).docstring = strdup(docstring.value.symbol);
+        result->docstring = strdup(docstring.value.symbol);
+        gcol_generic_allocation(result, result->docstring);
       }
       Atom define_environment = define_locality == 0 ? *environment : *genv();
       err = env_set(define_environment, symbol, *result);
@@ -490,8 +490,8 @@ Error evaluate_expression(Atom expr, Atom environment, Atom *result) {
                              , &macro);
           if (err.type) { return err; }
           macro.type = ATOM_TYPE_MACRO;
-          // FIXME: These docstrings are leaked!
           macro.docstring = strdup(docstring.value.symbol);
+          gcol_generic_allocation(&macro, macro.docstring);
           (void)env_set(environment, name, macro);
           *result = name;
         } else if (strcmp(operator.value.symbol, "DOCSTRING") == 0) {

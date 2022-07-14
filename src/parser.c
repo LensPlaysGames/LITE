@@ -298,7 +298,7 @@ Error parse_expr(const char *source, const char **end, Atom *result) {
     *result = cons(make_sym("QUASIQUOTE"), cons(nil, nil));
     return parse_expr(*end, end, &car(cdr(*result)));
   } else if (token[0] == ',') {
-    const char *symbol = token[1] == '@' ? "UNQUOTE-SPLICING" : "UNQUOTE";
+    char *symbol = token[1] == '@' ? "UNQUOTE-SPLICING" : "UNQUOTE";
     *result = cons(make_sym(symbol), cons(nil, nil));
     return parse_expr(*end, end, &car(cdr(*result)));
   } else {

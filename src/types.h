@@ -8,14 +8,10 @@ struct Atom;
 typedef int (*BuiltIn)(struct Atom arguments, struct Atom *result);
 
 typedef struct Buffer Buffer;
-
 typedef struct Error Error;
-
-struct GenericAllocation;
-
+typedef struct GenericAllocation GenericAllocation;
 typedef long long int integer_t;
 
-typedef const char symbol_t;
 typedef struct Atom {
   enum AtomType {
     ATOM_TYPE_NIL,
@@ -31,17 +27,17 @@ typedef struct Atom {
   } type;
   union AtomValue {
     struct Pair *pair;
-    symbol_t *symbol;
+    char *symbol;
     Buffer *buffer;
     BuiltIn builtin;
     integer_t integer;
   } value;
-  symbol_t *docstring;
-  struct GenericAllocation *galloc;
+  char *docstring;
+  GenericAllocation *galloc;
 } Atom;
-struct Pair {
+typedef struct Pair {
   Atom atom[2];
-};
+} Pair;
 
 static const Atom nil = { ATOM_TYPE_NIL, { 0 }, NULL, NULL };
 
@@ -60,12 +56,11 @@ static const Atom nil = { ATOM_TYPE_NIL, { 0 }, NULL, NULL };
 
 //================================================================ BEG garbage_collection
 
-struct ConsAllocation {
+typedef struct ConsAllocation {
   struct ConsAllocation *next;
-  struct Pair pair;
+  Pair pair;
   char mark;
-};
-typedef struct ConsAllocation ConsAllocation;
+} ConsAllocation;
 
 extern ConsAllocation *global_pair_allocations;
 extern size_t pair_allocations_count;
@@ -125,12 +120,12 @@ Atom alist_get(Atom alist, Atom key);
 /// Set the value associated with a key in a given alist.
 void alist_set(Atom *alist, Atom key, Atom value);
 
-Atom nil_with_docstring(symbol_t *docstring);
+Atom nil_with_docstring(char *docstring);
 Atom make_int(integer_t value);
-Atom make_int_with_docstring(integer_t value, symbol_t *docstring);
-Atom make_sym(symbol_t *value);
-Atom make_string(symbol_t *value);
-Atom make_builtin(BuiltIn function, symbol_t *docstring);
+Atom make_int_with_docstring(integer_t value, char *docstring);
+Atom make_sym(char *value);
+Atom make_string(char *value);
+Atom make_builtin(BuiltIn function, const char *const docstring);
 Error make_closure(Atom environment, Atom arguments, Atom body, Atom *result);
 Atom make_buffer(Atom environment, char *path);
 

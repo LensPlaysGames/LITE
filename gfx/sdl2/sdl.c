@@ -706,151 +706,151 @@ int handle_event(SDL_Event *event) {
         strncpy(string, "<f24>"                          , max_size);
         break;
       case SDLK_KP_0:
-        strncpy(string, "<numpad:0>"                          , max_size);
+        strncpy(string, "<numpad:0>"                     , max_size);
         break;
       case SDLK_KP_1:
-        strncpy(string, "<numpad:1>"                          , max_size);
+        strncpy(string, "<numpad:1>"                     , max_size);
         break;
       case SDLK_KP_2:
-        strncpy(string, "<numpad:2>"                          , max_size);
+        strncpy(string, "<numpad:2>"                     , max_size);
         break;
       case SDLK_KP_3:
-        strncpy(string, "<numpad:3>"                          , max_size);
+        strncpy(string, "<numpad:3>"                     , max_size);
         break;
       case SDLK_KP_4:
-        strncpy(string, "<numpad:4>"                          , max_size);
+        strncpy(string, "<numpad:4>"                     , max_size);
         break;
       case SDLK_KP_5:
-        strncpy(string, "<numpad:5>"                          , max_size);
+        strncpy(string, "<numpad:5>"                     , max_size);
         break;
       case SDLK_KP_6:
-        strncpy(string, "<numpad:6>"                          , max_size);
+        strncpy(string, "<numpad:6>"                     , max_size);
         break;
       case SDLK_KP_7:
-        strncpy(string, "<numpad:7>"                          , max_size);
+        strncpy(string, "<numpad:7>"                     , max_size);
         break;
       case SDLK_KP_8:
-        strncpy(string, "<numpad:8>"                          , max_size);
+        strncpy(string, "<numpad:8>"                     , max_size);
         break;
       case SDLK_KP_9:
-        strncpy(string, "<numpad:9>"                          , max_size);
+        strncpy(string, "<numpad:9>"                     , max_size);
         break;
       case SDLK_KP_00:
-        strncpy(string, "<numpad:00>"                         , max_size);
+        strncpy(string, "<numpad:00>"                    , max_size);
         break;
       case SDLK_KP_000:
-        strncpy(string, "<numpad:000>"                        , max_size);
+        strncpy(string, "<numpad:000>"                   , max_size);
         break;
       case SDLK_KP_PERIOD:
-        strncpy(string, "<numpad:.>"                          , max_size);
+        strncpy(string, "<numpad:.>"                     , max_size);
         break;
       case SDLK_KP_ENTER:
-        strncpy(string, "<numpad:return>"                     , max_size);
+        strncpy(string, "<numpad:return>"                , max_size);
         break;
       case SDLK_KP_PLUS:
-        strncpy(string, "<numpad:plus>"                       , max_size);
+        strncpy(string, "<numpad:plus>"                  , max_size);
         break;
       case SDLK_KP_MINUS:
-        strncpy(string, "<numpad:minus>"                      , max_size);
+        strncpy(string, "<numpad:minus>"                 , max_size);
         break;
       case SDLK_KP_MULTIPLY:
-        strncpy(string, "<numpad:multiply>"                   , max_size);
+        strncpy(string, "<numpad:multiply>"              , max_size);
         break;
       case SDLK_KP_DIVIDE:
-        strncpy(string, "<numpad:divide>"                     , max_size);
+        strncpy(string, "<numpad:divide>"                , max_size);
         break;
       case SDLK_KP_EQUALS:
-        strncpy(string, "<numpad:equals>"                     , max_size);
+        strncpy(string, "<numpad:equals>"                , max_size);
         break;
       case SDLK_KP_GREATER:
-        strncpy(string, "<numpad:greater>"                    , max_size);
+        strncpy(string, "<numpad:greater>"               , max_size);
         break;
       case SDLK_KP_LESS:
-        strncpy(string, "<numpad:less>"                       , max_size);
+        strncpy(string, "<numpad:less>"                  , max_size);
         break;
       case SDLK_KP_AMPERSAND:
-        strncpy(string, "<numpad:&>"                          , max_size);
+        strncpy(string, "<numpad:&>"                     , max_size);
         break;
       case SDLK_KP_DBLAMPERSAND:
-        strncpy(string, "<numpad:&&>"                         , max_size);
+        strncpy(string, "<numpad:&&>"                    , max_size);
         break;
       case SDLK_KP_VERTICALBAR:
-        strncpy(string, "<numpad:|>"                          , max_size);
+        strncpy(string, "<numpad:|>"                     , max_size);
         break;
       case SDLK_KP_DBLVERTICALBAR:
-        strncpy(string, "<numpad:||>"                         , max_size);
+        strncpy(string, "<numpad:||>"                    , max_size);
         break;
       case SDLK_KP_XOR:
-        strncpy(string, "<numpad:xor>"                        , max_size);
+        strncpy(string, "<numpad:xor>"                   , max_size);
         break;
       case SDLK_KP_LEFTPAREN:
-        strncpy(string, "<numpad:(>"                          , max_size);
+        strncpy(string, "<numpad:(>"                     , max_size);
         break;
       case SDLK_KP_RIGHTPAREN:
-        strncpy(string, "<numpad:)>"                          , max_size);
+        strncpy(string, "<numpad:)>"                     , max_size);
         break;
       case SDLK_KP_LEFTBRACE:
-        strncpy(string, "<numpad:{>"                          , max_size);
+        strncpy(string, "<numpad:{>"                     , max_size);
         break;
       case SDLK_KP_RIGHTBRACE:
-        strncpy(string, "<numpad:}>"                          , max_size);
+        strncpy(string, "<numpad:}>"                     , max_size);
         break;
       case SDLK_KP_PERCENT:
-        strncpy(string, "<numpad:%>"                          , max_size);
+        strncpy(string, "<numpad:%>"                     , max_size);
         break;
       case SDLK_KP_POWER:
-        strncpy(string, "<numpad:power>"                      , max_size);
+        strncpy(string, "<numpad:power>"                 , max_size);
         break;
       case SDLK_KP_SPACE:
-        strncpy(string, "<numpad: >"                          , max_size);
+        strncpy(string, "<numpad: >"                     , max_size);
         break;
       case SDLK_KP_BACKSPACE:
-        strncpy(string, "<numpad:backspace>"                  , max_size);
+        strncpy(string, "<numpad:backspace>"             , max_size);
         break;
       case SDLK_KP_TAB:
-        strncpy(string, "<numpad:tab>"                        , max_size);
+        strncpy(string, "<numpad:tab>"                   , max_size);
         break;
       case SDLK_KP_PLUSMINUS:
-        strncpy(string, "<numpad:plusminus>"                  , max_size);
+        strncpy(string, "<numpad:plusminus>"             , max_size);
         break;
       case SDLK_KP_EXCLAM:
-        strncpy(string, "<numpad:!>"                          , max_size);
+        strncpy(string, "<numpad:!>"                     , max_size);
         break;
       case SDLK_KP_COLON:
-        strncpy(string, "<numpad::>"                          , max_size);
+        strncpy(string, "<numpad::>"                     , max_size);
         break;
       case SDLK_KP_COMMA:
-        strncpy(string, "<numpad:,>"                          , max_size);
+        strncpy(string, "<numpad:,>"                     , max_size);
         break;
       case SDLK_KP_AT:
-        strncpy(string, "<numpad:@>"                          , max_size);
+        strncpy(string, "<numpad:@>"                     , max_size);
         break;
       case SDLK_KP_OCTAL:
-        strncpy(string, "<numpad:octal>"                      , max_size);
+        strncpy(string, "<numpad:octal>"                 , max_size);
         break;
       case SDLK_KP_DECIMAL:
-        strncpy(string, "<numpad:decimal>"                    , max_size);
+        strncpy(string, "<numpad:decimal>"               , max_size);
         break;
       case SDLK_KP_HEXADECIMAL:
-        strncpy(string, "<numpad:hexadecimal>"                , max_size);
+        strncpy(string, "<numpad:hexadecimal>"           , max_size);
         break;
       case SDLK_KP_A:
-        strncpy(string, "<numpad:A>"                          , max_size);
+        strncpy(string, "<numpad:A>"                     , max_size);
         break;
       case SDLK_KP_B:
-        strncpy(string, "<numpad:B>"                          , max_size);
+        strncpy(string, "<numpad:B>"                     , max_size);
         break;
       case SDLK_KP_C:
-        strncpy(string, "<numpad:C>"                          , max_size);
+        strncpy(string, "<numpad:C>"                     , max_size);
         break;
       case SDLK_KP_D:
-        strncpy(string, "<numpad:D>"                          , max_size);
+        strncpy(string, "<numpad:D>"                     , max_size);
         break;
       case SDLK_KP_E:
-        strncpy(string, "<numpad:E>"                          , max_size);
+        strncpy(string, "<numpad:E>"                     , max_size);
         break;
       case SDLK_KP_F:
-        strncpy(string, "<numpad:F>"                          , max_size);
+        strncpy(string, "<numpad:F>"                     , max_size);
         break;
       }
       string[max_size - 1] = '\0';

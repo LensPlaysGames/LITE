@@ -19,7 +19,7 @@ Error env_set(Atom environment, Atom symbol, Atom value) {
     Atom bind = car(bindings);
     if (car(bind).value.symbol == symbol.value.symbol) {
       // Update docstring, or use the old one.
-      symbol_t *docstring = value.docstring ? value.docstring : cdr(bind).docstring;
+      char *docstring = value.docstring ? value.docstring : cdr(bind).docstring;
       cdr(bind) = value;
       cdr(bind).docstring = docstring;
       return ok;
@@ -108,50 +108,52 @@ Atom default_environment() {
   env_set(environment, make_sym("APPLY"),    make_builtin(builtin_apply,        builtin_apply_docstring));
   env_set(environment, make_sym("PRINT"),    make_builtin(builtin_print,        builtin_print_docstring));
   env_set(environment, make_sym("SYM"),      make_builtin(builtin_symbol_table, builtin_symbol_table_docstring));
-  env_set(environment, make_sym("BUF"),      make_builtin(builtin_buffer_table, builtin_buffer_table_docstring));
+
+  env_set(environment, make_sym("BUF"),
+          make_builtin(builtin_buffer_table,            builtin_buffer_table_docstring));
   env_set(environment, make_sym("OPEN-BUFFER")
-          , make_builtin(builtin_open_buffer, builtin_open_buffer_docstring));
+          , make_builtin(builtin_open_buffer,           builtin_open_buffer_docstring));
   env_set(environment, make_sym("BUFFER-INSERT")
-          , make_builtin(builtin_buffer_insert, builtin_buffer_insert_docstring));
+          , make_builtin(builtin_buffer_insert,         builtin_buffer_insert_docstring));
   env_set(environment, make_sym("BUFFER-REMOVE")
-          , make_builtin(builtin_buffer_remove, builtin_buffer_remove_docstring));
+          , make_builtin(builtin_buffer_remove,         builtin_buffer_remove_docstring));
   env_set(environment, make_sym("BUFFER-REMOVE-FORWARD")
           , make_builtin(builtin_buffer_remove_forward, builtin_buffer_remove_forward_docstring));
   env_set(environment, make_sym("BUFFER-STRING")
-          , make_builtin(builtin_buffer_string, builtin_buffer_string_docstring));
+          , make_builtin(builtin_buffer_string,         builtin_buffer_string_docstring));
   env_set(environment, make_sym("BUFFER-LINES")
-          , make_builtin(builtin_buffer_lines, builtin_buffer_lines_docstring));
+          , make_builtin(builtin_buffer_lines,          builtin_buffer_lines_docstring));
   env_set(environment, make_sym("BUFFER-LINE")
-          , make_builtin(builtin_buffer_line, builtin_buffer_line_docstring));
+          , make_builtin(builtin_buffer_line,           builtin_buffer_line_docstring));
   env_set(environment, make_sym("BUFFER-CURRENT-LINE")
-          , make_builtin(builtin_buffer_current_line, builtin_buffer_current_line_docstring));
+          , make_builtin(builtin_buffer_current_line,   builtin_buffer_current_line_docstring));
   env_set(environment, make_sym("BUFFER-SET-POINT")
-          , make_builtin(builtin_buffer_set_point, builtin_buffer_set_point_docstring));
+          , make_builtin(builtin_buffer_set_point,      builtin_buffer_set_point_docstring));
   env_set(environment, make_sym("BUFFER-POINT")
-          , make_builtin(builtin_buffer_point, builtin_buffer_point_docstring));
+          , make_builtin(builtin_buffer_point,          builtin_buffer_point_docstring));
   env_set(environment, make_sym("BUFFER-INDEX")
-          , make_builtin(builtin_buffer_index, builtin_buffer_index_docstring));
+          , make_builtin(builtin_buffer_index,          builtin_buffer_index_docstring));
   env_set(environment, make_sym("BUFFER-SEEK-BYTE")
-          , make_builtin(builtin_buffer_seek_byte, builtin_buffer_seek_byte_docstring));
+          , make_builtin(builtin_buffer_seek_byte,      builtin_buffer_seek_byte_docstring));
   env_set(environment, make_sym("BUFFER-SEEK-SUBSTRING")
           , make_builtin(builtin_buffer_seek_substring, builtin_buffer_seek_substring_docstring));
 
-  env_set(environment, make_sym("MEMBER"), make_builtin(builtin_member, builtin_member_docstring));
-
   env_set(environment, make_sym("READ-PROMPTED")
-          , make_builtin(builtin_read_prompted, builtin_read_prompted_docstring));
+          , make_builtin(builtin_read_prompted,         builtin_read_prompted_docstring));
   env_set(environment, make_sym("FINISH-READ")
-          , make_builtin(builtin_finish_read, builtin_finish_read_docstring));
+          , make_builtin(builtin_finish_read,           builtin_finish_read_docstring));
 
   env_set(environment, make_sym("STRING-LENGTH")
-          , make_builtin(builtin_string_length, builtin_string_length_docstring));
+          , make_builtin(builtin_string_length,         builtin_string_length_docstring));
 
   env_set(environment, make_sym("EVALUATE")
-          , make_builtin(builtin_evaluate, builtin_evaluate_docstring));
+          , make_builtin(builtin_evaluate,              builtin_evaluate_docstring));
   env_set(environment, make_sym("EVALUATE-STRING")
-          , make_builtin(builtin_evaluate_string, builtin_evaluate_string_docstring));
+          , make_builtin(builtin_evaluate_string,       builtin_evaluate_string_docstring));
   env_set(environment, make_sym("EVALUATE-FILE")
-          , make_builtin(builtin_evaluate_file, builtin_evaluate_file_docstring));
+          , make_builtin(builtin_evaluate_file,         builtin_evaluate_file_docstring));
+
+  env_set(environment, make_sym("MEMBER"), make_builtin(builtin_member, builtin_member_docstring));
 
   env_set(environment, make_sym("WHILE-RECURSE-LIMIT"), make_int_with_docstring
           (10000

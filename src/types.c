@@ -70,9 +70,7 @@ void gcol_mark(Atom *root) {
   if (pairp(*root) || closurep(*root) || macrop(*root)) {
     ConsAllocation *alloc = (ConsAllocation *)
       ((char *)root->value.pair - offsetof(ConsAllocation, pair));
-    if (!alloc || alloc->mark) {
-      return;
-    }
+    if (!alloc || alloc->mark) { return; }
     alloc->mark = 1;
     gcol_mark(&car(*root));
     if (!nilp(cdr(*root))) {
@@ -122,8 +120,10 @@ void gcol_generic() {
       } else {
         generic_allocations = galloc->next;
       }
-      free(galloc->payload);
-      galloc->payload = NULL;
+      if (galloc->payload) {
+        free(galloc->payload);
+        galloc->payload = NULL;
+      }
       free(galloc);
       galloc = NULL;
       generic_allocations_freed += 1;
@@ -195,7 +195,7 @@ Atom cons(Atom car_atom, Atom cdr_atom) {
   return newpair;
 }
 
-Atom nil_with_docstring(symbol_t *docstring) {
+Atom nil_with_docstring(char *docstring) {
   Atom doc = nil;
   doc.docstring = docstring;
   return doc;
@@ -208,7 +208,7 @@ Atom make_int(integer_t value) {
   return a;
 }
 
-Atom make_int_with_docstring(integer_t value, symbol_t *docstring) {
+Atom make_int_with_docstring(integer_t value, char *docstring) {
   Atom a = nil;
   a.type = ATOM_TYPE_INTEGER;
   a.value.integer = value;
@@ -216,7 +216,7 @@ Atom make_int_with_docstring(integer_t value, symbol_t *docstring) {
   return a;
 }
 
-Atom make_sym(symbol_t *value) {
+Atom make_sym(char *value) {
   Atom a = nil;
   // TODO: uppercase value symbol in search.
   // Attempt to find existing symbol in symbol table.
@@ -242,7 +242,8 @@ Atom make_sym(symbol_t *value) {
   return a;
 }
 
-Atom make_string(symbol_t *contents) {
+Atom make_string(char *contents) {
+  if (!contents) { return nil; }
   Atom string = nil;
   string.type = ATOM_TYPE_STRING;
   string.value.symbol = strdup(contents);
@@ -255,11 +256,12 @@ Atom make_string(symbol_t *contents) {
   return string;
 }
 
-Atom make_builtin(BuiltIn function, symbol_t *docstring) {
+Atom make_builtin(BuiltIn function, const char *const docstring) {
   Atom builtin = nil;
   builtin.type = ATOM_TYPE_BUILTIN;
   builtin.value.builtin = function;
-  builtin.docstring = docstring;
+  builtin.docstring = strdup(docstring);
+  gcol_generic_allocation(&builtin, builtin.docstring);
   return builtin;
 }
 
