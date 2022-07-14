@@ -1,17 +1,17 @@
 #ifndef LITE_UTILITY_H
 #define LITE_UTILITY_H
 
-/** Exit the LITE program entirely.
- * Attempts to clean up as much memory as possible before calling `exit()`.
+/** Exit the program entirely and safely.
+ * Cleans up as much memory as possible before calling `exit()`.
  *
- * If the following debug flags are non-nil in the global LISP environment,
- * extra information will be printed to standard output.
+ * If the following debug flags are non-nil in the global LISP
+ * environment, extra information will be printed to standard output.
  * - `DEBUG/MEMORY`
  * .
  *
  * @param[in] code The exit code that is passed to `exit()`.
  */
-void exit_lite(int code);
+void exit_safe(int code);
 
 /** Allocate the given string on the heap and return it's address.
  *
@@ -22,5 +22,14 @@ void exit_lite(int code);
  *         action can not be completed.
  */
 char *allocate_string(const char *const string);
+
+/** Concatenate the two given strings into a new string.
+ *
+ * @param[in] a Prefix string
+ * @param[in] b Suffix string
+ *
+ * @return A heap-allocated string with the contents of A followed by B.
+ */
+char *string_join(const char *const a, const char *const b);
 
 #endif /* LITE_UTILITY_H */

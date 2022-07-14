@@ -904,7 +904,7 @@ int builtin_read_prompted(Atom arguments, Atom *result) {
     open = gui_loop();
   }
   if (!open) {
-    exit_lite(0);
+    exit_safe(0);
   }
 
   // Remove prompt.

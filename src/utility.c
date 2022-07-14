@@ -10,7 +10,7 @@
 #include <gui.h>
 #endif
 
-void exit_lite(int code) {
+void exit_safe(int code) {
 # ifdef LITE_GFX
   destroy_gui();
 # endif
@@ -32,5 +32,18 @@ char *allocate_string(const char *const string) {
   if (!out) { return NULL; }
   memcpy(out, string, string_length);
   out[string_length] = '\0';
+  return out;
+}
+
+char *string_join(const char *const a, const char *const b) {
+  if (!a || !b) { return NULL; }
+  size_t a_len = strlen(a);
+  size_t b_len = strlen(b);
+  size_t new_len = a_len + b_len;
+  char *out = malloc(new_len + 1);
+  if (!out) { return NULL; }
+  memcpy(out, a, a_len);
+  memcpy(out + a_len, b, b_len);
+  out[new_len] = '\0';
   return out;
 }

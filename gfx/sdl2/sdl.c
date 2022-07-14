@@ -1,5 +1,7 @@
 #include <api.h>
 #include <gui.h>
+#include <utility.h>
+
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -75,19 +77,6 @@ static inline void draw_bg() {
   // NOTE: Alpha has no effect :(.
   SDL_SetRenderDrawColor(grender, bg.r, bg.g, bg.b, bg.a);
   SDL_RenderClear(grender);
-}
-
-static inline char *string_join(char *a, char *b) {
-  if (!a || !b) { return NULL; }
-  size_t a_len = strlen(a);
-  size_t b_len = strlen(b);
-  size_t new_len = a_len + b_len;
-  char *out = malloc(new_len + 1);
-  if (!out) { return NULL; }
-  memcpy(out, a, a_len);
-  memcpy(out + a_len, b, b_len);
-  out[new_len] = '\0';
-  return out;
 }
 
 static inline TTF_Font *try_open_system_font(const char *path, size_t size) {

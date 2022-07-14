@@ -14,6 +14,7 @@ target_include_directories(
   PRIVATE
   .
   ..
+  ${CMAKE_SOURCE_DIR}/src
   ${SDL2_DIR}/include
   ${SDL2_INCLUDE_DIRS}
   ${SDL2_TTF_INCLUDE_DIRS}

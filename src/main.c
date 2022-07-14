@@ -21,7 +21,6 @@
 
 int main(int argc, char **argv) {
   printf("|> LITE will guide the way through the darkness.\n");
-
   // Treat every given argument as a file to load, for now.
   if (argc > 1) {
     Atom result = nil;
@@ -58,6 +57,6 @@ int main(int argc, char **argv) {
   enter_repl(*genv());
 #endif
 
-  exit_lite(status);
+  exit_safe(status);
   return status;
 }
