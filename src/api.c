@@ -5,6 +5,7 @@
 #include <evaluation.h>
 #include <gui.h>
 #include <stdlib.h>
+#include <string.h>
 #include <types.h>
 #include <utility.h>
 
