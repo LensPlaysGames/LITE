@@ -33,6 +33,40 @@ int main(int argc, char **argv) {
         err = ok;
       }
     }
+    const char *home_path_var = "HOME";
+    const char *home_path = getenv(home_path_var);
+    if (!home_path) {
+      home_path_var = "APPDATA";
+      home_path = getenv(home_path_var);
+    }
+    if (!home_path) {
+      home_path_var = "USERPROFILE";
+      home_path = getenv(home_path_var);
+    }
+    if (!home_path) {
+      home_path_var = "HOMEPATH";
+      home_path = getenv(home_path_var);
+    }
+    if (home_path) {
+      char *lite_path = string_join(home_path, "/.lite");
+      if (lite_path) {
+        err = evaluate_file(*genv(), lite_path, &result);
+        free(lite_path);
+        if (err.type == ERROR_FILE) {
+          printf(".lite could not be loaded from \"%s\" (%s)\n",
+                 home_path, home_path_var);
+        } else if (err.type) {
+          printf(".lite ");
+          print_error(err);
+        } else {
+          printf(".lite successfully loaded from \"%s\" (%s)\n",
+                 home_path, home_path_var);
+        }
+      }
+    } else {
+      printf("LITE will attempt to load \".lite\" from the path at"
+             "the HOME environment variable, but it is not set.");
+    }
   }
 
   Atom initial_buffer = make_buffer
