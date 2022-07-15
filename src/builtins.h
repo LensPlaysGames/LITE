@@ -63,14 +63,16 @@ int builtin_numgt_or_eq (Atom arguments, Atom *result);
 
 // MATHEMATICAL
 
-extern const char    *const builtin_add_docstring;
-int builtin_add      (Atom arguments, Atom *result);
-extern const char    *const builtin_subtract_docstring;
-int builtin_subtract (Atom arguments, Atom *result);
-extern const char    *const builtin_multiply_docstring;
-int builtin_multiply (Atom arguments, Atom *result);
-extern const char    *const builtin_divide_docstring;
-int builtin_divide   (Atom arguments, Atom *result);
+extern const char     *const builtin_add_docstring;
+int builtin_add       (Atom arguments, Atom *result);
+extern const char     *const builtin_subtract_docstring;
+int builtin_subtract  (Atom arguments, Atom *result);
+extern const char     *const builtin_multiply_docstring;
+int builtin_multiply  (Atom arguments, Atom *result);
+extern const char     *const builtin_divide_docstring;
+int builtin_divide    (Atom arguments, Atom *result);
+extern const char     *const builtin_remainder_docstring;
+int builtin_remainder (Atom arguments, Atom *result);
 
 // BUFFERS
 

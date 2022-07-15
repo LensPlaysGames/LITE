@@ -147,6 +147,27 @@ as well as places INITIAL-VALUE at the end of SOME-LIST.")
   "Return X's distance from zero, which is always positive,
 also known as the absolute value.")
 
+
+(define gcd
+    (lambda (m n)
+      (if (> m n)
+          (gcd n m)
+          (if (= 0 (% n m)) m
+              (gcd (% n m) m))))
+  "Euclidian greatest common divisor recursive function. This was one
+of the functions mentioned in the original LISP paper in the 1960s.")
+
+(define sqrt-newton
+    (lambda (a x epsilon)
+      (if (< (- (* x x) a) epsilon) x
+          (sqrt-newton a (/ (+ x (/ a x)) 2) epsilon)))
+  "Newtonian approximate square root recursive function.
+This was one of the functions mentioned in the original LISP paper in the 1960s.")
+
+(define sqrt
+    (lambda (n) (sqrt-newton n (/ n 2) 1))
+  "Return the approximate square root of a given number N.")
+
 (macro when (condition . body)
        "Evaluate BODY iff CONDITION evaluates to any non-nil value."
        `(if ,condition ((lambda () ,@body)) nil))

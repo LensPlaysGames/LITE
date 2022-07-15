@@ -63,6 +63,7 @@ Error evaluate_bind_arguments(Atom *stack, Atom *expr, Atom *environment) {
       break;
     }
     if (nilp(arguments)) {
+      error_args.suggestion = "Not enough arguments passed.";
       return error_args;
     }
     env_set(*environment, car(argument_names), car(arguments));
@@ -70,6 +71,7 @@ Error evaluate_bind_arguments(Atom *stack, Atom *expr, Atom *environment) {
     arguments = cdr(arguments);
   }
   if (!nilp(arguments)) {
+    error_args.suggestion = "Too many arguments passed.";
     return error_args;
   }
   list_set(*stack, 4, nil);

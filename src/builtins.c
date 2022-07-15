@@ -288,6 +288,21 @@ int builtin_divide(Atom arguments, Atom *result) {
   return ERROR_NONE;
 }
 
+const char *const builtin_remainder_docstring =
+  "(% N M)\n"
+  "\n"
+  "Return the remainder left when N is divided by M.";
+int builtin_remainder(Atom arguments, Atom *result) {
+  BUILTIN_ENSURE_TWO_ARGUMENTS(arguments);
+  Atom n = car(arguments);
+  Atom m = car(cdr(arguments));
+  if (!integerp(n) || !integerp(m)) {
+    return ERROR_TYPE;
+  }
+  *result = make_int(n.value.integer % m.value.integer);
+  return ERROR_NONE;
+}
+
 const char *const builtin_open_buffer_docstring =
   "(open-buffer PATH)\n\nReturn a buffer visiting PATH.";
 int builtin_open_buffer(Atom arguments, Atom *result) {

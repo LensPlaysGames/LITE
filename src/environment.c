@@ -95,6 +95,7 @@ Atom default_environment() {
   env_set(environment, make_sym("-"),        make_builtin(builtin_subtract,     builtin_subtract_docstring));
   env_set(environment, make_sym("*"),        make_builtin(builtin_multiply,     builtin_multiply_docstring));
   env_set(environment, make_sym("/"),        make_builtin(builtin_divide,       builtin_divide_docstring));
+  env_set(environment, make_sym("%"),        make_builtin(builtin_remainder,    builtin_remainder_docstring));
   env_set(environment, make_sym("!"),        make_builtin(builtin_not,          builtin_not_docstring));
   env_set(environment, make_sym("="),        make_builtin(builtin_numeq,        builtin_numeq_docstring));
   env_set(environment, make_sym("!="),       make_builtin(builtin_numnoteq,     builtin_numnoteq_docstring));
