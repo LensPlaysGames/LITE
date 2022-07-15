@@ -25,6 +25,16 @@ Atom make_frame(Atom parent, Atom environment, Atom tail) {
                                        nil))))));
 }
 
+void print_stackframe(Atom stack, int depth) {
+  if (nilp(stack)) { return; }
+  int d = depth;
+  while (--d >= 0) { putchar(' '); }
+  printf("operator: ");
+  print_atom(list_get(stack, 2));
+  putchar('\n');
+  print_stackframe(car(stack), depth + 2);
+}
+
 /// Set EXPR to next expression in body of STACK.
 Error evaluate_next_expression(Atom *stack, Atom *expr, Atom *environment) {
   *environment = list_get(*stack, 1);
@@ -98,6 +108,26 @@ Error evaluate_apply(Atom *stack, Atom *expr, Atom *environment) {
       }
       list_set(*stack, 2, operator);
       list_set(*stack, 4, arguments);
+    } else if (strcmp(operator.value.symbol, "WHILE-BODY") == 0) {
+      Atom body = list_get(*stack, 5);
+      // If there is an existing body, then simply evaluate the next expression within it.
+      if (!nilp(body)) {
+        *environment = list_get(*stack, 1);
+        Atom body = list_get(*stack, 5);
+        *expr = car(body);
+        body = cdr(body);
+        list_set(*stack, 5, body);
+        return ok;
+      }
+      // Pop WHILE-BODY stack, we have finished evaluating it.
+      Atom new_stack = car(*stack);
+      // Update WHILE stack environment. This is needed to allow
+      // for definitions in the body to affect the conditional.
+      list_set(new_stack, 1, list_get(*stack, 1));
+      *stack = new_stack;
+      // Re-evaluate condition before continuing.
+      *expr = car(list_get(*stack, 3));
+      return ok;
     }
   }
   if (operator.type == ATOM_TYPE_BUILTIN) {
@@ -195,12 +225,12 @@ Error evaluate_return_value(Atom *stack, Atom *expr, Atom *environment, Atom *re
         printf("  condition: ");
         print_atom(car(arguments));
         putchar('\n');
-        printf("  result: ");
+        printf("  result:    ");
         print_atom(*result);
         putchar('\n');
         if (recurse_count.value.integer == 0) {
-          printf("  body:  ");
-          print_atom(car(cdr(arguments)));
+          printf("  body:      ");
+          print_atom(cdr(arguments));
           putchar('\n');
         }
       }
@@ -212,16 +242,10 @@ Error evaluate_return_value(Atom *stack, Atom *expr, Atom *environment, Atom *re
         return ok;
       }
       if (debug_while) { printf("  Loop continuing.\n"); }
-      // TODO+FIXME: This really shouldn't and doesn't need to be recursive!
-      // We should use a stack frame/continuation instead...
-      // But we are going to need two stack frames due to needing to make
-      // it back here after evaluating the body, right? I don't know...
-      Atom body_result = nil;
-      err = evaluate_expression(car(cdr(arguments)), *environment, &body_result);
-      if (err.type) { return err; }
-      // Re-evaluate expression before continuing.
-      *expr = car(arguments);
-      return ok;
+      *stack = make_frame(*stack, *environment, nil);
+      list_set(*stack, 2, make_sym("WHILE-BODY"));
+      list_set(*stack, 5, cdr(arguments));
+      return evaluate_next_expression(stack, expr, environment);
     } else {
       // Store arguments.
       arguments = list_get(*stack, 4);
