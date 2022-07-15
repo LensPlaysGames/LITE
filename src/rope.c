@@ -179,7 +179,7 @@ Rope *rope_insert(Rope *rope, size_t index, char *str) {
   memcpy(contents, str, contents_length);
   contents[contents_length] = '\0';
   if (index >= rope->weight) {
-    rope_append(rope, str);
+    return rope_append(rope, str);
   } else {
     // Insert
     size_t current_index = index + 1;

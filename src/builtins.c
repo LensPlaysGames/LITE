@@ -895,9 +895,9 @@ int builtin_read_prompted(Atom arguments, Atom *result) {
   Atom keymap = nil;
   env_get(*genv(), make_sym("KEYMAP"), &keymap);
   // TODO+FIXME: We really need to switch to string-based input...
-  char *return_character = "\r";
-  Atom original_return_binding = alist_get(keymap, make_string(return_character));
-  alist_set(&keymap, make_string(return_character), cons(make_sym("FINISH-READ"), nil));
+  char *return_keystring = "<return>";
+  Atom original_return_binding = alist_get(keymap, make_string(return_keystring));
+  alist_set(&keymap, make_string(return_keystring), cons(make_sym("FINISH-READ"), nil));
   env_set(*genv(), make_sym("KEYMAP"), keymap);
 
   Atom popup_buffer = make_buffer(env_create(nil), ".popup");
@@ -935,7 +935,7 @@ int builtin_read_prompted(Atom arguments, Atom *result) {
 
   // Restore keymap.
   env_get(*genv(), make_sym("KEYMAP"), &keymap);
-  alist_set(&keymap, make_string(return_character), original_return_binding);
+  alist_set(&keymap, make_string(return_keystring), original_return_binding);
   env_set(*genv(), make_sym("KEYMAP"), keymap);
 
 #else /* #ifdef LITE_GFX */

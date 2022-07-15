@@ -185,13 +185,6 @@ Error buffer_remove_byte(Buffer *buffer) {
   return buffer_remove_bytes(buffer, 1);
 }
 
-size_t buffer_size(Buffer buffer) {
-  if (!buffer.rope) {
-    return 0;
-  }
-  return buffer.rope->weight;
-}
-
 Error buffer_remove_bytes_forward(Buffer *buffer, size_t count) {
   if (!buffer || !buffer->rope) {
     MAKE_ERROR(err, ERROR_ARGUMENTS, nil
@@ -205,17 +198,24 @@ Error buffer_remove_bytes_forward(Buffer *buffer, size_t count) {
                , NULL);
     return err;
   }
-  size_t size = buffer_size(*buffer);
-  if (!size) {
+  if (!buffer->rope) {
     MAKE_ERROR(err, ERROR_GENERIC, nil
-               , "Can not remove from empty buffer."
+               , "Can not remove from buffer with NULL rope."
                , NULL);
     return err;
   }
+  size_t size = buffer->rope->weight;
   if (buffer->point_byte + count >= size) {
     count = size - buffer->point_byte;
     if (count == 0) {
       return ok;
+    }
+    if (count > size) {
+      // Unsigned underflow
+      MAKE_ERROR(err, ERROR_GENERIC, nil
+                 , "Can not remove from buffer when point is greater than size."
+                 , NULL);
+      return err;
     }
   }
   Rope *rope = rope_remove_span(buffer->rope, buffer->point_byte, count);

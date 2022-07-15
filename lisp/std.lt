@@ -408,6 +408,10 @@ Useful for ensuring the user would like to do something before doing it."
   "Evaluate the first line of the current buffer as a LITE LISP expression."
   (evaluate-string (buffer-line current-buffer 0)))
 
+(defun evaluate-prompted ()
+  "Evaluate the first line of the current buffer as a LITE LISP expression."
+  (evaluate-string (read-prompted "Eval: ")))
+
 ;; STANDARD KEYBINDINGS
 
 (macro keybind-low-level (keymap keystring keybind)
@@ -587,7 +591,7 @@ Useful for ensuring the user would like to do something before doing it."
 
 (let ((shft-keymap (get-keymap-or-make-simple keymap "SHFT")))
   ;; keybind: Shift enter to insert DOS newline (CRLF).
-  (keybind-low-level shft-keymap "\\r" '(buffer-insert current-buffer "\\r\\n"))
+  (keybind-low-level shft-keymap "<return>" "\\r\\n")
 
   (keybind-low-level shft-keymap "q" "Q")
   (keybind-low-level shft-keymap "w" "W")
@@ -601,7 +605,7 @@ Useful for ensuring the user would like to do something before doing it."
   (keybind-low-level shft-keymap "p" "P")
   (keybind-low-level shft-keymap "[" "{")
   (keybind-low-level shft-keymap "]" "}")
-  (keybind-low-level shft-keymap "\\\\_" "|")
+  (keybind-low-level shft-keymap "\\\_" "|")
   (keybind-low-level shft-keymap "a" "A")
   (keybind-low-level shft-keymap "s" "S")
   (keybind-low-level shft-keymap "d" "D")
@@ -612,7 +616,7 @@ Useful for ensuring the user would like to do something before doing it."
   (keybind-low-level shft-keymap "k" "K")
   (keybind-low-level shft-keymap "l" "L")
   (keybind-low-level shft-keymap ";" ":")
-  (keybind-low-level shft-keymap "'" "\\"") ;;") << syntax highlight fix
+  (keybind-low-level shft-keymap "'" "\\"") ;") << syntax highlight fix
   (keybind-low-level shft-keymap "z" "Z")
   (keybind-low-level shft-keymap "x" "X")
   (keybind-low-level shft-keymap "c" "C")

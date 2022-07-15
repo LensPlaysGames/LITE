@@ -199,50 +199,57 @@ Error parse_string(const char *beg, const char **end, Atom *result) {
     if (prev_was_backslash) {
       write_this_iteration = 0;
       if (prev_was_backslash >= 2) {
-        switch (*p) {
-        default:
-          // Unrecognized escape sequence, print single backslash as
-          // well as the current character.
+        if (*p == '\\') {
+          // "\\\" -> "\"
+          // Write the backslash that "falls off the end".
           contents[written_offset] = '\\';
           written_offset += 1;
-          contents[written_offset] = '\\';
-          written_offset += 1;
-          write_this_iteration = 1;
-          break;
-        case '_':
-          // "\\_" -> ""
-          // The unescape escape character, mostly for strings that
-          // need a backslash at the end.
-          break;
-        case 'n':
-          // "\\n" -> 0xa ('\n')
-          contents[written_offset] = '\n';
-          written_offset += 1;
-          break;
-        case 'r':
-          // "\\r" -> 0xd ('\r')
-          contents[written_offset] = '\r';
-          written_offset += 1;
-          break;
-        case '"':
-          // "\\"" -> '"'
-          contents[written_offset] = '"';
-          written_offset += 1;
-          break;
-        case '\r':
-          // "\\" + CRLF -> 0xa 0xd ("\r\n")
-          contents[written_offset] = '\r';
-          written_offset += 1;
-          contents[written_offset] = '\n';
-          written_offset += 1;
-          break;
-        case '\n':
-          // "\\" + LF -> 0xa ('\n')
-          contents[written_offset] = '\n';
-          written_offset += 1;
-          break;
+        } else {
+          switch (*p) {
+          default:
+            // Unrecognized escape sequence, print single backslash as
+            // well as the current character.
+            contents[written_offset] = '\\';
+            written_offset += 1;
+            contents[written_offset] = '\\';
+            written_offset += 1;
+            write_this_iteration = 1;
+            break;
+          case '_':
+            // "\\_" -> ""
+            // The unescape escape character, mostly for strings that
+            // need a backslash at the end.
+            break;
+          case 'n':
+            // "\\n" -> 0xa ('\n')
+            contents[written_offset] = '\n';
+            written_offset += 1;
+            break;
+          case 'r':
+            // "\\r" -> 0xd ('\r')
+            contents[written_offset] = '\r';
+            written_offset += 1;
+            break;
+          case '"':
+            // "\\"" -> '"'
+            contents[written_offset] = '"';
+            written_offset += 1;
+            break;
+          case '\r':
+            // "\\" + CRLF -> 0xa 0xd ("\r\n")
+            contents[written_offset] = '\r';
+            written_offset += 1;
+            contents[written_offset] = '\n';
+            written_offset += 1;
+            break;
+          case '\n':
+            // "\\" + LF -> 0xa ('\n')
+            contents[written_offset] = '\n';
+            written_offset += 1;
+            break;
+          }
+          prev_was_backslash = 0;
         }
-        prev_was_backslash = 0;
       }
     }
     if (*p == '\\') {
