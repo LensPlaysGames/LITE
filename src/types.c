@@ -449,7 +449,6 @@ void alist_set(Atom *alist, Atom key, Atom value) {
 
 void print_atom(Atom atom) {
   assert(ATOM_TYPE_MAX == 9);
-  unsigned char *pointer = NULL;
   switch (atom.type) {
   default:
     printf("#<UNKNOWN>:%d", atom.type);
@@ -484,18 +483,10 @@ void print_atom(Atom atom) {
     printf("#<BUILTIN>:%s", atom.value.builtin.name);
     break;
   case ATOM_TYPE_CLOSURE:
-    printf("#<CLOSURE>:");
-    pointer = (unsigned char *)&atom.value.builtin.function;
-    for (size_t i = 0; i < sizeof(pointer); ++i) {
-      printf("%02x", pointer[i]);
-    }
+    printf("#<CLOSURE>:%p", &atom);
     break;
   case ATOM_TYPE_MACRO:
-    printf("#<MACRO>:");
-    pointer = (unsigned char *)&atom.value.builtin.function;
-    for (size_t i = 0; i < sizeof(pointer); ++i) {
-      printf("%02x", pointer[i]);
-    }
+    printf("#<MACRO>:%p", &atom);
     break;
   case ATOM_TYPE_STRING:
     printf("\"%s\"", atom.value.symbol);
@@ -553,8 +544,8 @@ char *atom_string(Atom atom, char *buffer) {
   const char *lr_format      = "(%s%s)";
   const char *l_format       = "(%s)";
   const char *builtin_format = "#<BUILTIN>:%s";
-  const char *closure_format = "#<CLOSURE>";
-  const char *macro_format   = "#<MACRO>";
+  const char *closure_format = "#<CLOSURE>:%p";
+  const char *macro_format   = "#<MACRO>:%p";
   const char *buffer_format  = "#<BUFFER>:\"%s\":%zu";
   switch (atom.type) {
   case ATOM_TYPE_NIL:
@@ -648,16 +639,16 @@ char *atom_string(Atom atom, char *buffer) {
     snprintf(buffer+length, to_add, builtin_format, atom.value.builtin.name);
     break;
   case ATOM_TYPE_CLOSURE:
-    to_add = format_bufsz(closure_format);
+    to_add = format_bufsz(closure_format, &atom);
     buffer = realloc(buffer, length+to_add);
     if (!buffer) { return NULL; }
-    snprintf(buffer+length, to_add, closure_format, 0);
+    snprintf(buffer+length, to_add, closure_format, &atom);
     break;
   case ATOM_TYPE_MACRO:
-    to_add = format_bufsz(macro_format);
+    to_add = format_bufsz(macro_format, &atom);
     buffer = realloc(buffer, length+to_add);
     if (!buffer) { return NULL; }
-    snprintf(buffer+length, to_add, macro_format, 0);
+    snprintf(buffer+length, to_add, macro_format, &atom);
     break;
   case ATOM_TYPE_BUFFER:
     to_add = format_bufsz(buffer_format, atom.value.buffer->path, atom.value.buffer->point_byte);

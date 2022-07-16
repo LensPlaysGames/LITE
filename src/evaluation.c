@@ -1,5 +1,6 @@
 #include <evaluation.h>
 
+#include <assert.h>
 #include <ctype.h>
 #include <environment.h>
 #include <error.h>
@@ -110,43 +111,20 @@ Error evaluate_apply(Atom *stack, Atom *expr, Atom *environment) {
       list_set(*stack, 4, arguments);
     } else if (strcmp(operator.value.symbol, "WHILE-BODY") == 0) {
       Atom body = list_get(*stack, 5);
-      // If there is an existing body, then simply evaluate the next expression within it.
-      if (!nilp(body)) {
-        *environment = list_get(*stack, 1);
-        Atom body = list_get(*stack, 5);
-        *expr = car(body);
-        body = cdr(body);
-        list_set(*stack, 5, body);
-        return ok;
-      }
-      // Pop WHILE-BODY stack, we have finished evaluating it.
-      Atom new_stack = car(*stack);
-      // Update WHILE stack environment. This is needed to allow
-      // for definitions in the body to affect the conditional.
-      list_set(new_stack, 1, list_get(*stack, 1));
-      *stack = new_stack;
-      // Re-evaluate condition before continuing.
-      *expr = car(list_get(*stack, 3));
+      assert(!nilp(body) && "WHILE-BODY: evaluate_apply should not be called when stack body is NIL!");
+      *environment = list_get(*stack, 1);
+      *expr = car(body);
+      body = cdr(body);
+      list_set(*stack, 5, body);
       return ok;
     } else if (strcmp(operator.value.symbol, "PROGN") == 0) {
       Atom body = list_get(*stack, 5);
       // If there is an existing body, then simply evaluate the next expression within it.
-      if (!nilp(body)) {
-        *environment = list_get(*stack, 1);
-        Atom body = list_get(*stack, 5);
-        *expr = car(body);
-        body = cdr(body);
-        list_set(*stack, 5, body);
-        return ok;
-      }
-      // Pop PROGN stack, we have finished evaluating it.
-      Atom new_stack = car(*stack);
-      if (!nilp(new_stack)) {
-        // Update stack environment. This is needed to allow
-        // for definitions in the body to affect outside of it.
-        list_set(new_stack, 1, list_get(*stack, 1));
-      }
-      *stack = new_stack;
+      assert(!nilp(body) && "PROGN: evaluate_apply should not be called when stack body is NIL!");
+      *environment = list_get(*stack, 1);
+      *expr = car(body);
+      body = cdr(body);
+      list_set(*stack, 5, body);
       return ok;
     }
   }
@@ -221,8 +199,15 @@ Error evaluate_return_value(Atom *stack, Atom *expr, Atom *environment, Atom *re
       *stack = car(*stack);
       return ok;
     } else if (strcmp(operator.value.symbol, "PROGN") == 0) {
-      //print_stackframe(*stack, 0);
-      *stack = car(*stack);
+      // Pop PROGN stack, we have finished evaluating it.
+      Atom new_stack = car(*stack);
+      if (!nilp(new_stack)) {
+        // Update stack environment. This is needed to allow
+        // for definitions in the body to affect outside of it.
+        list_set(new_stack, 1, list_get(*stack, 1));
+      }
+      *stack = new_stack;
+      *expr = *result; // Return result of last expression of body.
       return ok;
     } else if (strcmp(operator.value.symbol, "WHILE") == 0) {
       arguments = list_get(*stack, 3);
@@ -270,6 +255,17 @@ Error evaluate_return_value(Atom *stack, Atom *expr, Atom *environment, Atom *re
       list_set(*stack, 2, make_sym("WHILE-BODY"));
       list_set(*stack, 5, cdr(arguments));
       return evaluate_next_expression(stack, expr, environment);
+    } else if (strcmp(operator.value.symbol, "WHILE-BODY") == 0) {
+      // Pop WHILE-BODY stack, we have finished evaluating it.
+      Atom new_stack = car(*stack);
+      // Update WHILE stack environment. This is needed to allow
+      // for definitions in the body to affect the conditional.
+      list_set(new_stack, 1, list_get(*stack, 1));
+      *stack = new_stack;
+      *expr = *result;
+      // Re-evaluate condition before continuing.
+      *expr = car(list_get(*stack, 3));
+      return ok;
     } else {
       // Store arguments.
       arguments = list_get(*stack, 4);
@@ -505,20 +501,16 @@ Error evaluate_expression(Atom expr, Atom environment, Atom *result) {
           expr = car(arguments);
           continue;
         } else if (strcmp(operator.value.symbol, "PROGN") == 0) {
-          const char* usage_progn = "Usage: (progn <body>)";
           if (nilp(arguments)) {
-            PREP_ERROR(err, ERROR_ARGUMENTS
-                       , arguments
-                       , "PROGN: Not enough arguments!"
-                       , usage_progn);
-            return err;
+            *result = nil;
+          } else {
+            stack = make_frame(stack, environment, arguments);
+            // Stack operator set to PROGN.
+            list_set(stack, 2, operator);
+            // Stack body set to PROGN body.
+            list_set(stack, 5, arguments);
+            // Rest handled in `evaluate_return_value()` and `evaluate_apply()`.
           }
-          stack = make_frame(stack, environment, arguments);
-          // Stack operator set to PROGN
-          list_set(stack, 2, operator);
-          // Stack body set to PROGN body
-          list_set(stack, 5, arguments);
-          // Rest handled in `evaluate_apply()` and `evaluate_return_value()`.
         } else if (strcmp(operator.value.symbol, "MACRO") == 0) {
           // Arguments: MACRO_NAME ARGUMENTS DOCSTRING BODY
           const char* usage_macro = "Usage: (MACRO <symbol> <argument> <docstring> <body>...)";
