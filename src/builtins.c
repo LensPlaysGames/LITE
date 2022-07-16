@@ -216,8 +216,22 @@ int builtin_setcar(Atom arguments, Atom *result) {
   if (!pairp(car(arguments))) {
     return ERROR_TYPE;
   }
-  Atom value = car(cdr(arguments));
-  car(car(arguments)) = value;
+  car(car(arguments)) = car(cdr(arguments));
+  *result = nil;
+  return ERROR_NONE;
+}
+
+const char *const builtin_setcdr_name = "SETCDR";
+const char *const builtin_setcdr_docstring =
+  "(setcdr PAIR VALUE)\n"
+  "\n"
+  "Set the right side of PAIR to the given VALUE.";
+int builtin_setcdr(Atom arguments, Atom *result) {
+  BUILTIN_ENSURE_TWO_ARGUMENTS(arguments);
+  if (!pairp(car(arguments))) {
+    return ERROR_TYPE;
+  }
+  cdr(car(arguments)) = car(cdr(arguments));
   *result = nil;
   return ERROR_NONE;
 }

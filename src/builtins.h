@@ -48,6 +48,9 @@ int builtin_cdr(Atom arguments, Atom *result);
 extern const char *const builtin_setcar_name;
 extern const char *const builtin_setcar_docstring;
 int builtin_setcar(Atom arguments, Atom *result);
+extern const char *const builtin_setcdr_name;
+extern const char *const builtin_setcdr_docstring;
+int builtin_setcdr(Atom arguments, Atom *result);
 
 // LISTS
 

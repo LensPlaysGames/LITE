@@ -94,6 +94,10 @@ Atom default_environment() {
           make_builtin(builtin_setcar,
                        (char *)builtin_setcar_name,
                        (char *)builtin_setcar_docstring));
+  env_set(environment, make_sym((char *)builtin_setcdr_name),
+          make_builtin(builtin_setcdr,
+                       (char *)builtin_setcdr_name,
+                       (char *)builtin_setcdr_docstring));
   env_set(environment, make_sym((char *)builtin_nilp_name),
           make_builtin(builtin_nilp,
                        (char *)builtin_nilp_name,
