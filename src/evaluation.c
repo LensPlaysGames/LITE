@@ -128,6 +128,26 @@ Error evaluate_apply(Atom *stack, Atom *expr, Atom *environment) {
       // Re-evaluate condition before continuing.
       *expr = car(list_get(*stack, 3));
       return ok;
+    } else if (strcmp(operator.value.symbol, "PROGN") == 0) {
+      Atom body = list_get(*stack, 5);
+      // If there is an existing body, then simply evaluate the next expression within it.
+      if (!nilp(body)) {
+        *environment = list_get(*stack, 1);
+        Atom body = list_get(*stack, 5);
+        *expr = car(body);
+        body = cdr(body);
+        list_set(*stack, 5, body);
+        return ok;
+      }
+      // Pop PROGN stack, we have finished evaluating it.
+      Atom new_stack = car(*stack);
+      if (!nilp(new_stack)) {
+        // Update stack environment. This is needed to allow
+        // for definitions in the body to affect outside of it.
+        list_set(new_stack, 1, list_get(*stack, 1));
+      }
+      *stack = new_stack;
+      return ok;
     }
   }
   if (operator.type == ATOM_TYPE_BUILTIN) {
@@ -198,6 +218,10 @@ Error evaluate_return_value(Atom *stack, Atom *expr, Atom *environment, Atom *re
       // `result` determines what to evaluate next ("then", or "else" branch).
       *expr = nilp(*result) ? car(cdr(arguments)) : car(arguments);
       // Continue execution, we've handled the IF entirely.
+      *stack = car(*stack);
+      return ok;
+    } else if (strcmp(operator.value.symbol, "PROGN") == 0) {
+      //print_stackframe(*stack, 0);
       *stack = car(*stack);
       return ok;
     } else if (strcmp(operator.value.symbol, "WHILE") == 0) {
@@ -480,6 +504,21 @@ Error evaluate_expression(Atom expr, Atom environment, Atom *result) {
           // Result handled in `evaluate_return_value()`
           expr = car(arguments);
           continue;
+        } else if (strcmp(operator.value.symbol, "PROGN") == 0) {
+          const char* usage_progn = "Usage: (progn <body>)";
+          if (nilp(arguments)) {
+            PREP_ERROR(err, ERROR_ARGUMENTS
+                       , arguments
+                       , "PROGN: Not enough arguments!"
+                       , usage_progn);
+            return err;
+          }
+          stack = make_frame(stack, environment, arguments);
+          // Stack operator set to PROGN
+          list_set(stack, 2, operator);
+          // Stack body set to PROGN body
+          list_set(stack, 5, arguments);
+          // Rest handled in `evaluate_apply()` and `evaluate_return_value()`.
         } else if (strcmp(operator.value.symbol, "MACRO") == 0) {
           // Arguments: MACRO_NAME ARGUMENTS DOCSTRING BODY
           const char* usage_macro = "Usage: (MACRO <symbol> <argument> <docstring> <body>...)";

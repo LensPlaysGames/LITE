@@ -121,10 +121,6 @@ as well as places INITIAL-VALUE at the end of SOME-LIST.")
        `((lambda ,(map car defs) ,@body)
          ,@(map cadr defs)))
 
-(macro progn body
-       "Evaluate the BODY expressions sequentially, returning the last returned value."
-       (if body `((lambda () ,@body)) nil))
-
 ;; ARITHMETIC & LOGIC
 
 ;; Redefine '+' operator to handle any amount of integer arguments.
@@ -188,12 +184,40 @@ for each element of the list, binding it to ELEMENT. VALUE is returned."
               (define list-it (cdr list-it))))
           value))
 
+(macro once body
+       "Do the body once. Uses 'WHILE'."
+       `(let ((once-predicate t))
+          (while (eq once-predicate t)
+            ,@body
+            (define once-predicate nil))))
+
+;; LISTS
+
+(defun add-to-list-impl (given-list element)
+  "Return a LIST with ELEMENT within it. Will not add duplicates."
+  (let ((list-it given-list)
+        (out-element given-list))
+    (while list-it
+      (define out-element list-it)
+      (if (eq (car list-it) element)
+          (define list-it nil)
+          (progn
+            (define list-it (cdr list-it))
+            (define out-element 'flag-symbol))))
+    (if (eq out-element 'flag-symbol)
+        (cons element given-list)
+        given-list)))
+
+(defmacro add-to-list (given-list element)
+  "Define LIST to LIST with ELEMENT in it. Will not add duplicates."
+  `(define ,given-list (add-to-list-impl ,given-list ,element)))
+
 ;; ASSOCIATION LISTS
 ;; also known as ALISTS
 
-(macro alist-set (alist key value)
-       "Return ALIST with KEY associated to VALUE."
-       `(cons (cons ,key ,value) ,alist))
+(defmacro alist-set (alist key value)
+  "Return ALIST with KEY associated to VALUE."
+  `(cons (cons ,key ,value) ,alist))
 
 (defun alist-get (alist key)
   "Get the value associated with KEY in ALIST, or nil if not found."
@@ -201,6 +225,24 @@ for each element of the list, binding it to ELEMENT. VALUE is returned."
       (cdr (car alist))
       (when (cdr alist)
         (alist-get (cdr alist) key))))
+
+(defun add-to-alist-impl (given-alist key value)
+  "Return ALIST with KEY associated to VALUE, no duplicates."
+  (let ((resolved-value (alist-get given-alist key)))
+    (if resolved-value
+        (let ((alist-it given-alist))
+          (while alist-it
+            (if (eq (caar alist-it) key)
+                (progn
+                  (setcar (cdr (car alist-it)) value)
+                  (define alist-it nil))
+                (define alist-it (cdr alist-it))))
+          given-alist)
+        (cons (cons key (cons value nil)) given-alist))))
+
+(defmacro add-to-alist (given-alist key value)
+  "Define ALIST to an ALIST with KEY associated to VALUE, no duplicates."
+  `(define ,given-alist (add-to-alist-impl ,given-alist ,key ,value)))
 
 ;; STRUCTURES
 
@@ -576,8 +618,6 @@ Useful for ensuring the user would like to do something before doing it."
     ;; Update keymap in global environment from local keymap.
     (set keymap (alist-set keymap "CTRL" ctrl-keymap))))
 
-(keybind-low-level keymap "LEFT-ALT"  "ALTS")
-(keybind-low-level keymap "RIGHT-ALT" "ALTS")
 (let ((alts-keymap (get-keymap-or-make-simple keymap "ALTS")))
   ;; keybinds: Evaluation
   (keybind-low-level alts-keymap "e" '(evaluate-line))
