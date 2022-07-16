@@ -69,9 +69,9 @@ Error parse_simple(const char *beg, const char *end, Atom *result) {
   // NIL or SYMBOL
   buffer = malloc(end - beg + 1);
   if (!buffer) {
-    MAKE_ERROR(err, ERROR_MEMORY, nil
-               , "Could not allocate buffer to read symbol."
-               , NULL);
+    MAKE_ERROR(err, ERROR_MEMORY, nil,
+               "Could not allocate buffer to read symbol.",
+               NULL);
     return err;
   }
   p = buffer;
@@ -81,9 +81,9 @@ Error parse_simple(const char *beg, const char *end, Atom *result) {
   }
   *p = '\0';
   if (strlen(buffer) == 0 || buffer[0] == ' ' || buffer[0] == '\n' || buffer[0] == '\r') {
-    MAKE_ERROR(err, ERROR_SYNTAX, nil
-               , "Zero-length symbol is not allowed."
-               , NULL);
+    MAKE_ERROR(err, ERROR_SYNTAX, nil,
+               "Zero-length symbol is not allowed.",
+               NULL);
     return err;
   }
   if (strcmp(buffer, "NIL") == 0) {
@@ -100,9 +100,9 @@ Error parse_list(const char *beg, const char **end, Atom *result) {
   *result = nil;
   *end = beg;
   Error err;
+  const char *token = NULL;
+  Atom item = nil;
   for (;;) {
-    const char *token;
-    Atom item;
     err = lex(*end, &token, end);
     if (err.type) { return err; }
     // End of list.
@@ -112,10 +112,10 @@ Error parse_list(const char *beg, const char **end, Atom *result) {
     // Improper list.
     if (token[0] == '.' && *end - token == 1) {
       if (nilp(list)) {
-        PREP_ERROR(err, ERROR_SYNTAX, nil
-                   , "There must be at least one object on the left side \
-of the `.` improper list operator."
-                   , NULL);
+        PREP_ERROR(err, ERROR_SYNTAX, nil,
+                   "There must be at least one object on the left \
+side of the `.` improper list operator.",
+                   NULL);
         return err;
       }
       err = parse_expr(*end, end, &item);
@@ -124,9 +124,9 @@ of the `.` improper list operator."
       // Closing ')'
       err = lex(*end, &token, end);
       if (!err.type && token[0] != ')') {
-        PREP_ERROR(err, ERROR_SYNTAX, nil
-                   , "Expected a closing parenthesis following a list."
-                   , NULL);
+        PREP_ERROR(err, ERROR_SYNTAX, nil,
+                   "Expected a closing parenthesis following a list.",
+                   NULL);
       }
       return err;
     }
@@ -149,9 +149,9 @@ Error parse_string(const char *beg, const char **end, Atom *result) {
   *end = beg;
   Error err = ok;
   if (beg[0] != '"') {
-    PREP_ERROR(err, ERROR_SYNTAX, nil
-               , "A string is expected to begin with a double quote."
-               , "This is likely an internal error. Consider making an issue on GitHub.")
+    PREP_ERROR(err, ERROR_SYNTAX, nil,
+               "A string is expected to begin with a double quote.",
+               "This is likely an internal error. Consider making an issue on GitHub.");
     return err;
   }
   // Opening quote is eaten here.
@@ -169,9 +169,9 @@ Error parse_string(const char *beg, const char **end, Atom *result) {
     p++;
   }
   if (!*p) {
-    PREP_ERROR(err, ERROR_SYNTAX, nil
-               , "Expected a closing double quote."
-               , NULL)
+    PREP_ERROR(err, ERROR_SYNTAX, nil,
+               "Expected a closing double quote.",
+               NULL);
     return err;
   }
   // Closing quote is eaten here.
@@ -293,8 +293,8 @@ Error parse_expr(const char *source, const char **end, Atom *result) {
   if (token[0] == '(') {
     return parse_list(*end, end, result);
   } else if (token[0] == ')') {
-    PREP_ERROR(err, ERROR_SYNTAX, nil
-               , "Extraneous closing parenthesis.", NULL);
+    PREP_ERROR(err, ERROR_SYNTAX, nil,
+               "Extraneous closing parenthesis.", NULL);
     return err;
   } else if (token[0] == '"') {
     return parse_string(*end, end, result);

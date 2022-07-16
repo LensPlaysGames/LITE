@@ -237,10 +237,9 @@ for each element of the list, binding it to ELEMENT. VALUE is returned."
   "Return ALIST with KEY associated to VALUE, no duplicates."
   (let ((resolved-item (alist-item given-alist key)))
     (if resolved-item
-        (progn
-          (setcdr resolved-item value)
-          given-alist)
-        (cons (cons key value) given-alist))))
+        (setcdr resolved-item value)
+        (define given-alist (cons (cons key value) given-alist)))
+    given-alist))
 
 (defmacro add-to-alist (given-alist key value)
   "Define ALIST to an ALIST with KEY associated to VALUE, no duplicates."
@@ -459,12 +458,16 @@ Useful for ensuring the user would like to do something before doing it."
 ;; STANDARD KEYBINDINGS
 
 (defmacro keybind-push (given-alist key value)
-  "Define ALIST to an alist with KEY associated to VALUE, no checking for duplicates."
+  "Define GIVEN-ALIST to an alist with KEY associated to VALUE, no checking for duplicates."
   `(define ,given-alist (alist-set ,given-alist ,key ,value)))
 
 (defmacro keybind-set (given-alist key value)
-  "Define ALIST to an alist with KEY associated to VALUE, no duplicates."
+  "Define GIVEN-ALIST to an alist with KEY associated to VALUE, no duplicates."
   `(define ,given-alist (add-to-alist-impl ,given-alist ,key ,value)))
+
+(defmacro set-bind-in-keymap (key value)
+  "Define global keymap to an alist with KEY associated to VALUE, no duplicates."
+  `(set keymap (add-to-alist-impl keymap ,key ,value)))
 
 (defun make-simple-keymap ()
   "Create a small keymap with the usual rebinds that are used for modifier keys."
@@ -486,112 +489,108 @@ Useful for ensuring the user would like to do something before doing it."
 
 (set keymap (make-simple-keymap) "The global keymap containing keybindings.")
 
-(let ((working-keymap keymap))
-  ;; keybinds: Newlines
-  ;; UNIX
-  (keybind-push working-keymap "<return>" "\\n")
-  ;; DOS
-  ;;(keybind-push working-keymap "<return>" "\\r\\n")
+;; keybinds: Newlines
+;; UNIX
+(keybind-push keymap "<return>" "\\n")
+;; DOS
+;;(keybind-push keymap "<return>" "\\r\\n")
 
-  ;; keybinds: Backspace
-  (keybind-push working-keymap "<backspace>" '(buffer-remove current-buffer 1))
+;; keybinds: Backspace
+(keybind-push keymap "<backspace>" '(buffer-remove current-buffer 1))
 
-  ;; keybinds: Tab is four spaces (by default)
-  (keybind-push working-keymap "<tab>" "    ")
+;; keybinds: Tab is four spaces (by default)
+(keybind-push keymap "<tab>" "    ")
 
-  ;; keybinds: Escape
-  (keybind-push working-keymap "<escape>" 'ignore)
+;; keybinds: Escape
+(keybind-push keymap "<escape>" 'ignore)
 
-  ;; keybinds: Miscellaneous keys
-  (keybind-push working-keymap "<insert>"       'ignore)
-  (keybind-push working-keymap "<delete>"       "<backspace>")
-  (keybind-push working-keymap "<home>"         '(beginning-of-line))
-  (keybind-push working-keymap "<end>"          '(end-of-line))
-  (keybind-push working-keymap "<page-up>"      'ignore)
-  (keybind-push working-keymap "<page-down>"    'ignore)
-  (keybind-push working-keymap "<capslock>"     'ignore)
-  (keybind-push working-keymap "<print-screen>" 'ignore)
-  (keybind-push working-keymap "<pause>"        'ignore)
-  (keybind-push working-keymap "<scroll-lock>"  'ignore)
+;; keybinds: Miscellaneous keys
+(keybind-push keymap "<insert>"       'ignore)
+(keybind-push keymap "<delete>"       "<backspace>")
+(keybind-push keymap "<home>"         '(beginning-of-line))
+(keybind-push keymap "<end>"          '(end-of-line))
+(keybind-push keymap "<page-up>"      'ignore)
+(keybind-push keymap "<page-down>"    'ignore)
+(keybind-push keymap "<capslock>"     'ignore)
+(keybind-push keymap "<print-screen>" 'ignore)
+(keybind-push keymap "<pause>"        'ignore)
+(keybind-push keymap "<scroll-lock>"  'ignore)
 
-  ;; keybinds: Numpad (numeric keypad)
-  (keybind-push working-keymap "<numpad:lock>"      'ignore)
-  (keybind-push working-keymap "<numpad: >"         " ")
-  (keybind-push working-keymap "<numpad:backspace>" "<backspace>")
-  (keybind-push working-keymap "<numpad:tab>"       "<tab>")
-  (keybind-push working-keymap "<numpad:return>"    "<return>")
-  (keybind-push working-keymap "<numpad:.>"         ".")
-  (keybind-push working-keymap "<numpad:0>"         "0")
-  (keybind-push working-keymap "<numpad:00>"        "00")
-  (keybind-push working-keymap "<numpad:000>"       "000")
-  (keybind-push working-keymap "<numpad:1>"         "1")
-  (keybind-push working-keymap "<numpad:2>"         "2")
-  (keybind-push working-keymap "<numpad:3>"         "3")
-  (keybind-push working-keymap "<numpad:4>"         "4")
-  (keybind-push working-keymap "<numpad:5>"         "5")
-  (keybind-push working-keymap "<numpad:6>"         "6")
-  (keybind-push working-keymap "<numpad:7>"         "7")
-  (keybind-push working-keymap "<numpad:8>"         "8")
-  (keybind-push working-keymap "<numpad:9>"         "9")
-  (keybind-push working-keymap "<numpad:plus>"      "+")
-  (keybind-push working-keymap "<numpad:minus>"     "-")
-  (keybind-push working-keymap "<numpad:plusminus>" 'ignore)
-  (keybind-push working-keymap "<numpad:multiply>"  "*")
-  (keybind-push working-keymap "<numpad:divide>"    "/")
-  (keybind-push working-keymap "<numpad:equals>"    "=")
-  (keybind-push working-keymap "<numpad:xor>"       'ignore)
-  (keybind-push working-keymap "<numpad:power>"     "^")
-  (keybind-push working-keymap "<numpad:%>"         "%")
-  (keybind-push working-keymap "<numpad:&>"         "&")
-  (keybind-push working-keymap "<numpad:&&>"        "&&")
-  (keybind-push working-keymap "<numpad:|>"         "|")
-  (keybind-push working-keymap "<numpad:||>"        "||")
-  (keybind-push working-keymap "<numpad:(>"         "(")
-  (keybind-push working-keymap "<numpad:)>"         ")")
-  (keybind-push working-keymap "<numpad:{>"         "{")
-  (keybind-push working-keymap "<numpad:}>"         "}")
-  (keybind-push working-keymap "<numpad:!>"         "!")
-  (keybind-push working-keymap "<numpad::>"         ":")
-  (keybind-push working-keymap "<numpad:,>"         ",")
-  (keybind-push working-keymap "<numpad:@>"         "@")
-  (keybind-push working-keymap "<numpad:octal>"       'ignore)
-  (keybind-push working-keymap "<numpad:decimal>"     'ignore)
-  (keybind-push working-keymap "<numpad:hexadecimal>" 'ignore)
-  (keybind-push working-keymap "<numpad:A>"         "A")
-  (keybind-push working-keymap "<numpad:B>"         "B")
-  (keybind-push working-keymap "<numpad:C>"         "C")
-  (keybind-push working-keymap "<numpad:D>"         "D")
-  (keybind-push working-keymap "<numpad:E>"         "E")
-  (keybind-push working-keymap "<numpad:F>"         "F")
+;; keybinds: Numpad (numeric keypad)
+(keybind-push keymap "<numpad:lock>"      'ignore)
+(keybind-push keymap "<numpad: >"         " ")
+(keybind-push keymap "<numpad:backspace>" "<backspace>")
+(keybind-push keymap "<numpad:tab>"       "<tab>")
+(keybind-push keymap "<numpad:return>"    "<return>")
+(keybind-push keymap "<numpad:.>"         ".")
+(keybind-push keymap "<numpad:0>"         "0")
+(keybind-push keymap "<numpad:00>"        "00")
+(keybind-push keymap "<numpad:000>"       "000")
+(keybind-push keymap "<numpad:1>"         "1")
+(keybind-push keymap "<numpad:2>"         "2")
+(keybind-push keymap "<numpad:3>"         "3")
+(keybind-push keymap "<numpad:4>"         "4")
+(keybind-push keymap "<numpad:5>"         "5")
+(keybind-push keymap "<numpad:6>"         "6")
+(keybind-push keymap "<numpad:7>"         "7")
+(keybind-push keymap "<numpad:8>"         "8")
+(keybind-push keymap "<numpad:9>"         "9")
+(keybind-push keymap "<numpad:plus>"      "+")
+(keybind-push keymap "<numpad:minus>"     "-")
+(keybind-push keymap "<numpad:plusminus>" 'ignore)
+(keybind-push keymap "<numpad:multiply>"  "*")
+(keybind-push keymap "<numpad:divide>"    "/")
+(keybind-push keymap "<numpad:equals>"    "=")
+(keybind-push keymap "<numpad:xor>"       'ignore)
+(keybind-push keymap "<numpad:power>"     "^")
+(keybind-push keymap "<numpad:%>"         "%")
+(keybind-push keymap "<numpad:&>"         "&")
+(keybind-push keymap "<numpad:&&>"        "&&")
+(keybind-push keymap "<numpad:|>"         "|")
+(keybind-push keymap "<numpad:||>"        "||")
+(keybind-push keymap "<numpad:(>"         "(")
+(keybind-push keymap "<numpad:)>"         ")")
+(keybind-push keymap "<numpad:{>"         "{")
+(keybind-push keymap "<numpad:}>"         "}")
+(keybind-push keymap "<numpad:!>"         "!")
+(keybind-push keymap "<numpad::>"         ":")
+(keybind-push keymap "<numpad:,>"         ",")
+(keybind-push keymap "<numpad:@>"         "@")
+(keybind-push keymap "<numpad:octal>"       'ignore)
+(keybind-push keymap "<numpad:decimal>"     'ignore)
+(keybind-push keymap "<numpad:hexadecimal>" 'ignore)
+(keybind-push keymap "<numpad:A>"         "A")
+(keybind-push keymap "<numpad:B>"         "B")
+(keybind-push keymap "<numpad:C>"         "C")
+(keybind-push keymap "<numpad:D>"         "D")
+(keybind-push keymap "<numpad:E>"         "E")
+(keybind-push keymap "<numpad:F>"         "F")
 
-  ;; keybinds: Function Keys
-  (keybind-push working-keymap "<f1>"    'ignore)
-  (keybind-push working-keymap "<f2>"    'ignore)
-  (keybind-push working-keymap "<f3>"    'ignore)
-  (keybind-push working-keymap "<f4>"    'ignore)
-  (keybind-push working-keymap "<f5>"    'ignore)
-  (keybind-push working-keymap "<f6>"    'ignore)
-  (keybind-push working-keymap "<f7>"    'ignore)
-  (keybind-push working-keymap "<f8>"    'ignore)
-  (keybind-push working-keymap "<f9>"    'ignore)
-  (keybind-push working-keymap "<f10>"   'ignore)
-  (keybind-push working-keymap "<f11>"   'ignore)
-  (keybind-push working-keymap "<f12>"   'ignore)
-  (keybind-push working-keymap "<f13>"   'ignore)
-  (keybind-push working-keymap "<f14>"   'ignore)
-  (keybind-push working-keymap "<f15>"   'ignore)
-  (keybind-push working-keymap "<f16>"   'ignore)
-  (keybind-push working-keymap "<f17>"   'ignore)
-  (keybind-push working-keymap "<f18>"   'ignore)
-  (keybind-push working-keymap "<f19>"   'ignore)
-  (keybind-push working-keymap "<f20>"   'ignore)
-  (keybind-push working-keymap "<f21>"   'ignore)
-  (keybind-push working-keymap "<f22>"   'ignore)
-  (keybind-push working-keymap "<f23>"   'ignore)
-  (keybind-push working-keymap "<f24>"   'ignore)
-
-  ;; Update keymap in global environment from local keymap.
-  (set keymap working-keymap))
+;; keybinds: Function Keys
+(keybind-push keymap "<f1>"    'ignore)
+(keybind-push keymap "<f2>"    'ignore)
+(keybind-push keymap "<f3>"    'ignore)
+(keybind-push keymap "<f4>"    'ignore)
+(keybind-push keymap "<f5>"    'ignore)
+(keybind-push keymap "<f6>"    'ignore)
+(keybind-push keymap "<f7>"    'ignore)
+(keybind-push keymap "<f8>"    'ignore)
+(keybind-push keymap "<f9>"    'ignore)
+(keybind-push keymap "<f10>"   'ignore)
+(keybind-push keymap "<f11>"   'ignore)
+(keybind-push keymap "<f12>"   'ignore)
+(keybind-push keymap "<f13>"   'ignore)
+(keybind-push keymap "<f14>"   'ignore)
+(keybind-push keymap "<f15>"   'ignore)
+(keybind-push keymap "<f16>"   'ignore)
+(keybind-push keymap "<f17>"   'ignore)
+(keybind-push keymap "<f18>"   'ignore)
+(keybind-push keymap "<f19>"   'ignore)
+(keybind-push keymap "<f20>"   'ignore)
+(keybind-push keymap "<f21>"   'ignore)
+(keybind-push keymap "<f22>"   'ignore)
+(keybind-push keymap "<f23>"   'ignore)
+(keybind-push keymap "<f24>"   'ignore)
 
 ;; TODO Bind default SHFT remappings (need double quote escape sequence, as well as better single backslash support.)
 (let ((ctrl-keymap (get-keymap-or-make-simple keymap "CTRL")))
@@ -619,9 +618,9 @@ Useful for ensuring the user would like to do something before doing it."
      '(save-current-buffer-with-msg "Saved"))
 
     ;; Update nested keymap(s) in local keymap.
-    (keybind-push ctrl-keymap "SHFT" ctrl-shft-keymap)
+    (keybind-set ctrl-keymap "SHFT" ctrl-shft-keymap)
     ;; Update keymap in global environment from local keymap.
-    (set keymap (alist-set keymap "CTRL" ctrl-keymap))))
+    (set-bind-in-keymap "CTRL" ctrl-keymap)))
 
 (let ((alts-keymap (get-keymap-or-make-simple keymap "ALTS")))
   ;; keybinds: Evaluation
@@ -632,7 +631,7 @@ Useful for ensuring the user would like to do something before doing it."
   (keybind-push alts-keymap "o" '(switch-current-buffer))
 
   ;; Update keymap in global environemt from local keymap.
-  (set keymap (alist-set keymap "ALTS" alts-keymap)))
+  (set-bind-in-keymap "ALTS" alts-keymap))
 
 (let ((shft-keymap (get-keymap-or-make-simple keymap "SHFT")))
   ;; keybind: Shift enter to insert DOS newline (CRLF).
@@ -687,4 +686,4 @@ Useful for ensuring the user would like to do something before doing it."
   (keybind-push shft-keymap "=" "+")
 
   ;; Update keymap in global environemt from local keymap.
-  (set keymap (alist-set keymap "SHFT" shft-keymap)))
+  (set-bind-in-keymap "SHFT" shft-keymap))

@@ -380,7 +380,9 @@ Error evaluate_expression(Atom expr, Atom environment, Atom *result) {
     } else if (expr.type != ATOM_TYPE_PAIR) {
       *result = expr;
     } else if (!listp(expr)) {
-      err.type = ERROR_SYNTAX;
+      PREP_ERROR(err, ERROR_SYNTAX, expr,
+                 "Can not evaluate expression unless it is in list form.",
+                 NULL);
     } else {
       Atom operator = car(expr);
       Atom arguments = cdr(expr);
