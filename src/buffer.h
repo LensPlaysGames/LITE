@@ -24,7 +24,7 @@ typedef struct Buffer {
 Buffer *buffer_create(char *path);
 
 /// Return the buffer's size in bytes.
-inline size_t buffer_size(Buffer buffer);
+size_t buffer_size(Buffer buffer);
 
 /// Use `point_byte` to determine insertion point.
 Error buffer_insert(Buffer *buffer, char *string);

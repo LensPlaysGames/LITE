@@ -449,6 +449,7 @@ void alist_set(Atom *alist, Atom key, Atom value) {
 
 void print_atom(Atom atom) {
   assert(ATOM_TYPE_MAX == 9);
+  unsigned char *pointer = NULL;
   switch (atom.type) {
   default:
     printf("#<UNKNOWN>:%d", atom.type);
@@ -480,22 +481,33 @@ void print_atom(Atom atom) {
     printf("%lli", atom.value.integer);
     break;
   case ATOM_TYPE_BUILTIN:
-    printf("#<BUILTIN>:%p", atom.value.builtin);
+    printf("#<BUILTIN>:");
+    pointer = (unsigned char *)&atom.value.builtin;
+    for (size_t i = 0; i < sizeof(atom.value.builtin); ++i) {
+      printf("%02x", pointer[i]);
+    }
     break;
   case ATOM_TYPE_CLOSURE:
-    printf("#<CLOSURE>:%p", atom.value.builtin);
+    printf("#<CLOSURE>:");
+    pointer = (unsigned char *)&atom.value.builtin;
+    for (size_t i = 0; i < sizeof(atom.value.builtin); ++i) {
+      printf("%02x", pointer[i]);
+    }
     break;
   case ATOM_TYPE_MACRO:
-    printf("#<MACRO>:%p", atom.value.builtin);
+    printf("#<MACRO>:");
+    pointer = (unsigned char *)&atom.value.builtin;
+    for (size_t i = 0; i < sizeof(atom.value.builtin); ++i) {
+      printf("%02x", pointer[i]);
+    }
     break;
   case ATOM_TYPE_STRING:
     printf("\"%s\"", atom.value.symbol);
     break;
   case ATOM_TYPE_BUFFER:
-    printf("#<BUFFER>:\"%s\":%zu"
-           , atom.value.buffer->path
-           , atom.value.buffer->point_byte
-           );
+    printf("#<BUFFER>:\"%s\":%zu",
+           atom.value.buffer->path,
+           atom.value.buffer->point_byte);
     break;
   }
 }

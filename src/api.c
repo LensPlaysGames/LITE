@@ -121,128 +121,61 @@ int modkey_state(GUIModifierKey key) {
 GUIContext *gctx = NULL;
 GUIContext *gui_ctx() { return gctx; }
 
+/// Return zero iff input should be discarded.
+int handle_modifier
+(GUIModifierKey modkey,
+ char should_discard_when_no_bind,
+ Atom *current_keymap,
+ size_t *keybind_recurse_count
+ )
+{
+  const char *modifier_keystrings[GUI_MODKEY_MAX];
+  modifier_keystrings[GUI_MODKEY_LSUPER] = "LEFT-SUPER";
+  modifier_keystrings[GUI_MODKEY_RSUPER] = "RIGHT-SUPER";
+  modifier_keystrings[GUI_MODKEY_LCTRL] = "LEFT-CONTROL";
+  modifier_keystrings[GUI_MODKEY_RCTRL] = "RIGHT-CONTROL";
+  modifier_keystrings[GUI_MODKEY_LALT] = "LEFT-ALT";
+  modifier_keystrings[GUI_MODKEY_RALT] = "RIGHT-ALT";
+  modifier_keystrings[GUI_MODKEY_LSHIFT] = "LEFT-SHIFT";
+  modifier_keystrings[GUI_MODKEY_RSHIFT] = "RIGHT-SHIFT";
+  if (modkey_state(modkey)) {
+    Atom bind = alist_get(*current_keymap, make_string((char *)modifier_keystrings[modkey]));
+    if (stringp(bind)) {
+      bind = alist_get(*current_keymap, bind);
+      *keybind_recurse_count += 1;
+    }
+    if (alistp(bind)) {
+      *current_keymap = bind;
+    } else {
+      update_gui_string(&gctx->footline, allocate_string("Undefined keybinding!"));
+      return !should_discard_when_no_bind;
+    }
+  }
+  return 1;
+}
+
 /// This will set the environment variable `CURRENT-KEYMAP` based on modifiers
 /// that are currently being held down. This is to be used in `handle_character_dn()`.
 /// Returns boolean-like value (0 == discard keypress, 1 == use keypress)
 int handle_character_dn_modifiers(Atom current_keymap, size_t *keybind_recurse_count) {
   // HANDLE MODIFIER KEYMAPS
-  if (modkey_state(GUI_MODKEY_LSUPER)) {
-    Atom lsuper_bind = alist_get(current_keymap, make_string("LEFT-SUPER"));
-    // Allow string-rebinding of super to another character.
-    // Mostly, this is used to rebind to 'SUPR', the generic L/R super keymap.
-    if (stringp(lsuper_bind)) {
-      lsuper_bind = alist_get(current_keymap, lsuper_bind);
-      *keybind_recurse_count += 1;
-    }
-    if (alistp(lsuper_bind)) {
-      current_keymap = lsuper_bind;
-    } else {
-      // TODO: What keybind is undefined???
-      // I guess we need to keep track of how we got here.
-      // This could be done by saving keys of each keybind.
-      update_gui_string(&gctx->footline, allocate_string("Undefined keybinding!"));
-      // Discard character if no keybind was found.
-      return 0;
-    }
-  } else if (modkey_state(GUI_MODKEY_RSUPER)) {
-    Atom rsuper_bind = alist_get(current_keymap, make_string("RIGHT-SUPER"));
-    if (stringp(rsuper_bind)) {
-      rsuper_bind = alist_get(current_keymap, rsuper_bind);
-      *keybind_recurse_count += 1;
-    }
-    if (alistp(rsuper_bind)) {
-      current_keymap = rsuper_bind;
-    } else {
-      // TODO: What keybind is undefined???
-      update_gui_string(&gctx->footline, allocate_string("Undefined keybinding!"));
-      // Discard character if no keybind was found.
-      return 0;
-    }
-  }
-  if (modkey_state(GUI_MODKEY_LCTRL)) {
-    Atom lctrl_bind = alist_get(current_keymap, make_string("LEFT-CONTROL"));
-    // Allow string-rebinding of ctrl to another character.
-    // Mostly, this is used to rebind to 'CTRL', the generic L/R ctrl keymap.
-    if (stringp(lctrl_bind)) {
-      lctrl_bind = alist_get(current_keymap, lctrl_bind);
-      *keybind_recurse_count += 1;
-    }
-    if (alistp(lctrl_bind)) {
-      current_keymap = lctrl_bind;
-    } else {
-      // TODO: What keybind is undefined???
-      // I guess we need to keep track of how we got here.
-      // This could be done by saving keys of each keybind.
-      update_gui_string(&gctx->footline, allocate_string("Undefined keybinding!"));
-      // Discard character if no ctrl keybind was found.
-      return 0;
-    }
-  } else if (modkey_state(GUI_MODKEY_RCTRL)) {
-    Atom rctrl_bind = alist_get(current_keymap, make_string("RIGHT-CONTROL"));
-    if (stringp(rctrl_bind)) {
-      rctrl_bind = alist_get(current_keymap, rctrl_bind);
-      *keybind_recurse_count += 1;
-    }
-    if (alistp(rctrl_bind)) {
-      current_keymap = rctrl_bind;
-    } else {
-      // TODO: What keybind is undefined???
-      update_gui_string(&gctx->footline, allocate_string("Undefined keybinding!"));
-      // Discard character if no ctrl keybind was found.
-      return 0;
-    }
-  }
-  if (modkey_state(GUI_MODKEY_LALT)) {
-    Atom lalt_bind = alist_get(current_keymap, make_string("LEFT-ALT"));
-    // Allow string-rebinding of alt to another character.
-    // Mostly, this is used to rebind to 'ALTS', the generic L/R alt keymap.
-    if (stringp(lalt_bind)) {
-      lalt_bind = alist_get(current_keymap, lalt_bind);
-      *keybind_recurse_count += 1;
-    }
-    if (alistp(lalt_bind)) {
-      current_keymap = lalt_bind;
-    } else {
-      // TODO: What keybind is undefined???
-      update_gui_string(&gctx->footline, allocate_string("Undefined keybinding!"));
-      // Discard character if no alt keybind was found.
-      return 0;
-    }
-  } else if (modkey_state(GUI_MODKEY_RALT)) {
-    Atom ralt_bind = alist_get(current_keymap, make_string("RIGHT-ALT"));
-    if (stringp(ralt_bind)) {
-      ralt_bind = alist_get(current_keymap, ralt_bind);
-      *keybind_recurse_count += 1;
-    }
-    if (alistp(ralt_bind)) {
-      current_keymap = ralt_bind;
-    } else {
-      update_gui_string(&gctx->footline, allocate_string("Undefined keybinding!"));
-      // Discard character if no keybind was found.
-      return 0;
-    }
-  }
-  if (modkey_state(GUI_MODKEY_LSHIFT)) {
-    Atom lshift_bind = alist_get(current_keymap, make_string("LEFT-SHIFT"));
-    // Allow string-rebinding of shift to another character.
-    // Mostly, this is used to rebind to 'SHFT', the generic L/R shift keymap.
-    if (stringp(lshift_bind)) {
-      lshift_bind = alist_get(current_keymap, lshift_bind);
-      *keybind_recurse_count += 1;
-    }
-    if (alistp(lshift_bind)) {
-      current_keymap = lshift_bind;
-    }
-  } else if (modkey_state(GUI_MODKEY_RSHIFT)) {
-    Atom rshift_bind = alist_get(current_keymap, make_string("RIGHT-SHIFT"));
-    if (stringp(rshift_bind)) {
-      rshift_bind = alist_get(current_keymap, rshift_bind);
-      *keybind_recurse_count += 1;
-    }
-    if (alistp(rshift_bind)) {
-      current_keymap = rshift_bind;
-    }
-  }
+  int out = 1;
+  out = handle_modifier(GUI_MODKEY_LSUPER, 1, &current_keymap, keybind_recurse_count);
+  if (out == 0) { return 0; }
+  out = handle_modifier(GUI_MODKEY_RSUPER, 1, &current_keymap, keybind_recurse_count);
+  if (out == 0) { return 0; }
+  out = handle_modifier(GUI_MODKEY_LCTRL,  1, &current_keymap, keybind_recurse_count);
+  if (out == 0) { return 0; }
+  out = handle_modifier(GUI_MODKEY_RCTRL,  1, &current_keymap, keybind_recurse_count);
+  if (out == 0) { return 0; }
+  out = handle_modifier(GUI_MODKEY_LALT,   1, &current_keymap, keybind_recurse_count);
+  if (out == 0) { return 0; }
+  out = handle_modifier(GUI_MODKEY_RALT,   1, &current_keymap, keybind_recurse_count);
+  if (out == 0) { return 0; }
+  out = handle_modifier(GUI_MODKEY_LSHIFT, 1, &current_keymap, keybind_recurse_count);
+  if (out == 0) { return 0; }
+  out = handle_modifier(GUI_MODKEY_RSHIFT, 1, &current_keymap, keybind_recurse_count);
+  if (out == 0) { return 0; }
   env_set(*genv(), make_sym("CURRENT-KEYMAP"), current_keymap);
   return 1;
 }
@@ -337,7 +270,6 @@ void handle_keydown(char *keystring) {
             return;
           }
           if (strcmp(keybind.value.symbol, "SELF-INSERT") == 0) {
-            // FIXME: This assumes one-byte content.
             Error err = buffer_insert(current_buffer.value.buffer, keystring);
             if (err.type) {
               print_error(err);

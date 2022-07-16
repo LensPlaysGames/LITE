@@ -48,7 +48,7 @@ Buffer *buffer_create(char *path) {
   return buffer;
 }
 
-inline size_t buffer_size(Buffer buffer) {
+size_t buffer_size(Buffer buffer) {
   if (!buffer.rope) { return 0; }
   return buffer.rope->weight;
 }
