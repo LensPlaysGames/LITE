@@ -77,88 +77,220 @@ int boundp(Atom environment, Atom symbol) {
 
 Atom default_environment() {
   Atom environment = env_create(nil);
-  env_set(environment, make_sym("T"),        make_sym("T"));
-  env_set(environment, make_sym("CAR"),      make_builtin(builtin_car,          builtin_car_docstring));
-  env_set(environment, make_sym("CDR"),      make_builtin(builtin_cdr,          builtin_cdr_docstring));
-  env_set(environment, make_sym("CONS"),     make_builtin(builtin_cons,         builtin_cons_docstring));
-  env_set(environment, make_sym("SETCAR"),   make_builtin(builtin_setcar,       builtin_setcar_docstring));
-  env_set(environment, make_sym("NILP"),     make_builtin(builtin_nilp,         builtin_nilp_docstring));
-  env_set(environment, make_sym("PAIRP"),    make_builtin(builtin_pairp,        builtin_pairp_docstring));
-  env_set(environment, make_sym("SYMBOLP"),  make_builtin(builtin_symbolp,      builtin_symbolp_docstring));
-  env_set(environment, make_sym("INTEGERP"), make_builtin(builtin_integerp,     builtin_integerp_docstring));
-  env_set(environment, make_sym("BUILTINP"), make_builtin(builtin_builtinp,     builtin_builtinp_docstring));
-  env_set(environment, make_sym("CLOSUREP"), make_builtin(builtin_closurep,     builtin_closurep_docstring));
-  env_set(environment, make_sym("MACROP"),   make_builtin(builtin_macrop,       builtin_macrop_docstring));
-  env_set(environment, make_sym("STRINGP"),  make_builtin(builtin_stringp,      builtin_stringp_docstring));
-  env_set(environment, make_sym("BUFFERP"),  make_builtin(builtin_bufferp,      builtin_bufferp_docstring));
-  env_set(environment, make_sym("+"),        make_builtin(builtin_add,          builtin_add_docstring));
-  env_set(environment, make_sym("-"),        make_builtin(builtin_subtract,     builtin_subtract_docstring));
-  env_set(environment, make_sym("*"),        make_builtin(builtin_multiply,     builtin_multiply_docstring));
-  env_set(environment, make_sym("/"),        make_builtin(builtin_divide,       builtin_divide_docstring));
-  env_set(environment, make_sym("%"),        make_builtin(builtin_remainder,    builtin_remainder_docstring));
-  env_set(environment, make_sym("!"),        make_builtin(builtin_not,          builtin_not_docstring));
-  env_set(environment, make_sym("="),        make_builtin(builtin_numeq,        builtin_numeq_docstring));
-  env_set(environment, make_sym("!="),       make_builtin(builtin_numnoteq,     builtin_numnoteq_docstring));
-  env_set(environment, make_sym("<"),        make_builtin(builtin_numlt,        builtin_numlt_docstring));
-  env_set(environment, make_sym("<="),       make_builtin(builtin_numlt_or_eq,  builtin_numlt_or_eq_docstring));
-  env_set(environment, make_sym(">"),        make_builtin(builtin_numgt,        builtin_numgt_docstring));
-  env_set(environment, make_sym(">="),       make_builtin(builtin_numgt_or_eq,  builtin_numgt_or_eq_docstring));
-  env_set(environment, make_sym("EQ"),       make_builtin(builtin_eq,           builtin_eq_docstring));
-  env_set(environment, make_sym("COPY"),     make_builtin(builtin_copy,         builtin_copy_docstring));
-  env_set(environment, make_sym("SAVE"),     make_builtin(builtin_save,         builtin_save_docstring));
-  env_set(environment, make_sym("APPLY"),    make_builtin(builtin_apply,        builtin_apply_docstring));
-  env_set(environment, make_sym("PRINT"),    make_builtin(builtin_print,        builtin_print_docstring));
-  env_set(environment, make_sym("SYM"),      make_builtin(builtin_symbol_table, builtin_symbol_table_docstring));
+  env_set(environment, make_sym("T"), make_sym("T"));
+  env_set(environment, make_sym((char *)builtin_car_name),
+          make_builtin(builtin_car,
+                       (char *)builtin_car_name,
+                       (char *)builtin_car_docstring));
+  env_set(environment, make_sym((char *)builtin_cdr_name),
+          make_builtin(builtin_cdr,
+                       (char *)builtin_cdr_name,
+                       (char *)builtin_cdr_docstring));
+  env_set(environment, make_sym((char *)builtin_cons_name),
+          make_builtin(builtin_cons,
+                       (char *)builtin_cons_name,
+                       (char *)builtin_cons_docstring));
+  env_set(environment, make_sym((char *)builtin_setcar_name),
+          make_builtin(builtin_setcar,
+                       (char *)builtin_setcar_name,
+                       (char *)builtin_setcar_docstring));
+  env_set(environment, make_sym((char *)builtin_nilp_name),
+          make_builtin(builtin_nilp,
+                       (char *)builtin_nilp_name,
+                       (char *)builtin_nilp_docstring));
+  env_set(environment, make_sym((char *)builtin_pairp_name),
+          make_builtin(builtin_pairp,
+                       (char *)builtin_pairp_name,
+                       (char *)builtin_pairp_docstring));
+  env_set(environment, make_sym((char *)builtin_symbolp_name),
+          make_builtin(builtin_symbolp,
+                       (char *)builtin_symbolp_name,
+                       (char *)builtin_symbolp_docstring));
+  env_set(environment, make_sym((char *)builtin_integerp_name),
+          make_builtin(builtin_integerp,
+                       (char *)builtin_integerp_name,
+                       (char *)builtin_integerp_docstring));
+  env_set(environment, make_sym((char *)builtin_builtinp_name),
+          make_builtin(builtin_builtinp,
+                       (char *)builtin_builtinp_name,
+                       (char *)builtin_builtinp_docstring));
+  env_set(environment, make_sym((char *)builtin_closurep_name),
+          make_builtin(builtin_closurep,
+                       (char *)builtin_closurep_name,
+                       (char *)builtin_closurep_docstring));
+  env_set(environment, make_sym((char *)builtin_macrop_name),
+          make_builtin(builtin_macrop,
+                       (char *)builtin_macrop_name,
+                       (char *)builtin_macrop_docstring));
+  env_set(environment, make_sym((char *)builtin_stringp_name),
+          make_builtin(builtin_stringp,
+                       (char *)builtin_stringp_name,
+                       (char *)builtin_stringp_docstring));
+  env_set(environment, make_sym((char *)builtin_bufferp_name),
+          make_builtin(builtin_bufferp,
+                       (char *)builtin_bufferp_name,
+                       (char *)builtin_bufferp_docstring));
+  env_set(environment, make_sym((char *)builtin_add_name),
+          make_builtin(builtin_add,
+                       (char *)builtin_add_name,
+                       (char *)builtin_add_docstring));
+  env_set(environment, make_sym((char *)builtin_subtract_name),
+          make_builtin(builtin_subtract,
+                       (char *)builtin_subtract_name,
+                       (char *)builtin_subtract_docstring));
+  env_set(environment, make_sym((char *)builtin_multiply_name),
+          make_builtin(builtin_multiply,
+                       (char *)builtin_multiply_name,
+                       (char *)builtin_multiply_docstring));
+  env_set(environment, make_sym((char *)builtin_divide_name),
+          make_builtin(builtin_divide,
+                       (char *)builtin_divide_name,
+                       (char *)builtin_divide_docstring));
+  env_set(environment, make_sym((char *)builtin_remainder_name),
+          make_builtin(builtin_remainder,
+                       (char *)builtin_remainder_name,
+                       (char *)builtin_remainder_docstring));
+  env_set(environment, make_sym((char *)builtin_not_name),
+          make_builtin(builtin_not,
+                       (char *)builtin_not_name,
+                       (char *)builtin_not_docstring));
+  env_set(environment, make_sym((char *)builtin_numeq_name),
+          make_builtin(builtin_numeq,
+                       (char *)builtin_numeq_name,
+                       (char *)builtin_numeq_docstring));
+  env_set(environment, make_sym((char *)builtin_numnoteq_name),
+          make_builtin(builtin_numnoteq,
+                       (char *)builtin_numnoteq_name,
+                       (char *)builtin_numnoteq_docstring));
+  env_set(environment, make_sym((char *)builtin_numlt_name),
+          make_builtin(builtin_numlt,
+                       (char *)builtin_numlt_name,
+                       (char *)builtin_numlt_docstring));
+  env_set(environment, make_sym((char *)builtin_numlt_or_eq_name),
+          make_builtin(builtin_numlt_or_eq,
+                       (char *)builtin_numlt_or_eq_name,
+                       (char *)builtin_numlt_or_eq_docstring));
+  env_set(environment, make_sym((char *)builtin_numgt_name),
+          make_builtin(builtin_numgt,
+                       (char *)builtin_numgt_name,
+                       (char *)builtin_numgt_docstring));
+  env_set(environment, make_sym((char *)builtin_numgt_or_eq_name),
+          make_builtin(builtin_numgt_or_eq,
+                       (char *)builtin_numgt_or_eq_name,
+                       (char *)builtin_numgt_or_eq_docstring));
+  env_set(environment, make_sym((char *)builtin_eq_name),
+          make_builtin(builtin_eq,
+                       (char *)builtin_eq_name,
+                       (char *)builtin_eq_docstring));
+  env_set(environment, make_sym((char *)builtin_copy_name),
+          make_builtin(builtin_copy,
+                       (char *)builtin_copy_name,
+                       (char *)builtin_copy_docstring));
+  env_set(environment, make_sym((char *)builtin_save_name),
+          make_builtin(builtin_save,
+                       (char *)builtin_save_name,
+                       (char *)builtin_save_docstring));
+  env_set(environment, make_sym((char *)builtin_apply_name),
+          make_builtin(builtin_apply,
+                       (char *)builtin_apply_name,
+                       (char *)builtin_apply_docstring));
+  env_set(environment, make_sym((char *)builtin_print_name),
+          make_builtin(builtin_print,
+                       (char *)builtin_print_name,
+                       (char *)builtin_print_docstring));
+  env_set(environment, make_sym((char *)builtin_symbol_table_name),
+          make_builtin(builtin_symbol_table,
+                       (char *)builtin_symbol_table_name,
+                       (char *)builtin_symbol_table_docstring));
 
-  env_set(environment, make_sym("BUF"),
-          make_builtin(builtin_buffer_table,            builtin_buffer_table_docstring));
-  env_set(environment, make_sym("OPEN-BUFFER")
-          , make_builtin(builtin_open_buffer,           builtin_open_buffer_docstring));
-  env_set(environment, make_sym("BUFFER-INSERT")
-          , make_builtin(builtin_buffer_insert,         builtin_buffer_insert_docstring));
-  env_set(environment, make_sym("BUFFER-REMOVE")
-          , make_builtin(builtin_buffer_remove,         builtin_buffer_remove_docstring));
-  env_set(environment, make_sym("BUFFER-REMOVE-FORWARD")
-          , make_builtin(builtin_buffer_remove_forward, builtin_buffer_remove_forward_docstring));
-  env_set(environment, make_sym("BUFFER-STRING")
-          , make_builtin(builtin_buffer_string,         builtin_buffer_string_docstring));
-  env_set(environment, make_sym("BUFFER-LINES")
-          , make_builtin(builtin_buffer_lines,          builtin_buffer_lines_docstring));
-  env_set(environment, make_sym("BUFFER-LINE")
-          , make_builtin(builtin_buffer_line,           builtin_buffer_line_docstring));
-  env_set(environment, make_sym("BUFFER-CURRENT-LINE")
-          , make_builtin(builtin_buffer_current_line,   builtin_buffer_current_line_docstring));
-  env_set(environment, make_sym("BUFFER-SET-POINT")
-          , make_builtin(builtin_buffer_set_point,      builtin_buffer_set_point_docstring));
-  env_set(environment, make_sym("BUFFER-POINT")
-          , make_builtin(builtin_buffer_point,          builtin_buffer_point_docstring));
-  env_set(environment, make_sym("BUFFER-INDEX")
-          , make_builtin(builtin_buffer_index,          builtin_buffer_index_docstring));
-  env_set(environment, make_sym("BUFFER-SEEK-BYTE")
-          , make_builtin(builtin_buffer_seek_byte,      builtin_buffer_seek_byte_docstring));
-  env_set(environment, make_sym("BUFFER-SEEK-SUBSTRING")
-          , make_builtin(builtin_buffer_seek_substring, builtin_buffer_seek_substring_docstring));
+  env_set(environment, make_sym((char *)builtin_buffer_table_name),
+          make_builtin(builtin_buffer_table,
+                       (char *)builtin_buffer_table_name,
+                       (char *)builtin_buffer_table_docstring));
+  env_set(environment, make_sym((char *)builtin_open_buffer_name),
+          make_builtin(builtin_open_buffer,
+                       (char *)builtin_open_buffer_name,
+                       (char *)builtin_open_buffer_docstring));
+  env_set(environment, make_sym((char *)builtin_buffer_insert_name),
+          make_builtin(builtin_buffer_insert,
+                       (char *)builtin_buffer_insert_name,
+                       (char *)builtin_buffer_insert_docstring));
+  env_set(environment, make_sym((char *)builtin_buffer_remove_name),
+          make_builtin(builtin_buffer_remove,
+                       (char *)builtin_buffer_remove_name,
+                       (char *)builtin_buffer_remove_docstring));
+  env_set(environment, make_sym((char *)builtin_buffer_remove_forward_name),
+          make_builtin(builtin_buffer_remove_forward,
+                       (char *)builtin_buffer_remove_forward_name,
+                       (char *)builtin_buffer_remove_forward_docstring));
+  env_set(environment, make_sym((char *)builtin_buffer_string_name),
+          make_builtin(builtin_buffer_string,
+                       (char *)builtin_buffer_string_name,
+                       (char *)builtin_buffer_string_docstring));
+  env_set(environment, make_sym((char *)builtin_buffer_lines_name),
+          make_builtin(builtin_buffer_lines,
+                       (char *)builtin_buffer_lines_name,
+                       (char *)builtin_buffer_lines_docstring));
+  env_set(environment, make_sym((char *)builtin_buffer_line_name),
+          make_builtin(builtin_buffer_line,
+                       (char *)builtin_buffer_line_name,
+                       (char *)builtin_buffer_line_docstring));
+  env_set(environment, make_sym((char *)builtin_buffer_current_line_name),
+          make_builtin(builtin_buffer_current_line,
+                       (char *)builtin_buffer_current_line_name,
+                       (char *)builtin_buffer_current_line_docstring));
+  env_set(environment, make_sym((char *)builtin_buffer_set_point_name),
+          make_builtin(builtin_buffer_set_point,
+                       (char *)builtin_buffer_set_point_name,
+                       (char *)builtin_buffer_set_point_docstring));
+  env_set(environment, make_sym((char *)builtin_buffer_point_name),
+          make_builtin(builtin_buffer_point,
+                       (char *)builtin_buffer_point_name,
+                       (char *)builtin_buffer_point_docstring));
+  env_set(environment, make_sym((char *)builtin_buffer_index_name),
+          make_builtin(builtin_buffer_index,
+                       (char *)builtin_buffer_index_name,
+                       (char *)builtin_buffer_index_docstring));
+  env_set(environment, make_sym((char *)builtin_buffer_seek_byte_name),
+          make_builtin(builtin_buffer_seek_byte,
+                       (char *)builtin_buffer_seek_byte_name,
+                       (char *)builtin_buffer_seek_byte_docstring));
+  env_set(environment, make_sym((char *)builtin_buffer_seek_substring_name),
+          make_builtin(builtin_buffer_seek_substring,
+                       (char *)builtin_buffer_seek_substring_name,
+                       (char *)builtin_buffer_seek_substring_docstring));
 
-  env_set(environment, make_sym("READ-PROMPTED")
-          , make_builtin(builtin_read_prompted,         builtin_read_prompted_docstring));
-  env_set(environment, make_sym("FINISH-READ")
-          , make_builtin(builtin_finish_read,           builtin_finish_read_docstring));
+  env_set(environment, make_sym((char *)builtin_read_prompted_name),
+          make_builtin(builtin_read_prompted,
+                       (char *)builtin_read_prompted_name,
+                       (char *)builtin_read_prompted_docstring));
+  env_set(environment, make_sym((char *)builtin_finish_read_name),
+          make_builtin(builtin_finish_read,
+                       (char *)builtin_finish_read_name,
+                       (char *)builtin_finish_read_docstring));
 
-  env_set(environment, make_sym("STRING-LENGTH")
-          , make_builtin(builtin_string_length,         builtin_string_length_docstring));
+  env_set(environment, make_sym((char *)builtin_string_length_name),
+          make_builtin(builtin_string_length,
+                       (char *)builtin_string_length_name,
+                       (char *)builtin_string_length_docstring));
 
-  env_set(environment, make_sym("EVALUATE")
-          , make_builtin(builtin_evaluate,              builtin_evaluate_docstring));
-  env_set(environment, make_sym("EVALUATE-STRING")
-          , make_builtin(builtin_evaluate_string,       builtin_evaluate_string_docstring));
-  env_set(environment, make_sym("EVALUATE-FILE")
-          , make_builtin(builtin_evaluate_file,         builtin_evaluate_file_docstring));
+  env_set(environment, make_sym((char *)builtin_evaluate_string_name),
+          make_builtin(builtin_evaluate_string,
+                       (char *)builtin_evaluate_string_name,
+                       (char *)builtin_evaluate_string_docstring));
+  env_set(environment, make_sym((char *)builtin_evaluate_file_name),
+          make_builtin(builtin_evaluate_file,
+                       (char *)builtin_evaluate_file_name,
+                       (char *)builtin_evaluate_file_docstring));
 
-  env_set(environment, make_sym("MEMBER"), make_builtin(builtin_member, builtin_member_docstring));
+  env_set(environment, make_sym((char *)builtin_member_name),
+          make_builtin(builtin_member,
+                       (char *)builtin_member_name,
+                       (char *)builtin_member_docstring));
 
-  env_set(environment, make_sym("WHILE-RECURSE-LIMIT"), make_int_with_docstring
-          (10000
-           , "This is the maximum amount of times a while loop may loop.\n"
+  env_set(environment, make_sym((char *)"WHILE-RECURSE-LIMIT"), make_int_with_docstring
+          (10000,
+           "This is the maximum amount of times a while loop may loop.\n"
            "\n"
            "Used to prevent infinite loops."));
 

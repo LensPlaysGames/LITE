@@ -57,6 +57,7 @@ int typep(Atom arguments, enum AtomType type, Atom *result) {
   return ERROR_NONE;
 }
 
+const char *const builtin_nilp_name = "NILP";
 const char *const builtin_nilp_docstring =
   "(nilp ARG)\n"
   "\n"
@@ -69,6 +70,7 @@ int builtin_nilp(Atom arguments, Atom *result) {
   return ERROR_NONE;
 }
 
+const char *const builtin_pairp_name = "PAIRP";
 const char *const builtin_pairp_docstring =
   "(pairp ARG)\n"
   "\n"
@@ -77,6 +79,7 @@ int builtin_pairp(Atom arguments, Atom *result) {
   return typep(arguments, ATOM_TYPE_PAIR, result);
 }
 
+const char *const builtin_symbolp_name = "SYMBOLP";
 const char *const builtin_symbolp_docstring =
   "(symbolp ARG)\n"
   "\n"
@@ -85,6 +88,7 @@ int builtin_symbolp(Atom arguments, Atom *result) {
   return typep(arguments, ATOM_TYPE_SYMBOL, result);
 }
 
+const char *const builtin_integerp_name = "INTEGERP";
 const char *const builtin_integerp_docstring =
   "(integerp ARG)\n"
   "\n"
@@ -93,6 +97,7 @@ int builtin_integerp(Atom arguments, Atom *result) {
   return typep(arguments, ATOM_TYPE_INTEGER, result);
 }
 
+const char *const builtin_builtinp_name = "BUILTINP";
 const char *const builtin_builtinp_docstring =
   "(builtinp ARG)\n"
   "\n"
@@ -101,6 +106,7 @@ int builtin_builtinp(Atom arguments, Atom *result) {
   return typep(arguments, ATOM_TYPE_BUILTIN, result);
 }
 
+const char *const builtin_closurep_name = "CLOSUREP";
 const char *const builtin_closurep_docstring =
   "(closurep ARG)\n"
   "\n"
@@ -109,6 +115,7 @@ int builtin_closurep(Atom arguments, Atom *result) {
   return typep(arguments, ATOM_TYPE_CLOSURE, result);
 }
 
+const char *const builtin_macrop_name = "MACROP";
 const char *const builtin_macrop_docstring =
   "(macrop ARG)\n"
   "\n"
@@ -117,6 +124,7 @@ int builtin_macrop(Atom arguments, Atom *result) {
   return typep(arguments, ATOM_TYPE_MACRO, result);
 }
 
+const char *const builtin_stringp_name = "STRINGP";
 const char *const builtin_stringp_docstring =
   "(stringp ARG)\n"
   "\n"
@@ -125,6 +133,7 @@ int builtin_stringp(Atom arguments, Atom *result) {
   return typep(arguments, ATOM_TYPE_STRING, result);
 }
 
+const char *const builtin_bufferp_name = "BUFFERP";
 const char *const builtin_bufferp_docstring =
   "(bufferp ARG)\n"
   "\n"
@@ -133,6 +142,7 @@ int builtin_bufferp(Atom arguments, Atom *result) {
   return typep(arguments, ATOM_TYPE_BUFFER, result);
 }
 
+const char *const builtin_not_name = "!";
 const char *const builtin_not_docstring =
   "(! ARG)\n"
   "\n"
@@ -143,6 +153,7 @@ int builtin_not(Atom arguments, Atom *result) {
   return ERROR_NONE;
 }
 
+const char *const builtin_car_name = "CAR";
 const char *const builtin_car_docstring =
   "(car ARG)\n"
   "\n"
@@ -163,6 +174,7 @@ int builtin_car(Atom arguments, Atom *result) {
   return ERROR_NONE;
 }
 
+const char *const builtin_cdr_name = "CDR";
 const char *const builtin_cdr_docstring =
   "(cdr ARG)\n"
   "\n"
@@ -183,6 +195,7 @@ int builtin_cdr(Atom arguments, Atom *result) {
   return ERROR_NONE;
 }
 
+const char *const builtin_cons_name = "CONS";
 const char *const builtin_cons_docstring =
   "(cons LEFT RIGHT)\n"
   "\n"
@@ -193,6 +206,7 @@ int builtin_cons(Atom arguments, Atom *result) {
   return ERROR_NONE;
 }
 
+const char *const builtin_setcar_name = "SETCAR";
 const char *const builtin_setcar_docstring =
   "(setcar PAIR VALUE)\n"
   "\n"
@@ -208,6 +222,7 @@ int builtin_setcar(Atom arguments, Atom *result) {
   return ERROR_NONE;
 }
 
+const char *const builtin_member_name = "MEMBER";
 const char *const builtin_member_docstring =
   "(member ELEMENT LIST)\n"
   "\n"
@@ -224,6 +239,7 @@ int builtin_member(Atom arguments, Atom *result) {
   return ERROR_NONE;
 }
 
+const char *const builtin_add_name = "+";
 const char *const builtin_add_docstring =
   "(+ A B)\n"
   "\n"
@@ -239,6 +255,7 @@ int builtin_add(Atom arguments, Atom *result) {
   return ERROR_NONE;
 }
 
+const char *const builtin_subtract_name = "-";
 const char *const builtin_subtract_docstring =
   "(- A B)\n"
   "\n"
@@ -254,6 +271,7 @@ int builtin_subtract(Atom arguments, Atom *result) {
   return ERROR_NONE;
 }
 
+const char *const builtin_multiply_name = "*";
 const char *const builtin_multiply_docstring =
   "(* A B)\n"
   "\n"
@@ -269,6 +287,7 @@ int builtin_multiply(Atom arguments, Atom *result) {
   return ERROR_NONE;
 }
 
+const char *const builtin_divide_name = "/";
 const char *const builtin_divide_docstring =
   "(/ A B)\n"
   "\n"
@@ -288,6 +307,7 @@ int builtin_divide(Atom arguments, Atom *result) {
   return ERROR_NONE;
 }
 
+const char *const builtin_remainder_name = "%";
 const char *const builtin_remainder_docstring =
   "(% N M)\n"
   "\n"
@@ -303,6 +323,7 @@ int builtin_remainder(Atom arguments, Atom *result) {
   return ERROR_NONE;
 }
 
+const char *const builtin_open_buffer_name = "OPEN-BUFFER";
 const char *const builtin_open_buffer_docstring =
   "(open-buffer PATH)\n\nReturn a buffer visiting PATH.";
 int builtin_open_buffer(Atom arguments, Atom *result) {
@@ -316,6 +337,7 @@ int builtin_open_buffer(Atom arguments, Atom *result) {
   return ERROR_NONE;
 }
 
+const char *const builtin_buffer_table_name = "BUF";
 const char *const builtin_buffer_table_docstring =
   "(buf)\n\nReturn the LISP buffer table.";
 int builtin_buffer_table(Atom arguments, Atom *result) {
@@ -324,6 +346,7 @@ int builtin_buffer_table(Atom arguments, Atom *result) {
   return ERROR_NONE;
 }
 
+const char *const builtin_buffer_insert_name = "BUFFER-INSERT";
 const char *const builtin_buffer_insert_docstring =
   "(buffer-insert BUFFER STRING) \n"
   "\n"
@@ -345,6 +368,7 @@ int builtin_buffer_insert(Atom arguments, Atom *result) {
   return ERROR_NONE;
 }
 
+const char *const builtin_buffer_remove_name = "BUFFER-REMOVE";
 const char *const builtin_buffer_remove_docstring =
   "(buffer-remove BUFFER COUNT) \n"
   "\n"
@@ -366,6 +390,7 @@ int builtin_buffer_remove(Atom arguments, Atom *result) {
   return ERROR_NONE;
 }
 
+const char *const builtin_buffer_remove_forward_name = "BUFFER-REMOVE-FORWARD";
 const char *const builtin_buffer_remove_forward_docstring =
   "(buffer-remove-forward BUFFER COUNT) \n"
   "\n"
@@ -387,6 +412,7 @@ int builtin_buffer_remove_forward(Atom arguments, Atom *result) {
   return ERROR_NONE;
 }
 
+const char *const builtin_buffer_set_point_name = "BUFFER-SET-POINT";
 const char *const builtin_buffer_set_point_docstring =
   "(buffer-set-point BUFFER POINT) \n"
   "\n"
@@ -411,6 +437,7 @@ int builtin_buffer_set_point(Atom arguments, Atom *result) {
   return ERROR_NONE;
 }
 
+const char *const builtin_buffer_point_name = "BUFFER-POINT";
 const char *const builtin_buffer_point_docstring =
   "(buffer-point BUFFER) \n"
   "\n"
@@ -425,6 +452,7 @@ int builtin_buffer_point (Atom arguments, Atom *result) {
   return ERROR_NONE;
 }
 
+const char *const builtin_buffer_index_name = "BUFFER-INDEX";
 const char *const builtin_buffer_index_docstring =
   "(buffer-index BUFFER INDEX)\n"
   "\n"
@@ -444,6 +472,7 @@ int builtin_buffer_index (Atom arguments, Atom *result) {
   return ERROR_NONE;
 }
 
+const char *const builtin_buffer_string_name = "BUFFER-STRING";
 const char *const builtin_buffer_string_docstring =
   "(buffer-string BUFFER)\n"
   "\n"
@@ -461,6 +490,7 @@ int builtin_buffer_string(Atom arguments, Atom *result) {
   return ERROR_NONE;
 }
 
+const char *const builtin_buffer_lines_name = "BUFFER-LINES";
 const char *const builtin_buffer_lines_docstring =
   "(buffer-lines BUFFER START-LINE LINE-COUNT)\n"
   "\n"
@@ -488,6 +518,7 @@ int builtin_buffer_lines (Atom arguments, Atom *result) {
   return ERROR_NONE;
 }
 
+const char *const builtin_buffer_line_name = "BUFFER-LINE";
 const char *const builtin_buffer_line_docstring =
   "(buffer-line BUFFER LINE-NUMBER)\n"
   "\n"
@@ -509,6 +540,7 @@ int builtin_buffer_line  (Atom arguments, Atom *result) {
   return ERROR_NONE;
 }
 
+const char *const builtin_buffer_current_line_name = "BUFFER-CURRENT-LINE";
 const char *const builtin_buffer_current_line_docstring =
   "(buffer-current-line BUFFER)\n"
   "\n"
@@ -525,6 +557,7 @@ int builtin_buffer_current_line(Atom arguments, Atom *result) {
   return ERROR_NONE;
 }
 
+const char *const builtin_numeq_name = "=";
 const char *const builtin_numeq_docstring =
   "(= ARG1 ARG2)\n"
   "\n"
@@ -540,6 +573,7 @@ int builtin_numeq(Atom arguments, Atom *result) {
   return ERROR_NONE;
 }
 
+const char *const builtin_numnoteq_name = "!=";
 const char *const builtin_numnoteq_docstring =
   "(!= ARG1 ARG2) \n"
   "\n"
@@ -555,6 +589,7 @@ int builtin_numnoteq(Atom arguments, Atom *result) {
   return ERROR_NONE;
 }
 
+const char *const builtin_numlt_name = "<";
 const char *const builtin_numlt_docstring =
   "(< INT-A INT-B)\n"
   "\n"
@@ -570,6 +605,7 @@ int builtin_numlt(Atom arguments, Atom *result) {
   return ERROR_NONE;
 }
 
+const char *const builtin_numlt_or_eq_name = "<=";
 const char *const builtin_numlt_or_eq_docstring =
   "(<= INT-A INT-B)\n"
   "\n"
@@ -585,6 +621,7 @@ int builtin_numlt_or_eq(Atom arguments, Atom *result) {
   return ERROR_NONE;
 }
 
+const char *const builtin_numgt_name = ">";
 const char *const builtin_numgt_docstring =
   "(> INT-A INT-B)\n"
   "\n"
@@ -600,6 +637,7 @@ int builtin_numgt(Atom arguments, Atom *result) {
   return ERROR_NONE;
 }
 
+const char *const builtin_numgt_or_eq_name = ">=";
 const char *const builtin_numgt_or_eq_docstring =
   "(>= INT-A INT-B)\n"
   "\n"
@@ -615,6 +653,7 @@ int builtin_numgt_or_eq(Atom arguments, Atom *result) {
   return ERROR_NONE;
 }
 
+const char *const builtin_buffer_seek_byte_name = "BUFFER-SEEK-BYTE";
 const char *const builtin_buffer_seek_byte_docstring =
   "(buffer-seek-byte buffer bytes direction)\n"
   "\n"
@@ -637,6 +676,7 @@ int builtin_buffer_seek_byte(Atom arguments, Atom *result) {
   return ERROR_NONE;
 }
 
+const char *const builtin_buffer_seek_substring_name = "BUFFER-SEEK-SUBSTRING";
 const char *const builtin_buffer_seek_substring_docstring =
   "(buffer-seek-substring buffer substring direction)\n"
   "\n"
@@ -679,13 +719,16 @@ int copy_impl(Atom *copy, Atom *result) {
     *result = make_int(copy->value.integer);
     break;
   case ATOM_TYPE_BUILTIN:
-    *result = make_builtin(copy->value.builtin, copy->docstring);
+    *result = make_builtin(copy->value.builtin.function,
+                           copy->value.builtin.name,
+                           copy->docstring);
     break;
   case ATOM_TYPE_STRING:
     *result = make_string(copy->value.symbol);
     break;
   case ATOM_TYPE_BUFFER:
-    *result = make_buffer(copy->value.buffer->environment, copy->value.buffer->path);
+    *result = make_buffer(copy->value.buffer->environment,
+                          copy->value.buffer->path);
     break;
   default:
     break;
@@ -693,6 +736,7 @@ int copy_impl(Atom *copy, Atom *result) {
   return ERROR_NONE;
 }
 
+const char *const builtin_copy_name = "COPY";
 const char *const builtin_copy_docstring =
   "(copy ATOM)\n"
   "\n"
@@ -702,6 +746,7 @@ int builtin_copy(Atom arguments, Atom *result) {
   return copy_impl(&car(arguments), result);
 }
 
+const char *const builtin_string_length_name = "STRING-LENGTH";
 const char *const builtin_string_length_docstring =
   "(string-length string)\n"
   "\n"
@@ -715,21 +760,7 @@ int builtin_string_length(Atom arguments, Atom *result) {
   return ERROR_NONE;
 }
 
-const char *const builtin_evaluate_docstring =
-  "(evaluate EXPRESSION)\n"
-  "\n"
-  "Evaluate EXPRESSION as LITE LISP.";
-int builtin_evaluate(Atom arguments, Atom *result) {
-  BUILTIN_ENSURE_ONE_ARGUMENT(arguments);
-  Error err = evaluate_expression(car(arguments), *genv(), result);
-  if (err.type) {
-    printf("EVALUATE EVALUATION ");
-    print_error(err);
-    return err.type;
-  }
-  return ERROR_NONE;
-}
-
+const char *const builtin_evaluate_string_name = "EVALUATE-STRING";
 const char *const builtin_evaluate_string_docstring =
   "(evaluate-string STRING)\n"
   "\n"
@@ -758,6 +789,7 @@ int builtin_evaluate_string(Atom arguments, Atom *result) {
   return ERROR_NONE;
 }
 
+const char *const builtin_evaluate_file_name = "EVALUATE-FILE";
 const char *const builtin_evaluate_file_docstring =
   "(evaluate-file FILEPATH)\n"
   "\n"
@@ -774,6 +806,7 @@ int builtin_evaluate_file(Atom arguments, Atom *result) {
   return ERROR_NONE;
 }
 
+const char *const builtin_save_name = "SAVE";
 const char *const builtin_save_docstring =
   "(save BUFFER)\n"
   "\n"
@@ -793,6 +826,7 @@ int builtin_save(Atom arguments, Atom *result) {
   return ERROR_NONE;
 }
 
+const char *const builtin_apply_name = "APPLY";
 const char *const builtin_apply_docstring =
   "(apply FUNCTION ARGUMENTS)\n"
   "\n"
@@ -806,7 +840,7 @@ int builtin_apply(Atom arguments, Atom *result) {
     return ERROR_SYNTAX;
   }
   if (function.type == ATOM_TYPE_BUILTIN) {
-    return (*function.value.builtin)(arguments, result);
+    return (*function.value.builtin.function)(arguments, result);
   } else if (function.type != ATOM_TYPE_CLOSURE) {
     printf("APPLY: Given function is not a BuiltIn or a closure.\n");
     return ERROR_TYPE;
@@ -843,6 +877,7 @@ int builtin_apply(Atom arguments, Atom *result) {
   return ERROR_NONE;
 }
 
+const char *const builtin_eq_name = "EQ";
 const char *const builtin_eq_docstring =
   "(eq A B)\n"
   "\n"
@@ -854,6 +889,7 @@ int builtin_eq(Atom arguments, Atom *result) {
   return ERROR_NONE;
 }
 
+const char *const builtin_symbol_table_name = "SYM";
 const char *const builtin_symbol_table_docstring =
   "(sym)\n"
   "\n"
@@ -864,6 +900,7 @@ int builtin_symbol_table(Atom arguments, Atom *result) {
   return ERROR_NONE;
 }
 
+const char *const builtin_print_name = "PRINT";
 const char *const builtin_print_docstring =
   "(print ARG)\n"
   "\n"
@@ -876,11 +913,12 @@ int builtin_print(Atom arguments, Atom *result) {
   return ERROR_NONE;
 }
 
-// TODO: There has to be better ways to do this...
+const char *const builtin_read_prompted_name = "READ-PROMPTED";
 const char *const builtin_read_prompted_docstring =
   "(read-prompted PROMPT)\n"
   "\n"
   "Show the user a PROMPT and return user response as a string.";
+// TODO: There has to be better ways to do this...
 int builtin_read_prompted(Atom arguments, Atom *result) {
   BUILTIN_ENSURE_ONE_ARGUMENT(arguments);
   Atom prompt = car(arguments);
@@ -959,6 +997,7 @@ int builtin_read_prompted(Atom arguments, Atom *result) {
   return ERROR_NONE;
 }
 
+const char *const builtin_finish_read_name = "FINISH-READ";
 const char *const builtin_finish_read_docstring =
   "(finish-read)\n"
   "\n"

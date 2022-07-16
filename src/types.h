@@ -5,7 +5,12 @@
 
 struct Atom;
 /// All C functions that are to be called from LISP will have this prototype.
-typedef int (*BuiltIn)(struct Atom arguments, struct Atom *result);
+typedef int (*BuiltInFunction)(struct Atom arguments, struct Atom *result);
+
+typedef struct BuiltIn {
+  char *name;
+  BuiltInFunction function;
+} BuiltIn;
 
 typedef struct Buffer Buffer;
 typedef struct Error Error;
@@ -125,7 +130,7 @@ Atom make_int(integer_t value);
 Atom make_int_with_docstring(integer_t value, char *docstring);
 Atom make_sym(char *value);
 Atom make_string(char *value);
-Atom make_builtin(BuiltIn function, const char *const docstring);
+Atom make_builtin(BuiltInFunction function, char *name, char *docstring);
 Error make_closure(Atom environment, Atom arguments, Atom body, Atom *result);
 Atom make_buffer(Atom environment, char *path);
 

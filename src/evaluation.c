@@ -579,6 +579,16 @@ Error evaluate_expression(Atom expr, Atom environment, Atom *result) {
               *result = nil;
             }
           }
+        } else if (strcmp(operator.value.symbol, "EVALUATE") == 0) {
+          const char *usage_evaluate = "Usage: (EVALUATE <expression>)";
+          if (nilp(arguments) || !nilp(cdr(arguments))) {
+            PREP_ERROR(err, ERROR_ARGUMENTS
+                       , arguments
+                       , "EVALUATE: Only a single expression is accepted."
+                       , usage_evaluate);
+            return err;
+          }
+          expr = car(arguments);
         } else if (strcmp(operator.value.symbol, "ENV") == 0) {
           const char *usage_env = "Usage: (ENV)";
           // FIXME: Why does this crash the program???
@@ -618,7 +628,7 @@ Error evaluate_expression(Atom expr, Atom environment, Atom *result) {
         }
       } else if (operator.type == ATOM_TYPE_BUILTIN) {
         PREP_ERROR(err, ERROR_NONE, operator, NULL, NULL);
-        err.type = (*operator.value.builtin)(arguments, result);
+        err.type = (*operator.value.builtin.function)(arguments, result);
       } else {
         // Evaluate operator before application.
         stack = make_frame(stack, environment, arguments);

@@ -69,12 +69,7 @@ int add_property(GUIString *string, GUIStringProperty *property) {
 }
 
 GUIStringProperty *string_property
-(size_t offset
- , size_t length
- , GUIColor fg
- , GUIColor bg
- )
-{
+(size_t offset, size_t length, GUIColor fg, GUIColor bg) {
   GUIStringProperty *prop = malloc(sizeof(GUIStringProperty));
   if (!prop) { return NULL; }
   prop->next = NULL;

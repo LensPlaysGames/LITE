@@ -256,12 +256,12 @@ Atom make_string(char *contents) {
   return string;
 }
 
-Atom make_builtin(BuiltIn function, const char *const docstring) {
+Atom make_builtin(BuiltInFunction function, char *name, char *docstring) {
   Atom builtin = nil;
   builtin.type = ATOM_TYPE_BUILTIN;
-  builtin.value.builtin = function;
-  builtin.docstring = strdup(docstring);
-  gcol_generic_allocation(&builtin, builtin.docstring);
+  builtin.value.builtin.function = function;
+  builtin.value.builtin.name = name;
+  builtin.docstring = docstring;
   return builtin;
 }
 
@@ -481,23 +481,19 @@ void print_atom(Atom atom) {
     printf("%lli", atom.value.integer);
     break;
   case ATOM_TYPE_BUILTIN:
-    printf("#<BUILTIN>:");
-    pointer = (unsigned char *)&atom.value.builtin;
-    for (size_t i = 0; i < sizeof(atom.value.builtin); ++i) {
-      printf("%02x", pointer[i]);
-    }
+    printf("#<BUILTIN>:%s", atom.value.builtin.name);
     break;
   case ATOM_TYPE_CLOSURE:
     printf("#<CLOSURE>:");
-    pointer = (unsigned char *)&atom.value.builtin;
-    for (size_t i = 0; i < sizeof(atom.value.builtin); ++i) {
+    pointer = (unsigned char *)&atom.value.builtin.function;
+    for (size_t i = 0; i < sizeof(pointer); ++i) {
       printf("%02x", pointer[i]);
     }
     break;
   case ATOM_TYPE_MACRO:
     printf("#<MACRO>:");
-    pointer = (unsigned char *)&atom.value.builtin;
-    for (size_t i = 0; i < sizeof(atom.value.builtin); ++i) {
+    pointer = (unsigned char *)&atom.value.builtin.function;
+    for (size_t i = 0; i < sizeof(pointer); ++i) {
       printf("%02x", pointer[i]);
     }
     break;
@@ -556,9 +552,9 @@ char *atom_string(Atom atom, char *buffer) {
   const char *string_format  = "\"%s\"";
   const char *lr_format      = "(%s%s)";
   const char *l_format       = "(%s)";
-  const char *builtin_format = "#<BUILTIN>:%p";
-  const char *closure_format = "#<CLOSURE>:%p";
-  const char *macro_format   = "#<MACRO>:%p";
+  const char *builtin_format = "#<BUILTIN>:%s";
+  const char *closure_format = "#<CLOSURE>";
+  const char *macro_format   = "#<MACRO>";
   const char *buffer_format  = "#<BUFFER>:\"%s\":%zu";
   switch (atom.type) {
   case ATOM_TYPE_NIL:
@@ -646,22 +642,22 @@ char *atom_string(Atom atom, char *buffer) {
     }
     break;
   case ATOM_TYPE_BUILTIN:
-    to_add = format_bufsz(builtin_format, atom.value.builtin);
+    to_add = format_bufsz(builtin_format, atom.value.builtin.name);
     buffer = realloc(buffer, length+to_add);
     if (!buffer) { return NULL; }
-    snprintf(buffer+length, to_add, builtin_format, atom.value.builtin);
+    snprintf(buffer+length, to_add, builtin_format, atom.value.builtin.name);
     break;
   case ATOM_TYPE_CLOSURE:
-    to_add = format_bufsz(closure_format, atom.value.builtin);
+    to_add = format_bufsz(closure_format);
     buffer = realloc(buffer, length+to_add);
     if (!buffer) { return NULL; }
-    snprintf(buffer+length, to_add, closure_format, atom.value.builtin);
+    snprintf(buffer+length, to_add, closure_format, 0);
     break;
   case ATOM_TYPE_MACRO:
-    to_add = format_bufsz(macro_format, atom.value.builtin);
+    to_add = format_bufsz(macro_format);
     buffer = realloc(buffer, length+to_add);
     if (!buffer) { return NULL; }
-    snprintf(buffer+length, to_add, macro_format, atom.value.builtin);
+    snprintf(buffer+length, to_add, macro_format, 0);
     break;
   case ATOM_TYPE_BUFFER:
     to_add = format_bufsz(buffer_format, atom.value.buffer->path, atom.value.buffer->point_byte);
@@ -698,7 +694,7 @@ Atom compare_atoms(Atom a, Atom b) {
       equal = (a.value.integer == b.value.integer);
       break;
     case ATOM_TYPE_BUILTIN:
-      equal = (a.value.builtin == b.value.builtin);
+      equal = (a.value.builtin.function == b.value.builtin.function);
       break;
     case ATOM_TYPE_BUFFER:
       equal = (a.value.buffer == b.value.buffer);
