@@ -26,7 +26,7 @@ Buffer *buffer_create(char *path) {
     print_error(oom);
     return NULL;
   }
-  buffer->path = path;
+  buffer->path = strdup(path);
   buffer->point_byte = 0;
   Rope *rope = NULL;
   const SimpleFile file = get_file(path);
@@ -46,6 +46,11 @@ Buffer *buffer_create(char *path) {
   }
   buffer->rope = rope;
   return buffer;
+}
+
+inline size_t buffer_size(Buffer buffer) {
+  if (!buffer.rope) { return 0; }
+  return buffer.rope->weight;
 }
 
 Error buffer_insert(Buffer *buffer, char* string) {
@@ -210,8 +215,8 @@ Error buffer_remove_bytes_forward(Buffer *buffer, size_t count) {
     if (count == 0) {
       return ok;
     }
+    // Protect against unsigned underflow on subtraction.
     if (count > size) {
-      // Unsigned underflow
       MAKE_ERROR(err, ERROR_GENERIC, nil
                  , "Can not remove from buffer when point is greater than size."
                  , NULL);

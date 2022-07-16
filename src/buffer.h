@@ -11,11 +11,20 @@ typedef struct Buffer {
   size_t point_byte;
 } Buffer;
 
-/// Open file or create new if one doesn't exist.
+/** Open file or create new if one doesn't exist.
+ *
+ * @param[in] path A string denoting a file path to open a new buffer
+ *                 at. The string is copied, and is not needed after
+ *                 returning.
+ *
+ * @return The address to a Buffer structure with a rope containing
+ *         the contents of the file at path (if it exists),
+ *         or NULL if the operation can not be completed.
+ */
 Buffer *buffer_create(char *path);
 
 /// Return the buffer's size in bytes.
-size_t buffer_size(Buffer buffer);
+inline size_t buffer_size(Buffer buffer);
 
 /// Use `point_byte` to determine insertion point.
 Error buffer_insert(Buffer *buffer, char *string);

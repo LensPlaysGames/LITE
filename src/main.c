@@ -69,15 +69,13 @@ int main(int argc, char **argv) {
     }
   }
 
-  Atom initial_buffer = make_buffer
-    (env_create(nil), allocate_string("LITE_SHINES_UPON_US.txt"));
+  Atom initial_buffer = make_buffer(env_create(nil), "LITE_SHINES_UPON_US.txt");
   if (nilp(initial_buffer)) {
     return 1;
   }
   env_set(*genv(), make_sym("CURRENT-BUFFER"), initial_buffer);
 
-  Atom popup_buffer = make_buffer
-    (env_create(nil), allocate_string(".popup"));
+  Atom popup_buffer = make_buffer(env_create(nil), ".popup");
   if (nilp(popup_buffer)) {
     return 1;
   }
