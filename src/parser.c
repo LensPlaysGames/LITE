@@ -1,5 +1,6 @@
 #include <parser.h>
 
+#include <assert.h>
 #include <ctype.h>
 #include <error.h>
 #include <types.h>
@@ -53,6 +54,8 @@ Error lex(const char *source, const char **beg, const char **end) {
 # undef seek_past
 # undef seek_until
 
+/// Write to RESULT if an integer, nil, or a symbol can be parsed.
+/// Otherwise, return an ERROR detailing why it could not be done.
 Error parse_simple(const char *beg, const char *end, Atom *result) {
   char *buffer;
   char *p;
@@ -92,55 +95,6 @@ Error parse_simple(const char *beg, const char *end, Atom *result) {
     *result = make_sym(buffer);
   }
   free(buffer);
-  return ok;
-}
-
-Error parse_list(const char *beg, const char **end, Atom *result) {
-  Atom list = nil;
-  *result = nil;
-  *end = beg;
-  Error err;
-  const char *token = NULL;
-  Atom item = nil;
-  for (;;) {
-    err = lex(*end, &token, end);
-    if (err.type) { return err; }
-    // End of list.
-    if (token[0] == ')') {
-      return ok;
-    }
-    // Improper list.
-    if (token[0] == '.' && *end - token == 1) {
-      if (nilp(list)) {
-        PREP_ERROR(err, ERROR_SYNTAX, nil,
-                   "There must be at least one object on the left \
-side of the `.` improper list operator.",
-                   NULL);
-        return err;
-      }
-      err = parse_expr(*end, end, &item);
-      if (err.type) { return err; }
-      cdr(list) = item;
-      // Closing ')'
-      err = lex(*end, &token, end);
-      if (!err.type && token[0] != ')') {
-        PREP_ERROR(err, ERROR_SYNTAX, nil,
-                   "Expected a closing parenthesis following a list.",
-                   NULL);
-      }
-      return err;
-    }
-    err = parse_expr(token, end, &item);
-    if (err.type) { return err; }
-    if (nilp(list)) {
-      // Create list with one item.
-      *result = cons(item, nil);
-      list = *result;
-    } else {
-      cdr(list) = cons(item, nil);
-      list = cdr(list);
-    }
-  }
   return ok;
 }
 
@@ -235,18 +189,6 @@ Error parse_string(const char *beg, const char **end, Atom *result) {
             contents[written_offset] = '"';
             written_offset += 1;
             break;
-          case '\r':
-            // "\\" + CRLF -> 0xa 0xd ("\r\n")
-            contents[written_offset] = '\r';
-            written_offset += 1;
-            contents[written_offset] = '\n';
-            written_offset += 1;
-            break;
-          case '\n':
-            // "\\" + LF -> 0xa ('\n')
-            contents[written_offset] = '\n';
-            written_offset += 1;
-            break;
           }
           prev_was_backslash = 0;
         }
@@ -285,30 +227,158 @@ Error parse_string(const char *beg, const char **end, Atom *result) {
   return ok;
 }
 
+typedef struct ParserStack {
+  struct ParserStack *parent;
+  const char* begin;
+  Atom *working_list;
+} ParserStack;
+
+ParserStack *parser_make_frame
+(ParserStack *parent, const char* beg, Atom *working_list) {
+  ParserStack *frame = malloc(sizeof(ParserStack));
+  assert(frame && "Failed to allocate memory in parser for new stack frame.");
+  frame->parent = parent;
+  frame->begin = beg;
+  frame->working_list = working_list;
+  return frame;
+}
+
+void parser_print_stackframe(ParserStack *stack, int depth) {
+  if (!stack) { return; }
+  do {
+    int d = depth;
+    while (--depth > 0) { putchar(' '); }
+    printf("%.8s\n", stack->begin);
+    depth = d;
+    while (--depth > 0) { putchar(' '); }
+    printf("list:   ");
+    print_atom(*stack->working_list);
+    putchar('\n');
+    depth = d + 2;
+    stack = stack->parent;
+  } while (stack);
+}
+
+// (defs . body)
+
 /// Eat the next LISP object from source.
 Error parse_expr(const char *source, const char **end, Atom *result) {
-  const char *token;
-  Error err = lex(source, &token, end);
-  if (err.type) { return err; }
-  if (token[0] == '(') {
-    return parse_list(*end, end, result);
-  } else if (token[0] == ')') {
-    PREP_ERROR(err, ERROR_SYNTAX, nil,
-               "Extraneous closing parenthesis.", NULL);
+  Error err = ok;
+  if (!source || !end || !*end || !result) {
+    PREP_ERROR(err, ERROR_ARGUMENTS, nil,
+               "Can not parse expression when any given argument is NULL.",
+               NULL);
     return err;
-  } else if (token[0] == '"') {
-    return parse_string(*end, end, result);
-  } else if (token[0] == '\'') {
-    *result = cons(make_sym("QUOTE"), cons(nil, nil));
-    return parse_expr(*end, end, &car(cdr(*result)));
-  } else if (token[0] == '`') {
-    *result = cons(make_sym("QUASIQUOTE"), cons(nil, nil));
-    return parse_expr(*end, end, &car(cdr(*result)));
-  } else if (token[0] == ',') {
-    char *symbol = token[1] == '@' ? "UNQUOTE-SPLICING" : "UNQUOTE";
-    *result = cons(make_sym(symbol), cons(nil, nil));
-    return parse_expr(*end, end, &car(cdr(*result)));
-  } else {
-    return parse_simple(token, *end, result);
   }
+
+  ParserStack *stack = NULL;
+
+  *result = nil;
+  Atom *working_result = result;
+  Atom *list = NULL;
+  Atom *working_list = NULL;
+  char list_improper = 0;
+  char *symbol = NULL;
+  const char *token = NULL;
+  *end = source;
+  for (;;) {
+    err = lex(*end, &token, end);
+    if (err.type) { return err; }
+    switch (token[0]) {
+    default:
+      err = parse_simple(token, *end, working_result);
+      if (err.type) { return err; }
+      if (!list) { return ok; }
+      break;
+    case '"':
+      err = parse_string(*end, end, working_result);
+      if (err.type) { return err; }
+      if (!list) { return ok; }
+      break;
+    case '\'':
+      *working_result = cons(make_sym("QUOTE"), cons(nil, nil));
+      working_result = &car(cdr(*working_result));
+      continue;
+    case '`':
+      *working_result = cons(make_sym("QUASIQUOTE"), cons(nil, nil));
+      working_result = &car(cdr(*working_result));
+      continue;
+    case ',':
+      symbol = token[1] == '@' ? "UNQUOTE-SPLICING" : "UNQUOTE";
+      *working_result = cons(make_sym(symbol), cons(nil, nil));
+      working_result = &car(cdr(*working_result));
+      continue;
+    case ')':
+      if (!stack) { return ok; }
+      parser_print_stackframe(stack,0);
+      PREP_ERROR(err, ERROR_SYNTAX, *result,
+                 "Extraneous closing parenthesis.",
+                 NULL);
+      return err;
+    case '(':
+      if (list) {
+        stack = parser_make_frame(stack, token, working_list);
+        list = NULL;
+      }
+      break;
+    }
+
+    // LIST PARSING
+
+    // Check for end of list. If found, check parser stack to ensure nested list handling.
+    // TODO: Handle improper list '.' operator properly.
+    const char *end_copy = *end;
+
+    if (list_improper) {
+      list_improper = 0;
+      err = lex(end_copy, &token, &end_copy);
+      if (err.type) { return err; }
+      if (token[0] == ')') {
+        *end += 1;
+        if (!stack) { return ok; }
+        working_list = stack->working_list;
+        working_result = working_list;
+        stack = stack->parent;
+      } else {
+        PREP_ERROR(err, ERROR_SYNTAX, *result,
+                   "There may only be one list item given after '.'"
+                   , NULL);
+        return err;
+      }
+    }
+
+    for (;;) {
+      err = lex(end_copy, &token, &end_copy);
+      if (err.type) { return err; }
+      if (token[0] == '.') {
+        working_result = working_list;
+        *end = end_copy;
+        list_improper = 1;
+        break;
+      }
+      else if (token[0] == ')') {
+        *end += 1;
+        if (!stack) { return ok; }
+        working_list = stack->working_list;
+        working_result = working_list;
+        stack = stack->parent;
+      } else { break; }
+    }
+    if (!list) {
+      // Handle new list.
+      *working_result = cons(nil, nil);
+      list = working_result;
+      working_list = &cdr(*list);
+      // Evaluate the left side of the list.
+      working_result = &car(*list);
+      continue;
+    }
+    if (!list_improper) {
+      // Make space for another element, then evaluate into that element.
+      *working_list = cons(nil, nil);       // Expand end of list.
+      working_result = &car(*working_list); // Set working_result for next iteration.
+      working_list = &cdr(*working_list);   // Set working_list for next iteration.
+    }
+  }
+  return ok;
 }
