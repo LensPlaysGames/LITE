@@ -211,6 +211,10 @@ Atom default_environment() {
           make_builtin(builtin_buffer_table,
                        (char *)builtin_buffer_table_name,
                        (char *)builtin_buffer_table_docstring));
+  env_set(environment, make_sym((char *)builtin_buffer_path_name),
+          make_builtin(builtin_buffer_path,
+                       (char *)builtin_buffer_path_name,
+                       (char *)builtin_buffer_path_docstring));
   env_set(environment, make_sym((char *)builtin_open_buffer_name),
           make_builtin(builtin_open_buffer,
                        (char *)builtin_open_buffer_name,

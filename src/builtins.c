@@ -351,6 +351,19 @@ int builtin_open_buffer(Atom arguments, Atom *result) {
   return ERROR_NONE;
 }
 
+const char *const builtin_buffer_path_name = "BUFFER-PATH";
+const char *const builtin_buffer_path_docstring =
+  "(buffer-path BUFFER)\n\nReturn buffer's path as a string.";
+int builtin_buffer_path(Atom arguments, Atom *result) {
+  BUILTIN_ENSURE_ONE_ARGUMENT(arguments);
+  Atom buffer = car(arguments);
+  if (!bufferp(buffer)) {
+    return ERROR_TYPE;
+  }
+  *result = make_string(buffer.value.buffer->path);
+  return ERROR_NONE;
+}
+
 const char *const builtin_buffer_table_name = "BUF";
 const char *const builtin_buffer_table_docstring =
   "(buf)\n\nReturn the LISP buffer table.";

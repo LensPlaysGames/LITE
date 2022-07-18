@@ -110,6 +110,10 @@ extern const char *const builtin_open_buffer_name;
 extern const char *const builtin_open_buffer_docstring;
 int builtin_open_buffer(Atom arguments, Atom *result);
 
+extern const char *const builtin_buffer_path_name;
+extern const char *const builtin_buffer_path_docstring;
+int builtin_buffer_path(Atom arguments, Atom *result);
+
 extern const char *const builtin_buffer_table_name;
 extern const char *const builtin_buffer_table_docstring;
 int builtin_buffer_table(Atom arguments, Atom *result);
