@@ -467,8 +467,8 @@ int builtin_buffer_insert(Atom arguments, Atom *result) {
   if (!bufferp(buffer) || !stringp(string)) {
     return ERROR_TYPE;
   }
-  Error err = buffer_insert(buffer.value.buffer
-                            , (char *)string.value.symbol);
+  Error err = buffer_insert
+    (buffer.value.buffer, (char *)string.value.symbol);
   if (err.type) {
     print_error(err);
     return err.type;

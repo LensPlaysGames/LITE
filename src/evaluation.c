@@ -7,23 +7,25 @@
 #include <stdlib.h>
 #include <string.h>
 #include <types.h>
+#include <utility.h>
 
 /* STACK-FRAME: (
- *   PARENT ENVIRONMENT
+ *   PARENT
+ *   ENVIRONMENT
  *   EVALUATED-OPERATOR
  *   (PENDING-ARGUMENTS...)
  *   (EVALUATED-ARGUMENTS...)
  *   (BODY...)
  *   )
  */
+HOTFUNCTION
 Atom make_frame(Atom parent, Atom environment, Atom tail) {
   return cons(parent,
               cons(environment,
                    cons(nil,
                         cons(tail,
                              cons(nil,
-                                  cons(nil,
-                                       nil))))));
+                                  cons(nil, nil))))));
 }
 
 void print_stackframe(Atom stack, int depth) {

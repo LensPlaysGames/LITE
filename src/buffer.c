@@ -77,6 +77,8 @@ Error buffer_insert(Buffer *buffer, char* string) {
     return err;
   }
   buffer->point_byte += strlen(string);
+  // Clear mark activation bit.
+  buffer->mark_byte &= ~BUFFER_MARK_ACTIVATION_BIT;
   buffer->rope = new_rope;
   return ok;
 }
@@ -107,6 +109,8 @@ Error buffer_insert_indexed(Buffer *buffer, size_t byte_index, char* string) {
     buffer->point_byte = byte_index + strlen(string) + 1;
   }
   buffer->rope = new_rope;
+  // Clear mark activation bit.
+  buffer->mark_byte &= ~BUFFER_MARK_ACTIVATION_BIT;
   return ok;
 }
 
@@ -134,6 +138,8 @@ Error buffer_insert_byte(Buffer *buffer, char byte) {
   }
   buffer->rope = rope;
   buffer->point_byte += 1;
+  // Clear mark activation bit.
+  buffer->mark_byte &= ~BUFFER_MARK_ACTIVATION_BIT;
   return ok;
 }
 
@@ -150,6 +156,8 @@ Error buffer_insert_byte_indexed(Buffer *buffer, size_t byte_index, char byte) {
   } else {
     buffer->point_byte = byte_index + 1;
   }
+  // Clear mark activation bit.
+  buffer->mark_byte &= ~BUFFER_MARK_ACTIVATION_BIT;
   return ok;
 }
 Error buffer_prepend_byte(Buffer *buffer, char byte) {
@@ -186,6 +194,8 @@ Error buffer_remove_bytes(Buffer *buffer, size_t count) {
     return err;
   }
   buffer->rope = rope;
+  // Clear mark activation bit.
+  buffer->mark_byte &= ~BUFFER_MARK_ACTIVATION_BIT;
   return ok;
 }
 
@@ -234,6 +244,8 @@ Error buffer_remove_bytes_forward(Buffer *buffer, size_t count) {
     return err;
   }
   buffer->rope = rope;
+  // Clear mark activation bit.
+  buffer->mark_byte &= ~BUFFER_MARK_ACTIVATION_BIT;
   return ok;
 }
 

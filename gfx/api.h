@@ -10,12 +10,6 @@
 #ifndef API_H
 #define API_H
 
-#if defined (__GNUC__) || defined (__clang__)
-#  define HOTFUNCTION __attribute__((hot))
-#elif defined (_MSC_VER)
-#  define HOTFUNCTION
-#endif
-
 #include <stdint.h>
 
 /// Get global GUI Context.

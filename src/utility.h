@@ -1,6 +1,12 @@
 #ifndef LITE_UTILITY_H
 #define LITE_UTILITY_H
 
+#if defined (__GNUC__) || defined (__clang__)
+#  define HOTFUNCTION __attribute__((hot))
+#elif defined (_MSC_VER)
+#  define HOTFUNCTION
+#endif
+
 /** Exit the program entirely and safely.
  * Cleans up as much memory as possible before calling `exit()`.
  *
