@@ -17,7 +17,7 @@ On most Linux distros: ~sudo apt install libsdl2-dev libsdl2-ttf-dev~
 *** Version
 
 This library has been successfully built for Windows and Linux using
-SDL2 ~2.0.18~ with both of SDL2_ttf ~2.0.18~ and ~2.20.0~.
+SDL2 ~2.0.22~ with both of SDL2_ttf ~2.0.18~ and ~2.20.0~.
 
 *** Working Directory
 
@@ -36,7 +36,7 @@ In the future, we hope to provide better methods of handling fonts.
   It is also necessary to set SDL2_TTF_DIR CMake variable to find SDL_TTF extension.
   : -DSDL2_TTF_DIR=<full path to SDL2_ttf directory containing bin, lib, include>
 
-- Missing DLLs
+- Missing DLLs/DLL error messages
 
   If the program compiles and links with zero errors, but exits immediately
   upon launching the executable, it is likely that the necessary DLLs, ~SDL2.dll~
@@ -44,6 +44,15 @@ In the future, we hope to provide better methods of handling fonts.
 
   The DLLs can be found in the ~lib~ subdirectory of the SDL
   development binaries, linked above.
+
+  If you get errors about undefined entry points to specific functions,
+  it's likely that the included SDL2 DLL(s) do not match your system's
+  installed version. To remedy this, copy the DLL(s) from the local
+  SDL2 installs into the same directory as the LITE executable; the
+  ones you gave a path to after ~SDL2_DIR~ and ~SDL2_TTF_DIR~. It will
+  be under ~bin~ if you use MinGW, or ~lib~ for VC.
+
+  Currently, SDL2 2.0.22 and SDL2_ttf 2.20.0 DLLs are included.
 
 - Debug Output
 

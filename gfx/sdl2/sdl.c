@@ -272,7 +272,10 @@ static inline void draw_gui_string_into_surface_within_rect
   SDL_RECT_EMPTY(srcrect);
   rect_copy_size(&srcrect, rect);
   if (!string.properties) {
-#if SDL_TTF_VERSION_ATLEAST(2,0,18)
+#if SDL_TTF_VERSION_ATLEAST(2,20,0)
+    text_surface = TTF_RenderUTF8_LCD_Wrapped
+      (font, string.string, fg, bg, rect->w);
+#elif SDL_TTF_VERSION_ATLEAST(2,0,18)
     text_surface = TTF_RenderUTF8_Shaded_Wrapped
       (font, string.string, fg, bg, rect->w);
 #else
@@ -299,7 +302,7 @@ static inline void draw_gui_string_into_surface_within_rect
       if (*string_contents == '\n' || *string_contents == '\0') {
         // Byte offset of start of line we are currently at the end of.
         size_t start_of_line_offset =
-          (last_newline_offset == 0 ? 0 : last_newline_offset + 1);
+          last_newline_offset == 0 ? 0 : last_newline_offset + 1;
         // Iterator for GUIString properties linked list.
         GUIStringProperty *it = string.properties;
         uint8_t prop_count = 0;
@@ -334,8 +337,14 @@ static inline void draw_gui_string_into_surface_within_rect
           (string.string, start_of_line_offset, bytes_to_render);
         if (line_text) {
           if (line_text[0] != '\0') {
+            // Use FreeType subpixel LCD rendering, if possible.
+#           if SDL_TTF_VERSION_ATLEAST(2,20,0)
+            SDL_Surface *line_text_surface =
+              TTF_RenderUTF8_LCD(font, line_text, fg, bg);
+#           else
             SDL_Surface *line_text_surface =
               TTF_RenderUTF8_Shaded(font, line_text, fg, bg);
+#           endif
             if (line_text_surface) {
               // TODO: Handle BlitSurface failure everywhere (0 == success).
               SDL_BlitSurface(line_text_surface, NULL, text_surface
@@ -424,8 +433,14 @@ static inline void draw_gui_string_into_surface_within_rect
                       gui_color_to_sdl(&prop_fg, &it->fg);
                       gui_color_to_sdl(&prop_bg, &it->bg);
                       // Render propertized text.
+                      // Use FreeType subpixel LCD rendering, if possible.
+#                     if SDL_TTF_VERSION_ATLEAST(2,20,0)
+                      SDL_Surface *propertized_text_surface = TTF_RenderUTF8_LCD
+                        (font, propertized_text, prop_fg, prop_bg);
+#                     else
                       SDL_Surface *propertized_text_surface = TTF_RenderUTF8_Shaded
                         (font, propertized_text, prop_fg, prop_bg);
+#                     endif
                       if (propertized_text_surface) {
                         SDL_RECT_EMPTY(property_draw_position);
                         property_draw_position.x = rect_it->rect.x;
