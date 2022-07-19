@@ -182,13 +182,6 @@ for each element of the list, binding it to ELEMENT. VALUE is returned."
               (define list-it (cdr list-it))))
           ,(car (cdr (cdr spec)))))
 
-(macro once body
-       "Do the body once. Uses 'WHILE'."
-       `(let ((once-predicate t))
-          (while (eq once-predicate t)
-            ,@body
-            (define once-predicate nil))))
-
 ;; LISTS
 
 (defun add-to-list-impl (given-list element)

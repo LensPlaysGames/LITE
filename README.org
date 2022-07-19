@@ -6,8 +6,11 @@
 
 ** LITE
 
-LITE may mean anything that abbreviates the letters;
-listed here are a few that are especially significant.
+LITE is an extensible text editor with a built-in, dynamic programming
+language to alter the editor's functionality: LITE LISP.
+
+LITE may mean anything that abbreviates the letters; listed here are a
+few that are especially significant.
 
 - LISP INTERPRETER and TEXT EDITOR
 - LITE IS TOTALLY EMACS
@@ -79,6 +82,7 @@ If no fatal errors occur, the ~bin~ subdirectory of the
 repository will be populated with the LITE executable.
 
 ** LITE LISP
+
 LITE LISP is the language that LITE interprets.
 
 *** Basic Syntax
@@ -405,12 +409,22 @@ tasks and such. This is possible with the ~make~ macro:
   Alternatively, visualize the environment by setting
   ~DEBUG/ENVIRONMENT~ to any non-nil value.
 
-- Closure environment syntax
+- Closure Environment Syntax
 
   Currently, closures are stored in the environment with the following syntax:
   : (ENVIRONMENT (ARGUMENT ...) BODY-EXPRESSION)
 
-- Debug environment variables
+- Escape Sequences within Strings
+
+  Currently, strings have a double-backslash escape sequence.
+
+  The following escape sequences are recognized within strings:
+  - ~\\_~ -> nothing
+  - ~\\r~ -> ~\r~ (0xd)
+  - ~\\n~ -> ~\n~ (0xa)
+  - ~\\"~ -> ~"~
+
+- Debug Environment Variables
 
   There are environment variables that cause LITE to report output extra
   information regarding the topic the variable pertains to when non-nil.
