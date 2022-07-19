@@ -419,9 +419,9 @@ GUIContext *initialize_lite_gui_ctx() {
   ctx->default_property.fg.b = UINT8_MAX;
   ctx->default_property.fg.a = UINT8_MAX;
 
-  ctx->default_property.bg.r = 46;
-  ctx->default_property.bg.g = 46;
-  ctx->default_property.bg.b = 46;
+  ctx->default_property.bg.r = 22;
+  ctx->default_property.bg.g = 23;
+  ctx->default_property.bg.b = 24;
   ctx->default_property.bg.a = UINT8_MAX;
 
   ctx->reading = 0;
@@ -435,6 +435,11 @@ GUIContext *initialize_lite_gui_ctx() {
 static GUIColor cursor_fg = { 0,0,0,UINT8_MAX };
 static GUIColor cursor_bg = { UINT8_MAX,UINT8_MAX,
                               UINT8_MAX,UINT8_MAX };
+
+static GUIColor region_fg = { UINT8_MAX,UINT8_MAX,
+                              UINT8_MAX,UINT8_MAX };
+static GUIColor region_bg = { 53,53,53,UINT8_MAX };
+
 HOTFUNCTION
 int gui_loop() {
   char *new_contents = NULL;
@@ -447,10 +452,28 @@ int gui_loop() {
   GUIString *to_update =
     gctx->reading ? &gctx->popup : &gctx->contents;
   update_gui_string(to_update, new_contents);
-  GUIStringProperty *cursor_property = string_property
-    (current_buffer.value.buffer->point_byte, 1
-     , cursor_fg, cursor_bg);
-  add_property(to_update, cursor_property);
+  if (bufferp(current_buffer) && current_buffer.value.buffer) {
+    GUIStringProperty *cursor_property = string_property
+      (current_buffer.value.buffer->point_byte, 1
+       , cursor_fg, cursor_bg);
+    add_property(to_update, cursor_property);
+    // If mark is activated, draw gui string property.
+    if (buffer_mark_active(*current_buffer.value.buffer)) {
+      size_t mark_byte = buffer_mark(*current_buffer.value.buffer);
+      size_t offset = 0;
+      size_t length = 0;
+      if (current_buffer.value.buffer->point_byte > mark_byte) {
+        offset = mark_byte;
+        length = current_buffer.value.buffer->point_byte - offset;
+      } else {
+        offset = current_buffer.value.buffer->point_byte;
+        length = mark_byte - offset;
+      }
+      GUIStringProperty *region_property = string_property
+        (offset, length , region_fg, region_bg);
+      add_property(to_update, region_property);
+    }
+  }
 
   return do_gui(gctx);
 }

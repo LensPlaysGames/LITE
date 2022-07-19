@@ -106,6 +106,26 @@ int builtin_remainder(Atom arguments, Atom *result);
 
 // BUFFERS
 
+extern const char *const builtin_buffer_toggle_mark_name;
+extern const char *const builtin_buffer_toggle_mark_docstring;
+int builtin_buffer_toggle_mark(Atom arguments, Atom *result);
+
+extern const char *const builtin_buffer_set_mark_name;
+extern const char *const builtin_buffer_set_mark_docstring;
+int builtin_buffer_set_mark(Atom arguments, Atom *result);
+
+extern const char *const builtin_buffer_mark_name;
+extern const char *const builtin_buffer_mark_docstring;
+int builtin_buffer_mark(Atom arguments, Atom *result);
+
+extern const char *const builtin_buffer_mark_activated_name;
+extern const char *const builtin_buffer_mark_activated_docstring;
+int builtin_buffer_mark_activated(Atom arguments, Atom *result);
+
+extern const char *const builtin_buffer_region_name;
+extern const char *const builtin_buffer_region_docstring;
+int builtin_buffer_region(Atom arguments, Atom *result);
+
 extern const char *const builtin_open_buffer_name;
 extern const char *const builtin_open_buffer_docstring;
 int builtin_open_buffer(Atom arguments, Atom *result);

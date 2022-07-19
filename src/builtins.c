@@ -47,7 +47,7 @@
         || nilp(cdr(cdr(builtin_args)))                     \
         || !nilp(cdr(cdr(cdr(builtin_args)))))              \
       {                                                     \
-        return 0;                                           \
+        return ERROR_ARGUMENTS;                             \
       }                                                     \
   } while (0);
 
@@ -334,6 +334,88 @@ int builtin_remainder(Atom arguments, Atom *result) {
     return ERROR_TYPE;
   }
   *result = make_int(n.value.integer % m.value.integer);
+  return ERROR_NONE;
+}
+
+const char *const builtin_buffer_toggle_mark_name = "BUFFER-TOGGLE-MARK";
+const char *const builtin_buffer_toggle_mark_docstring =
+  "(buffer-toggle-mark BUFFER)\n\nToggle mark activation on the given buffer.";
+int builtin_buffer_toggle_mark(Atom arguments, Atom *result) {
+  BUILTIN_ENSURE_ONE_ARGUMENT(arguments);
+  Atom buffer = car(arguments);
+  if (!bufferp(buffer) || !buffer.value.buffer) {
+    return ERROR_TYPE;
+  }
+  buffer_toggle_mark(buffer.value.buffer);
+  *result = nil;
+  if (buffer_mark_active(*buffer.value.buffer)) {
+    *result = make_sym("T");
+  }
+  return ERROR_NONE;
+}
+
+const char *const builtin_buffer_set_mark_name = "BUFFER-SET-MARK";
+const char *const builtin_buffer_set_mark_docstring =
+  "(buffer-set-mark BUFFER MARK)\n\nSet marked byte in BUFFER to MARK.";
+int builtin_buffer_set_mark(Atom arguments, Atom *result) {
+  BUILTIN_ENSURE_TWO_ARGUMENTS(arguments);
+  Atom buffer = car(arguments);
+  Atom mark = car(cdr(arguments));
+  if (!bufferp(buffer) || !buffer.value.buffer || !integerp(mark)) {
+    return ERROR_TYPE;
+  }
+  buffer_set_mark(buffer.value.buffer, mark.value.integer);
+  *result = nil;
+  if (buffer_mark_active(*buffer.value.buffer)) {
+    *result = make_sym("T");
+  }
+  return ERROR_NONE;
+}
+
+const char *const builtin_buffer_mark_name = "BUFFER-MARK";
+const char *const builtin_buffer_mark_docstring =
+  "(buffer-mark BUFFER)\n\nReturn byte offset of mark in BUFFER.";
+int builtin_buffer_mark(Atom arguments, Atom *result) {
+  BUILTIN_ENSURE_ONE_ARGUMENT(arguments);
+  Atom buffer = car(arguments);
+  if (!bufferp(buffer) || !buffer.value.buffer) {
+    return ERROR_TYPE;
+  }
+  *result = make_int(buffer_mark(*buffer.value.buffer));
+  return ERROR_NONE;
+}
+
+const char *const builtin_buffer_mark_activated_name = "BUFFER-MARK-ACTIVE";
+const char *const builtin_buffer_mark_activated_docstring =
+  "(buffer-mark-active BUFFER)\n"
+  "\n"
+  "Return T iff mark is active in BUFFER. Otherwise, return nil.";
+int builtin_buffer_mark_activated(Atom arguments, Atom *result) {
+  BUILTIN_ENSURE_ONE_ARGUMENT(arguments);
+  Atom buffer = car(arguments);
+  if (!bufferp(buffer) || !buffer.value.buffer) {
+    return ERROR_TYPE;
+  }
+  *result = nil;
+  if (buffer_mark_active(*buffer.value.buffer)) {
+    *result = make_sym("T");
+  }
+  return ERROR_NONE;
+}
+
+const char *const builtin_buffer_region_name = "BUFFER-REGION";
+const char *const builtin_buffer_region_docstring =
+  "(buffer-region BUFFER)\n\nReturn the region between mark and point in BUFFER.";
+int builtin_buffer_region(Atom arguments, Atom *result) {
+  BUILTIN_ENSURE_ONE_ARGUMENT(arguments);
+  Atom buffer = car(arguments);
+  if (!bufferp(buffer) || !buffer.value.buffer) {
+    return ERROR_TYPE;
+  }
+  char *region = buffer_region(*buffer.value.buffer);
+  if (!region) { return ERROR_GENERIC; }
+  *result = make_string(region);
+  free(region);
   return ERROR_NONE;
 }
 

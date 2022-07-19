@@ -4,11 +4,22 @@
 #include <error.h>
 #include <rope.h>
 
+#if (SIZE_MAX == 0xffff)
+#  define SIZE_T_BIT 16
+#elif (SIZE_MAX == 0xffffffff)
+#  define SIZE_T_BIT 32
+#elif (SIZE_MAX == 0xffffffffffffffff)
+#  define SIZE_T_BIT 64
+#endif
+
+#define BUFFER_MARK_ACTIVATION_BIT ((size_t)1 << (SIZE_T_BIT - 1))
+
 typedef struct Buffer {
   Atom environment;
   char *path;
   Rope *rope;
   size_t point_byte;
+  size_t mark_byte; // Highest bit denotes activation
 } Buffer;
 
 /** Open file or create new if one doesn't exist.
@@ -47,6 +58,48 @@ Error buffer_remove_byte(Buffer *buffer);
 
 Error buffer_remove_bytes_forward(Buffer *buffer, size_t count);
 Error buffer_remove_byte_forward(Buffer *buffer);
+
+/** Get BUFFER's mark byte offset.
+ *
+ * @param[in] buffer
+ *   The buffer to get the mark byte from.
+ *
+ * @return The mark byte offset of the buffer.
+ */
+size_t buffer_mark(Buffer buffer);
+
+/** Return one iff BUFFER's mark is active. Otherwise, return zero.
+ *
+ * @param[in] buffer
+ *
+ * @return The activation state of the mark byte of the buffer.
+ */
+size_t buffer_mark_active(Buffer buffer);
+
+/** Toggle BUFFER's mark activation state.
+ *
+ * When the mark is activated in the given BUFFER, it will be
+ * de-activated. Otherwise, it will be activated.
+ *
+ * @param[in] buffer
+ *   The buffer to toggle the mark within.
+ */
+Error buffer_toggle_mark(Buffer *buffer);
+
+/** Set BUFFER's mark byte offset to MARK.
+ *
+ * @param[in] buffer
+ *   The buffer to set the mark byte offset within.
+ * @param[in] mark
+ *   The new mark byte offset.
+ */
+Error buffer_set_mark(Buffer *buffer, size_t mark);
+
+/** Return a string containing the contents between the mark and the point.
+ * @param[in] buffer
+ *   The buffer to read the point and mark from.
+ */
+char *buffer_region(Buffer buffer);
 
 /**
  * Move buffer point to the next byte that is within the control

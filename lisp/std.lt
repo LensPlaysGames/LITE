@@ -456,6 +456,17 @@ Useful for ensuring the user would like to do something before doing it."
   "Evaluate the first line of the current buffer as a LITE LISP expression."
   (evaluate-string (read-prompted "Eval: ")))
 
+(defun set-or-toggle-mark ()
+  "If mark is disabled, activate it. If point is over mark, de-activate mark.
+Otherwise, set mark to current point."
+  (if (! (buffer-mark-active current-buffer))
+      (progn
+        (buffer-set-mark current-buffer (buffer-point current-buffer))
+        (buffer-toggle-mark current-buffer))
+      (if (= (buffer-point current-buffer) (buffer-mark current-buffer))
+          (buffer-toggle-mark current-buffer)
+          (buffer-set-mark current-buffer (buffer-point current-buffer)))))
+
 ;; STANDARD KEYBINDINGS
 
 (defmacro keymap-push (given-alist key value)
@@ -604,6 +615,7 @@ Useful for ensuring the user would like to do something before doing it."
      '(buffer-remove-forward current-buffer 1))
 
     ;; ctrl keybinds: Simple buffer navigation
+    (keymap-push ctrl-keymap " " '(set-or-toggle-mark))
     (keymap-push ctrl-keymap "f" '(forward-byte))
     (keymap-push ctrl-keymap "b" '(backward-byte))
     (keymap-push ctrl-keymap "n" '(forward-line))

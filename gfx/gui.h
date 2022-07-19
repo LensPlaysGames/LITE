@@ -21,6 +21,7 @@ typedef struct GUIColor {
   uint8_t b;
   uint8_t a;
 } GUIColor;
+#define GUIColour GUIColor
 
 typedef struct GUIStringProperty {
   size_t offset;

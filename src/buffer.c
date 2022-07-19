@@ -8,6 +8,8 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
+#include <types.h>
+#include <utility.h>
 
 Buffer *buffer_create(char *path) {
   if (!path) {
@@ -28,6 +30,7 @@ Buffer *buffer_create(char *path) {
   }
   buffer->path = strdup(path);
   buffer->point_byte = 0;
+  buffer->mark_byte = 0;
   Rope *rope = NULL;
   const SimpleFile file = get_file(path);
   if (file.flags & SMPL_FILE_FLAG_OK) {
@@ -238,6 +241,59 @@ Error buffer_remove_byte_forward(Buffer *buffer) {
   return buffer_remove_bytes_forward(buffer, 1);
 }
 
+size_t buffer_mark(Buffer buffer) {
+  return buffer.mark_byte &= ~BUFFER_MARK_ACTIVATION_BIT;
+}
+
+size_t buffer_mark_active(Buffer buffer) {
+  return buffer.mark_byte & BUFFER_MARK_ACTIVATION_BIT ? 1 : 0;
+}
+
+Error buffer_toggle_mark(Buffer *buffer) {
+  if (!buffer) {
+    MAKE_ERROR(err, ERROR_ARGUMENTS, nil,
+               "Can not toggle mark on NULL buffer.",
+               NULL);
+    return err;
+  }
+  if (buffer->mark_byte & BUFFER_MARK_ACTIVATION_BIT) {
+    buffer->mark_byte &= ~BUFFER_MARK_ACTIVATION_BIT;
+  } else {
+    buffer->mark_byte |= BUFFER_MARK_ACTIVATION_BIT;
+  }
+  return ok;
+}
+
+Error buffer_set_mark(Buffer *buffer, size_t mark) {
+  if (!buffer) {
+    MAKE_ERROR(err, ERROR_ARGUMENTS, nil,
+               "Can not set mark on NULL buffer.",
+               NULL);
+    return err;
+  }
+  int mark_active = buffer_mark_active(*buffer);
+  buffer->mark_byte = mark & ~BUFFER_MARK_ACTIVATION_BIT;
+  if (mark_active) {
+    buffer->mark_byte |= BUFFER_MARK_ACTIVATION_BIT;
+  }
+  return ok;
+}
+
+char *buffer_region(Buffer buffer) {
+  size_t offset = 0;
+  size_t length = 0;
+  size_t mark_byte = buffer_mark(buffer);
+  if (buffer.point_byte < mark_byte) {
+    offset = buffer.point_byte;
+    length = mark_byte - buffer.point_byte;
+  } else {
+    offset = mark_byte;
+    length = buffer.point_byte - mark_byte;
+  }
+  char *region = rope_span(buffer.rope, offset, length);
+  return region;
+}
+
 size_t buffer_seek_until_byte
 (Buffer *const buffer,
  char *control_string,
@@ -313,6 +369,13 @@ size_t buffer_seek_until_substr
 }
 
 char *buffer_string(Buffer buffer) {
+  //char *rope_contents = rope_string(buffer.rope, NULL);
+  //if (rope_contents) {
+  //  char *string = allocate_string_ignore_carriage_return(rope_contents);
+  //  free(rope_contents);
+  //  if (string) { return string; }
+  //}
+  //return NULL;
   return rope_string(buffer.rope, NULL);
 }
 

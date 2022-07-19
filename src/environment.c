@@ -207,6 +207,27 @@ Atom default_environment() {
                        (char *)builtin_symbol_table_name,
                        (char *)builtin_symbol_table_docstring));
 
+  env_set(environment, make_sym((char *)builtin_buffer_toggle_mark_name),
+          make_builtin(builtin_buffer_toggle_mark,
+                       (char *)builtin_buffer_toggle_mark_name,
+                       (char *)builtin_buffer_toggle_mark_docstring));
+  env_set(environment, make_sym((char *)builtin_buffer_set_mark_name),
+          make_builtin(builtin_buffer_set_mark,
+                       (char *)builtin_buffer_set_mark_name,
+                       (char *)builtin_buffer_set_mark_docstring));
+  env_set(environment, make_sym((char *)builtin_buffer_mark_name),
+          make_builtin(builtin_buffer_mark,
+                       (char *)builtin_buffer_mark_name,
+                       (char *)builtin_buffer_mark_docstring));
+  env_set(environment, make_sym((char *)builtin_buffer_mark_activated_name),
+          make_builtin(builtin_buffer_mark_activated,
+                       (char *)builtin_buffer_mark_activated_name,
+                       (char *)builtin_buffer_mark_activated_docstring));
+  env_set(environment, make_sym((char *)builtin_buffer_region_name),
+          make_builtin(builtin_buffer_region,
+                       (char *)builtin_buffer_region_name,
+                       (char *)builtin_buffer_region_docstring));
+
   env_set(environment, make_sym((char *)builtin_buffer_table_name),
           make_builtin(builtin_buffer_table,
                        (char *)builtin_buffer_table_name,
