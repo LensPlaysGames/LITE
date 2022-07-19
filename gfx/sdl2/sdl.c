@@ -246,15 +246,23 @@ static inline SDL_Rect *rect_copy_size(SDL_Rect *dst, SDL_Rect *src) {
   return dst;
 }
 
-// Uncomment the following definition for lots of debug output.
-// #define DEBUG_TEXT_PROPERTIES
+typedef struct LinkedRectangle {
+  SDL_Rect rect;
+  struct LinkedRectangle *next;
+} LinkedRectangle;
+
+LinkedRectangle *make_linked_rect(LinkedRectangle *parent, SDL_Rect rect) {
+  LinkedRectangle *linked_rect = malloc(sizeof(LinkedRectangle));
+  linked_rect->rect.x = rect.x;
+  linked_rect->rect.y = rect.y;
+  linked_rect->rect.w = rect.w;
+  linked_rect->rect.h = rect.h;
+  linked_rect->next = parent;
+  return linked_rect;
+}
 
 static inline void draw_gui_string_into_surface_within_rect
-(GUIString string
- , SDL_Surface *surface
- , SDL_Rect *rect
- )
-{
+(GUIString string, SDL_Surface *surface, SDL_Rect *rect) {
   if (!string.string || string.string[0] == '\0' || !surface || !rect) {
     return;
   }
@@ -298,18 +306,21 @@ static inline void draw_gui_string_into_surface_within_rect
           uint8_t properties[256];
           while (it) {
             prop_count += 1;
-            // Validate text property fields.
-            if (it->length == 0) { continue; }
             // Somewhat protect against infinite looping.
             // TODO: It would be best to create a new list and check
             // that each new property has not already been visited, but
             // we trust LITE frontend more than that right now.
             if (it->next == it) { break; }
+            // Validate text property fields.
+            if (it->length == 0) {
+              it = it->next;
+              continue;
+            }
             // Ensure text property is within `start_of_line_offset` through `offset`.
             if (it->offset <= offset
                 && it->offset + it->length > start_of_line_offset)
               {
-                // TODO: Update font_height iff property height is larger.
+                // TODO: Update line_height iff property height is larger.
                 properties[props_in_line] = prop_count;
                 props_in_line += 1;
               }
@@ -340,94 +351,104 @@ static inline void draw_gui_string_into_surface_within_rect
             // properties present, render portions of line at a time
             // and copy into the line surface.
 
-            size_t horizontal_offset = 0;
-            size_t prop_index = 0;
-            prop_count = 0;
-            it = string.properties;
-            while (it) {
-              if (prop_index + 1 == properties[prop_count]) {
-                prop_count += 1;
-                if (last_newline_offset + horizontal_offset < it->offset) {
-                  size_t bytes_to_render = it->offset - horizontal_offset - start_of_line_offset;
-                  char *prepended_text = allocate_string_span
-                    (string.string, start_of_line_offset, bytes_to_render);
-                  if (prepended_text) {
-                    if (prepended_text[0] != '\0') {
-#ifdef DEBUG_TEXT_PROPERTIES
-                      printf("Prepended:      \"%s\"\n", prepended_text);
-#endif
-                      SDL_Surface *prepended_text_surface = TTF_RenderUTF8_Shaded
-                        (font, prepended_text, fg, bg);
-                      // TODO: Handle memory allocation failure during GUI redraw.
-                      if (prepended_text_surface) {
-                        SDL_BlitSurface(prepended_text_surface, NULL, text_surface
-                                        , rect_copy(&destination_copy,&destination));
-                        horizontal_offset += bytes_to_render;
-                        destination.x += prepended_text_surface->w;
-                        SDL_FreeSurface(prepended_text_surface);
+            LinkedRectangle *character_rects = make_linked_rect(NULL, destination);
+            size_t bytes_to_render = offset - start_of_line_offset;
+            // Allocate a copy of a string span (the current line).
+            char *line_contents = allocate_string_span
+              (string.string, start_of_line_offset, bytes_to_render);
+            if (line_contents) {
+              // Create a buffer to use as a temporary string for sizing.
+              char *string_for_sizing = malloc(bytes_to_render + 1);
+              if (string_for_sizing) {
+                string_for_sizing[0] = '\0';
+                SDL_RECT_EMPTY(char_rect);
+                // Record places of every character in the string.
+                // This should definitely be optimized, as we only need to save
+                // the positions of the text properties offset's we need to draw.
+                for (size_t i = 0; i < bytes_to_render; ++i) {
+                  string_for_sizing[i] = line_contents[i];
+                  string_for_sizing[i + 1] = '\0';
+                  TTF_SizeUTF8(font, string_for_sizing, &char_rect.x, &char_rect.y);
+                  character_rects = make_linked_rect(character_rects, char_rect);
+                }
+
+                if (line_contents[0] != '\0') {
+                  SDL_Surface *line_text_surface =
+                    TTF_RenderUTF8_Shaded(font, line_contents, fg, bg);
+                  if (line_text_surface) {
+                    // TODO: Handle BlitSurface failure everywhere (0 == success).
+                    SDL_BlitSurface(line_text_surface, NULL, text_surface
+                                    , rect_copy(&destination_copy,&destination));
+                    SDL_FreeSurface(line_text_surface);
+                  }
+                }
+                free(line_contents);
+
+                size_t prop_index = 0;
+                prop_count = 0;
+                it = string.properties;
+                while (it) {
+                  if (prop_index + 1 == properties[prop_count]) {
+                    prop_count += 1;
+                    size_t offset_within_line = 0;
+                    if (it->offset > start_of_line_offset) {
+                      offset_within_line = it->offset - start_of_line_offset;
+                    }
+                    SDL_RECT_EMPTY(property_draw_position);
+                    LinkedRectangle *rect_it = character_rects;
+                    size_t rect_offset = bytes_to_render - offset_within_line;
+                    if (offset_within_line == 0) {
+                      // Get last rect in linked list (first byte).
+                      while (rect_it->next) {
+                        rect_it = rect_it->next;
+                      }
+                    } else {
+                      while (rect_it && rect_offset) {
+                        rect_it = rect_it->next;
+                        rect_offset -= 1;
                       }
                     }
-                    free(prepended_text);
+                    if (rect_it) {
+                      size_t propertized_text_length = it->length;
+                      if (it->offset < start_of_line_offset) {
+                        propertized_text_length -= start_of_line_offset - it->offset;
+                      }
+                      char *propertized_text = allocate_string_span
+                        (line_contents, offset_within_line, propertized_text_length);
+                      if (propertized_text) {
+                        if (propertized_text[0] ==  '\0') {
+                          free(propertized_text);
+                          propertized_text = malloc(2);
+                          if (propertized_text) {
+                            propertized_text[0] = ' ';
+                            propertized_text[1] = '\0';
+                          }
+                        } else if (propertized_text[0] ==  '\n') {
+                          propertized_text[0] = ' ';
+                        }
+                        SDL_Color prop_fg;
+                        SDL_Color prop_bg;
+                        gui_color_to_sdl(&prop_fg, &it->fg);
+                        gui_color_to_sdl(&prop_bg, &it->bg);
+                        SDL_Surface *propertized_text_surface = TTF_RenderUTF8_Shaded
+                          (font, propertized_text, prop_fg, prop_bg);
+                        if (propertized_text_surface) {
+                          property_draw_position.x = rect_it->rect.x;
+                          property_draw_position.w = destination.w - property_draw_position.x;
+                          property_draw_position.y = destination.y;
+                          SDL_BlitSurface(propertized_text_surface, NULL,
+                                          text_surface, &property_draw_position);
+                          SDL_FreeSurface(propertized_text_surface);
+                        }
+                        free(propertized_text);
+                      }
+                    }
                   }
-                }
-                char *propertized_text = allocate_string_span
-                  (string.string, it->offset, it->length);
-                if (propertized_text) {
-                  // Correctly display newline/end of string by inserting space.
-                  if (propertized_text[0] == '\n' || propertized_text[0] == '\0') {
-                    propertized_text[0] = ' ';
-                    propertized_text[1] = '\0';
-                  }
-                  SDL_Color prop_fg;
-                  gui_color_to_sdl(&prop_fg, &it->fg);
-                  SDL_Color prop_bg;
-                  gui_color_to_sdl(&prop_bg, &it->bg);
-#ifdef DEBUG_TEXT_PROPERTIES
-                  printf("Propertized:    \"%s\"\n", propertized_text);
-#endif
-                  SDL_Surface *propertized_text_surface = TTF_RenderUTF8_Shaded
-                    (font, propertized_text, prop_fg, prop_bg);
-                  if (propertized_text_surface) {
-                    SDL_BlitSurface(propertized_text_surface, NULL, text_surface
-                                    , rect_copy(&destination_copy,&destination));
-                    horizontal_offset += it->length;
-                    destination.x += propertized_text_surface->w;
-                    SDL_FreeSurface(propertized_text_surface);
-                  }
-                  free(propertized_text);
+                  it = it->next;
+                  prop_index += 1;
                 }
               }
-              prop_index += 1;
-              it = it->next;
             }
-            if (last_newline_offset + horizontal_offset < offset) {
-              size_t bytes_to_render = offset - horizontal_offset - start_of_line_offset;
-              char *appended_text = allocate_string_span
-                (string.string
-                 , start_of_line_offset + horizontal_offset
-                 , bytes_to_render);
-              // TODO: Handle memory allocation failure during GUI redraw.
-              if (appended_text) {
-                if (appended_text[0] != '\0') {
-#ifdef DEBUG_TEXT_PROPERTIES
-                  printf("Appended:       \"%s\"\n", appended_text);
-#endif
-                  SDL_Surface *appended_text_surface = TTF_RenderUTF8_Shaded
-                    (font, appended_text, fg, bg);
-                  if (appended_text_surface) {
-                    SDL_BlitSurface(appended_text_surface, NULL, text_surface
-                                    , rect_copy(&destination_copy,&destination));
-                    horizontal_offset += bytes_to_render;
-                    destination.x += appended_text_surface->w;
-                    SDL_FreeSurface(appended_text_surface);
-                  }
-                }
-                free(appended_text);
-              }
-            }
-#ifdef DEBUG_TEXT_PROPERTIES
-            printf("Handled line with text properties\n\n");
-#endif
           }
           destination.y += line_height;
           destination.h -= line_height;
