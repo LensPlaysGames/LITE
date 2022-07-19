@@ -338,7 +338,9 @@ Error parse_expr(const char *source, const char **end, Atom *result) {
         if (!stack) { return ok; }
         working_list = stack->working_list;
         working_result = working_list;
+        ParserStack *stack_to_free = stack;
         stack = stack->parent;
+        free(stack_to_free);
       } else {
         PREP_ERROR(err, ERROR_SYNTAX, *result,
                    "There may only be one list item given after '.'"
@@ -361,7 +363,9 @@ Error parse_expr(const char *source, const char **end, Atom *result) {
         if (!stack) { return ok; }
         working_list = stack->working_list;
         working_result = working_list;
+        ParserStack *stack_to_free = stack;
         stack = stack->parent;
+        free(stack_to_free);
       } else { break; }
     }
     if (!list) {

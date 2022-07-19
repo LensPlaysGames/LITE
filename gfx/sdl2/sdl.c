@@ -2,6 +2,7 @@
 #include <gui.h>
 #include <utility.h>
 
+#include <assert.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -317,6 +318,7 @@ static inline void draw_gui_string_into_surface_within_rect
           it = it->next;
         }
         // Render entire line using defaults.
+        // Calculate amount of bytes within the current line.
         size_t bytes_to_render = offset - start_of_line_offset;
         char *line_text = allocate_string_span
           (string.string, start_of_line_offset, bytes_to_render);
@@ -341,8 +343,6 @@ static inline void draw_gui_string_into_surface_within_rect
         }
         if (props_in_line) {
           // Properties present, render text properties over default line.
-          // Calculate amount of bytes within the current line.
-          size_t bytes_to_render = offset - start_of_line_offset;
           // Allocate a copy of a string span (the current line).
           char *line_contents = allocate_string_span
             (string.string, start_of_line_offset, bytes_to_render);
@@ -375,12 +375,9 @@ static inline void draw_gui_string_into_surface_within_rect
                     TTF_SizeUTF8(font, text_before,
                                  &property_draw_position.x,
                                  &property_draw_position.y);
-                    // Draw at destination height (at current line).
                     property_draw_position.y = destination.y;
                     // Width must take into account new draw position X offset.
                     property_draw_position.w -= property_draw_position.x;
-                    // Height matches destination, as Y matches exactly.
-                    property_draw_position.h = destination.h;
                     free(text_before);
                   }
                   // If we were able to find a draw position, calculate the length
@@ -389,6 +386,9 @@ static inline void draw_gui_string_into_surface_within_rect
                   size_t propertized_text_length = it->length;
                   if (it->offset < start_of_line_offset) {
                     propertized_text_length -= start_of_line_offset - it->offset;
+                  }
+                  if (propertized_text_length > bytes_to_render) {
+                    propertized_text_length = bytes_to_render - offset_within_line;
                   }
                   // Allocate the text that will has a property applied to it as
                   // a seperate string that can be fed to SDL_ttf for rendering.
@@ -399,10 +399,9 @@ static inline void draw_gui_string_into_surface_within_rect
                     if (propertized_text[0] ==  '\0') {
                       free(propertized_text);
                       propertized_text = malloc(2);
-                      if (propertized_text) {
-                        propertized_text[0] = ' ';
-                        propertized_text[1] = '\0';
-                      }
+                      assert(propertized_text && "Could not display empty string");
+                      propertized_text[0] = ' ';
+                      propertized_text[1] = '\0';
                     } else if (propertized_text[0] ==  '\n') {
                       propertized_text[0] = ' ';
                     }
@@ -430,6 +429,7 @@ static inline void draw_gui_string_into_surface_within_rect
                 }
                 it = it->next;
               }
+              free(string_for_sizing);
             }
             free(line_contents);
           }
