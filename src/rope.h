@@ -65,8 +65,8 @@ char *rope_lines(Rope *rope, size_t lines, size_t count);
 /// Return line number `line` (zero-based) as a string.
 char *rope_line(Rope *rope, size_t line);
 
-// TODO: This function is a WIP and is not yet complete.
-char *rope_span(Rope *rope, size_t amount, size_t index);
+/// Return a string containing the contents of `rope` from `offset` up to `length`.
+char *rope_span(Rope *rope, size_t offset, size_t length);
 
 /// Free a rope's allocated memory, including itself.
 /// Do NOT use any part of a rope after it has been freed.

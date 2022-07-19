@@ -897,6 +897,24 @@ Rope *rope_remove_span(Rope *rope, size_t offset, size_t length) {
   return NULL;
 }
 
+char *rope_span(Rope *rope, size_t offset, size_t length) {
+  if (!rope) { return NULL; }
+  if (offset >= rope->weight) {
+    // Can't get span past length of rope.
+    return NULL;
+  }
+  char *contents = rope_string(rope, NULL);
+  if (!contents) { return NULL; }
+  if (offset + length > rope->weight) {
+    length = rope->weight - offset;
+  }
+  char *out = malloc(length + 1);
+  memcpy(out, contents + offset, length);
+  out[length] = '\0';
+  free(contents);
+  return out;
+}
+
 char *rope_lines(Rope *rope, size_t start_line, size_t count) {
   if (!rope || count == 0) { return NULL; }
   char *string = rope_string(rope, NULL);
