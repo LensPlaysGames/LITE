@@ -29,9 +29,19 @@ Atom initialize_buffer_or_panic(const char *const path) {
 
 int main(int argc, char **argv) {
   printf("|> LITE will guide the way through the darkness.\n");
-  // Treat every given argument as a file to load, for now.
+
+  Atom initial_buffer = initialize_buffer_or_panic("LITE_SHINES_UPON_US.txt");
+  env_set(*genv(), make_sym("CURRENT-BUFFER"), initial_buffer);
+
+# ifdef LITE_GFX
+  Atom popup_buffer = initialize_buffer_or_panic(".popup");
+  env_set(*genv(), make_sym("POPUP-BUFFER"), popup_buffer);
+# endif
+
   Error err = ok;
   Atom result = nil;
+
+  // Treat every given argument as a file to load, for now.
   if (argc > 1) {
     for (int i = 1; i < argc; ++i) {
       err = evaluate_file(*genv(), argv[i], &result);
@@ -81,14 +91,6 @@ int main(int argc, char **argv) {
     printf("LITE will attempt to load \".lite\" from the path at"
            "the HOME environment variable, but it is not set.");
   }
-
-  Atom initial_buffer = initialize_buffer_or_panic("LITE_SHINES_UPON_US.txt");
-  env_set(*genv(), make_sym("CURRENT-BUFFER"), initial_buffer);
-
-# ifdef LITE_GFX
-  Atom popup_buffer = initialize_buffer_or_panic(".popup");
-  env_set(*genv(), make_sym("POPUP-BUFFER"), popup_buffer);
-# endif
 
   int status = 0;
 
