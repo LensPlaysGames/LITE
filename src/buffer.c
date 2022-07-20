@@ -357,10 +357,14 @@ size_t buffer_seek_until_substr
     for (size_t i = buffer->point_byte + 1; i >= buffer->point_byte && i < buffer->rope->weight; ++i) {
       string = allocated_string + i;
       size_t bytes_left = strnlen(string, substring_length + 1);
-      if (bytes_left <= substring_length) { return 0; }
+      if (bytes_left <= substring_length) {
+        free(allocated_string);
+        return 0;
+      }
       if (memcmp(string, substring, substring_length) == 0) {
         size_t offset = i - buffer->point_byte;
         buffer->point_byte = i;
+        free(allocated_string);
         return offset;
       }
     }
@@ -368,10 +372,14 @@ size_t buffer_seek_until_substr
     for (long long i = buffer->point_byte - 1; i >= 0 && i <= (long long)buffer->point_byte; --i) {
       string = allocated_string + i;
       size_t bytes_left = strnlen(string, substring_length + 1);
-      if (bytes_left <= substring_length) { return 0; }
+      if (bytes_left <= substring_length) {
+        free(allocated_string);
+        return 0;
+      }
       if (memcmp(string, substring, substring_length) == 0) {
         size_t offset = buffer->point_byte - i;
         buffer->point_byte = i;
+        free(allocated_string);
         return offset;
       }
     }
@@ -435,12 +443,14 @@ char *buffer_current_line(Buffer buffer) {
 void buffer_print(Buffer buffer) {
   char *contents = buffer_string(buffer);
   printf("Buffer:\n"
-         "  path: %s\n"
+         "  path:  %s\n"
          "  point: %zu\n"
+         "  mark:  %zu\n"
          "  contents:\n"
          "\"%s\"\n"
          , buffer.path ? buffer.path : "<no path>"
          , buffer.point_byte
+         , buffer_mark(buffer)
          , contents ? contents : "<no contents>"
          );
   if (contents) {
@@ -487,8 +497,10 @@ Error buffer_save(Buffer buffer) {
     return oom;
   }
   size_t file_size = strlen(contents);
-
   size_t bytes = fwrite(contents, 1, file_size, file);
+  free(contents);
+  contents = NULL;
+
   uint8_t close_status = fclose(file);
   if (close_status != 0) {
     printf("Failure to save buffer at \"%s\" -- bad close\n"

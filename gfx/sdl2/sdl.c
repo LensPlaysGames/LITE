@@ -151,11 +151,10 @@ static int created_gui_marker = 0;
 int create_gui() {
   if (created_gui_marker != 0) { return 3; }
   created_gui_marker = 1;
-  if (SDL_Init(SDL_INIT_EVERYTHING) != 0) {
+  if (SDL_Init(SDL_INIT_VIDEO) != 0) {
     printf("GFX::SDL:ERROR: Failed to initialize SDL.\n");
     return 1;
   }
-
   gwindow = SDL_CreateWindow
     ("SDL2 Window"
      , SDL_WINDOWPOS_UNDEFINED
@@ -258,16 +257,16 @@ static inline void draw_gui_string_into_surface_within_rect
   SDL_RECT_EMPTY(srcrect);
   rect_copy_size(&srcrect, rect);
   if (!string.properties) {
-#if SDL_TTF_VERSION_ATLEAST(2,20,0) && !_WIN32
+#   if SDL_TTF_VERSION_ATLEAST(2,20,0) && !_WIN32
     text_surface = TTF_RenderUTF8_LCD_Wrapped
       (font, string.string, fg, bg, rect->w);
-#elif SDL_TTF_VERSION_ATLEAST(2,0,18)
+#   elif SDL_TTF_VERSION_ATLEAST(2,0,18)
     text_surface = TTF_RenderUTF8_Shaded_Wrapped
       (font, string.string, fg, bg, rect->w);
-#else
+#   else
     text_surface = TTF_RenderUTF8_Blended_Wrapped
       (font, string.string, fg, rect->w);
-#endif
+#   endif
     if (!text_surface) { return; }
   } else {
     text_surface = SDL_CreateRGBSurfaceWithFormat

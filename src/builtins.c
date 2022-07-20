@@ -594,6 +594,7 @@ int builtin_buffer_string(Atom arguments, Atom *result) {
     return ERROR_TYPE;
   }
   char *contents = buffer_string(*buffer.value.buffer);
+  if (!contents) { return ERROR_GENERIC; }
   *result = make_string(contents);
   free(contents);
   return ERROR_NONE;

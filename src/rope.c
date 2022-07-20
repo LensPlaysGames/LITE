@@ -928,6 +928,10 @@ char *rope_span(Rope *rope, size_t offset, size_t length) {
     length = rope->weight - offset;
   }
   char *out = malloc(length + 1);
+  if (!out) {
+    free(contents);
+    return NULL;
+  }
   memcpy(out, contents + offset, length);
   out[length] = '\0';
   free(contents);
@@ -947,7 +951,10 @@ char *rope_lines(Rope *rope, size_t start_line, size_t count) {
     }
     it++;
   }
-  if (*it == '\0') { return NULL; }
+  if (*it == '\0') {
+    free(string);
+    return NULL;
+  }
   // Record beginning of `start_line`, iterate to end of `count` lines.
   char *beg = it;
   size_t gathered_lines = 0;
@@ -962,7 +969,10 @@ char *rope_lines(Rope *rope, size_t start_line, size_t count) {
   }
   size_t length = it - beg;
   char *lines = malloc(length + 1);
-  if (!lines) { return NULL; }
+  if (!lines) {
+    free(string);
+    return NULL;
+  }
   memcpy(lines, beg, length);
   lines[length] = '\0';
   free(string);
