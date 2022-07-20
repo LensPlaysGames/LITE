@@ -564,23 +564,42 @@ Rope *rope_append_byte(Rope *rope, char c) {
 
 char *rope_string(Rope *rope, char *string) {
   if (!rope) { return NULL; }
+  char allocated = 0;
   if (!string) {
     string = malloc(8);
+    if (!string) { return NULL; }
     string[0] = '\0';
+    allocated = 1;
   }
+  char *new_string = NULL;
   if (rope->string) {
     size_t len = strlen(string);
     size_t to_add = rope->weight;
-    string = realloc(string, len+to_add+1);
-    if (!string) { return NULL; }
+    new_string = realloc(string, len+to_add+1);
+    if (!new_string) {
+      if (allocated) { free(string); }
+      return NULL;
+    }
+    string = new_string;
     memcpy(string+len, rope->string, to_add);
     string[len+to_add] = '\0';
   } else {
+    // TODO: Use continuation instead of recursion.
     if (rope->left) {
-      string = rope_string(rope->left, string);
+      new_string = rope_string(rope->left, string);
+      if (!new_string) {
+        if (allocated) { free(string); }
+        return NULL;
+      }
+      string = new_string;
     }
     if (rope->right) {
-      string = rope_string(rope->right, string);
+      new_string = rope_string(rope->right, string);
+      if (!new_string) {
+        if (allocated) { free(string); }
+        return NULL;
+      }
+      string = new_string;
     }
   }
   return string;
