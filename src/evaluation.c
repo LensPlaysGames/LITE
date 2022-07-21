@@ -624,6 +624,7 @@ Error evaluate_expression(Atom expr, Atom environment, Atom *result) {
             return err;
           }
           expr = car(arguments);
+          continue;
         } else if (strcmp(operator.value.symbol, "ENV") == 0) {
           const char *usage_env = "Usage: (ENV)";
           // FIXME: Why does this crash the program???

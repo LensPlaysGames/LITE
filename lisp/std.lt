@@ -280,10 +280,9 @@ This function mutates GIVEN-ALIST in place."
 
 (defmacro make (symbol)
   "Return a copy of the structure bound to SYMBOL, or nil if SYMBOL is not bound to a structure."
-  (let ((structure (evaluate symbol)))
-    `(if ,(structurep structure)
-         ',(copy structure)
-         (print "ERROR: STRUCT-SYMBOL passed to MAKE must be bound to a structure."))))
+  `(if (structurep ,symbol)
+       (copy ,symbol)
+       (print "ERROR: STRUCT-SYMBOL passed to MAKE must be bound to a structure.")))
 
 (defmacro access (symbol . body)
   "Bind member identifiers to member values from structure bound to SYMBOL.

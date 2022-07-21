@@ -454,18 +454,24 @@ once, and have multiple instances of the defined structure for different
 tasks and such. This is possible with the ~make~ macro:
 #+begin_src lisp
   (defstruct vector3
-    "Three integers named X, Y, and Z."
+    "A vector of three integers, X, Y, and Z."
     ((x 0) (y 0) (z 0)))
 
+  ;; Create an instance of a defined structure.
   (set my-coordinates (make vector3))
-  (set-member my-coordinates 'x 33)
-  (set-member my-coordinates 'y 12)
-  (set-member my-coordinates 'z 22)
+  ;; Setting member values.
+  (set-member my-coordinates 'x 24)
+  (set-member my-coordinates 'y 34)
+  (set-member my-coordinates 'z 11)
+  ;; Print the instance of the structure to standard out.
+  (print my-coordinates)
+  ;; Accessing member IDs and values as separate lists.
   (let ((coordinate-members (map car my-coordinates))
         (coordinate-values (map cadr my-coordinates)))
     (print coordinate-members)
     (print coordinate-values))
-  (print my-coordinates)
+  ;; Print the sum of all of the values in the structure.
+  (print (foldl + 0 (map cadr my-coordinates)))
 #+end_src
 
 *** Misc
