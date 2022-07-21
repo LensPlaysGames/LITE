@@ -477,7 +477,6 @@ Error buffer_save(Buffer buffer) {
                , NULL);
     return args;
   }
-
   FILE *file = fopen(buffer.path, "wb");
   if (!file) {
     printf("Failure to save buffer at \"%s\" -- failed to open file\n"
@@ -487,7 +486,6 @@ Error buffer_save(Buffer buffer) {
                , NULL);
     return err;
   }
-
   char *contents = buffer_string(buffer);
   if (!contents) {
     fclose(file);
@@ -500,7 +498,6 @@ Error buffer_save(Buffer buffer) {
   size_t bytes = fwrite(contents, 1, file_size, file);
   free(contents);
   contents = NULL;
-
   uint8_t close_status = fclose(file);
   if (close_status != 0) {
     printf("Failure to save buffer at \"%s\" -- bad close\n"
@@ -516,7 +513,6 @@ Error buffer_save(Buffer buffer) {
                , NULL);
     return err;
   }
-
   return ok;
 }
 

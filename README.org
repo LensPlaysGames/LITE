@@ -226,24 +226,54 @@ This allows for everything in LITE LISP to self-document it's use.
 
 The standard library includes the ~DEFUN~ macro to help define named functions.
 #+begin_src lisp
-  (defun <name> <args> <docstring> <body>)
+  (defun NAME ARGUMENT DOCSTRING BODY-EXPRESSION(S))
 #+end_src
 
-Here is a simple factorial implementation:
+Here is a simple factorial implementation that works for small, positive numbers:
 #+begin_src lisp
   (defun fact (x) "Get the factorial of integer X." (if (= x 0) 1 (* x (fact (- x 1)))))
 #+end_src
+
+To call a named function, put the name of the function in the operator
+position, and any arguments following. Arguments are evaluated before
+being bound and the body being executed.
+#+begin_src lisp
+  (fact 6)
+#+end_src
+
+Assuming ~FACT~ refers to the function defined just above, this would
+result in the integer ~720~, as ~6~ was bound to the symbol ~X~ during
+the execution of the functions body.
+
+As arguments are evaluated before being bound, we can also pass
+expressions. The result of the expression will be bound to the
+argument symbol.
+#+begin_src lisp
+  (fact (fact 3))
+#+end_src
+
+In this case, =(fact 3)= will be evaluated before the outer ~FACT~
+call, so that we can bind the result of it to ~X~. Once evaluating,
+we will get the integer result ~6~, which will then be bound to ~X~
+in the outer (left-most) ~FACT~ call, resulting in ~720~ again.
 
 **** Lambda/Closure
 
 A lambda is a function with no name.
 
-Currently, lambdas may be defined with the following syntax:
+Currently, lambdas may be defined with the following special form:
 #+begin_src lisp
-  (lambda ARGUMENT BODY)
+  (lambda ARGUMENT BODY-EXPRESSION(S))
 #+end_src
 
-This means the identity lambda looks as follows:
+ARGUMENT is a symbol or a list of symbols denoting arguments
+to be bound when the function is called.
+
+BODY-EXPRESSION(S) is a sequence of expressions that will be executed
+with arguments bound when the lambda is called. The result of the last
+expression in the body is the return value of the lambda.
+
+This means the identity lambda may be written like so:
 #+begin_src lisp
   (lambda (x) x)
 #+end_src
@@ -253,17 +283,38 @@ As a real world example, here is the factorial implementation from above written
   (lambda (x) (if (= x 0) 1 (* x (fact (- x 1)))))
 #+end_src
 
+To call a lambda, put it in the operator position just like the name
+of a named function. Pass any arguments as subsequent values in the
+list, just as you would a named function.
+#+begin_src lisp
+  ((lambda (x) (if (= x 0) 1 (* x (fact - x 1)))) 6)
+#+end_src
+
+Evaluating the above would result in the integer value ~720~, as ~6~
+was bound to ~X~ and the lambda body was executed.
+
+**** Variadic Arguments
+
 There is also support for variadic arguments using an /improper list/.
 The syntax for an improper list is as follows:
 : (1 2 3 . 4)
 
-In the context of a lambda, here is how to define
-a function with a varying number of arguments.
+In the context of a lambda, here is how to define a function with two
+positional arguments followed by a varying number of arguments.
 #+begin_src lisp
-  (lambda (argument1 argument2 . the-rest) BODY-EXPRESSION)
+  (lambda (argument1 argument2 . the-rest) BODY-EXPRESSION(S))
 #+end_src
-After all fixed arguments are given, the rest are
-converted to a list and passed to the function.
+After all fixed arguments are given, the rest are passed as a list to
+the function. If no variadic arguments are given, nil is passed.
+
+To create a function that may take any amount of arguments, put a
+symbol in the ARGUMENT position, as seen in this re-definition of the
+~+~ operator in the standard library:
+#+begin_src lisp
+  (let ((old+ +))
+    (lambda ints (foldl old+ 0 ints)))
+#+end_src
+
 
 *** Macros
 
@@ -273,11 +324,12 @@ it's return value, rather than it's return value being the result.
 This allows for commands and arguments to be built programatically in LISP.
 
 In order to ease the making of macros, there is /quasiquotation/.
-It is similar to regular quotation, but it is possible to unquote specific
-pieces so as to evaluate them before calling the built expression.
+It is similar to regular quotation, but it is possible to unquote
+specific atoms so as to evaluate them before calling the returned
+expression.
 
-While it is possible to call the quasiquotation operators
-manually, there are short-hand special forms.
+While it is possible to call the quasiquotation operators manually,
+there are short-hand special forms built in to the parser.
 - '`'  -- QUASIQUOTE
 - ','  -- UNQUOTE
 - ',@' -- UNQUOTE-SPLICING
@@ -290,18 +342,47 @@ A simple example that mimics the ~QUOTE~ operator:
   (macro my-quote (x) "Mimics the 'QUOTE' operator." `(quote ,x))
 #+end_src
 
-The QUASIQUOTE special-form at the beginning will cause
-the QUOTE symbol to pass through without being evaluated.
-The UNQUOTE special-form before the ~X~ symbol will cause
-it to be evaluated, replacing ~,x~ with the passed argument.
+The QUASIQUOTE special-form at the beginning will cause the QUOTE
+symbol to pass through without being evaluated. The UNQUOTE
+special-form before the ~X~ symbol will cause it to be evaluated,
+replacing ~,x~ with the passed argument.
 
-For example, calling ~(my-quote a)~ will expand to ~(QUOTE A)~,
-which will result in the symbol ~A~ being returned.
+For example, calling ~(my-quote a)~ will eventually expand to
+~(QUOTE A)~, which will result in the symbol ~A~ being returned upon
+evaluation.
 
-When including the standard library, ~DEFMACRO~ operates exactly the same as ~MACRO~.
+For a more real-world example that is actually useful, let's take a
+look at ~DEFUN~ from the standard library.
+#+begin_src lisp
+  (macro defun (name args docstring . body)
+    "Define a named lambda function with a given docstring."
+    `(define ,name (lambda ,args ,@body) ,docstring))
+#+end_src
 
-When the environment variable ~DEBUG/MACRO~ is non-nil,
-extra output concerning macros is produced.
+As you can see, this macro takes 3 fixed arguments followed by any
+number of arguments following passed as a list bound to ~BODY~. The
+first argument, name, is within a quasiquoted expression, but contains
+an unquote special-form operator. This causes it to be evaluated during
+macro expansion, resulting in the passed argument. The same thing
+happens with ~ARGS~ and ~DOCSTRING~. When it comes to ~BODY~, though,
+things change. As ~BODY~ is a list, and a function body is not a list,
+but a sequence, we must transform it somehow. This is where the
+~UNQUOTE-SPLICING~ operator comes into play, as it will take each
+element of a given list and splice it into a sequence.
+#+begin_example
+,BODY  = ((print a) (print b) (print c))
+,@BODY = (print a) (print b) (print c)
+#+end_example
+
+This allows the ~LAMBDA~ body argument to be a valid sequence of
+expressions that can be evaluated properly.
+
+
+When including the standard library, ~DEFMACRO~ operates exactly the
+same as ~MACRO~.
+
+When the environment variable ~DEBUG/MACRO~ is non-nil, extra output
+concerning macros is produced.
 
 *** Structures
 
@@ -374,9 +455,7 @@ tasks and such. This is possible with the ~make~ macro:
 #+begin_src lisp
   (defstruct vector3
     "Three integers named X, Y, and Z."
-    (x 0)
-    (y 0)
-    (z 0))
+    ((x 0) (y 0) (z 0)))
 
   (set my-coordinates (make vector3))
   (set-member my-coordinates 'x 33)
