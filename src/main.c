@@ -28,29 +28,44 @@ Atom initialize_buffer_or_panic(const char *const path) {
 }
 
 int main(int argc, char **argv) {
-  printf("|> LITE will guide the way through the darkness.\n");
-
-  Atom initial_buffer = initialize_buffer_or_panic("LITE_SHINES_UPON_US.txt");
-  env_set(*genv(), make_sym("CURRENT-BUFFER"), initial_buffer);
-
-# ifdef LITE_GFX
-  Atom popup_buffer = initialize_buffer_or_panic(".popup");
-  env_set(*genv(), make_sym("POPUP-BUFFER"), popup_buffer);
-# endif
-
   Error err = ok;
   Atom result = nil;
 
-  // Treat every given argument as a file to load, for now.
-  if (argc > 1) {
-    for (int i = 1; i < argc; ++i) {
-      err = evaluate_file(*genv(), argv[i], &result);
-      if (err.type) {
-        printf("%s: ", argv[i]);
-        print_error(err);
-        err = ok;
-      }
+  // Find and keep track of recognized arguments.
+  int arg_script_index = -1;
+  for (int i = 1; i < argc; ++i) {
+    if (strcmp(argv[i], "--script") == 0) {
+      arg_script_index = i;
     }
+  }
+
+  // Only initialize buffers before evaluating arguments as filepaths
+  // when NOT in script mode. This is needed due to get_file() and
+  // friends printing to standard out, which breaks end-to-end tests.
+  if (arg_script_index == -1) {
+    Atom initial_buffer = initialize_buffer_or_panic("LITE_SHINES_UPON_US.txt");
+    env_set(*genv(), make_sym("CURRENT-BUFFER"), initial_buffer);
+
+#   ifdef LITE_GFX
+    Atom popup_buffer = initialize_buffer_or_panic(".popup");
+    env_set(*genv(), make_sym("POPUP-BUFFER"), popup_buffer);
+#   endif
+  }
+
+  // Evaluate all the arguments as file paths, except for detected
+  // valid arguments.
+  for (int i = 1; i < argc; ++i) {
+    if (i == arg_script_index) { continue; }
+    err = evaluate_file(*genv(), argv[i], &result);
+    if (err.type) {
+      printf("%s: ", argv[i]);
+      print_error(err);
+      err = ok;
+    }
+  }
+
+  if (arg_script_index != -1) {
+    exit_safe(0);
   }
 
   const char *home_path_var = "HOME";
@@ -93,13 +108,13 @@ int main(int argc, char **argv) {
   }
 
   int status = 0;
-
-#ifdef LITE_GFX
+  printf("|> LITE will guide the way through the darkness.\n");
+# ifdef LITE_GFX
   status = enter_lite_gui();
-#else
+# else
   enter_repl(*genv());
-#endif
-
+# endif
   exit_safe(status);
+
   return status;
 }

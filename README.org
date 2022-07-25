@@ -255,7 +255,7 @@ argument symbol.
 In this case, =(fact 3)= will be evaluated before the outer ~FACT~
 call, so that we can bind the result of it to ~X~. Once evaluating,
 we will get the integer result ~6~, which will then be bound to ~X~
-in the outer (left-most) ~FACT~ call, resulting in ~720~ again.
+in the outer (left-most) ~FACT~ call, resulting in ~720~.
 
 **** Lambda/Closure
 

@@ -365,7 +365,7 @@ including data output at each iteration of the loop."));
 static Atom global_environment = { ATOM_TYPE_NIL, { 0 }, NULL, NULL };
 Atom *genv() {
   if (nilp(global_environment)) {
-    printf("Recreating global environment from defaults...\n");
+    //printf("Recreating global environment from defaults...\n");
     global_environment = default_environment();
   }
   return &global_environment;

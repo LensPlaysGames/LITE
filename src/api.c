@@ -233,10 +233,11 @@ void handle_keydown(char *keystring) {
       Atom root_keymap = nil;
       env_get(*genv(), make_sym("KEYMAP"), &root_keymap);
       if (nilp(keybind)) {
+        // If keybind is nil, it means that the keystring is not bound in current keymap.
         if (pairp(current_keymap) && pairp(root_keymap)
             && current_keymap.value.pair == root_keymap.value.pair)
           {
-            // If current keymap is root keymap, key is not bound.
+            // If current keymap is root keymap, key is not bound at all.
             if (debug_keybinding) {
               printf("Key not bound: \"%s\"\n", keystring);
             }
@@ -251,6 +252,7 @@ void handle_keydown(char *keystring) {
             keystring = NULL;
             continue;
           }
+        // Key not bound in current keymap, set current to root_keymap and try again.
         env_set(*genv(), make_sym("CURRENT-KEYMAP"), root_keymap);
         keybind_recurse_count += 1;
         if (debug_keybinding) {
