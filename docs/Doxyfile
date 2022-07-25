@@ -1,0 +1,30 @@
+# Difference with default Doxyfile 1.9.4 (5d15657a55555e6181a7830a5c723af75e7577e2)
+PROJECT_NAME           = LITE
+PROJECT_NUMBER         = 0.0.1
+PROJECT_BRIEF          = "LISP Interpreter and Text Editor"
+FULL_PATH_NAMES        = NO
+JAVADOC_AUTOBRIEF      = YES
+OPTIMIZE_OUTPUT_FOR_C  = YES
+TYPEDEF_HIDES_STRUCT   = YES
+EXTRACT_ALL            = YES
+EXTRACT_STATIC         = YES
+INPUT                  = ../src \
+                         ../gfx \
+                         ../gfx/sdl2
+RECURSIVE              = YES
+HTML_FOOTER            = footer.html
+HTML_EXTRA_STYLESHEET  = style.css
+HTML_COLORSTYLE_HUE    = 210
+DOCSET_BUNDLE_ID       = org.doxygen.LITE
+ECLIPSE_DOC_ID         = org.doxygen.LITE
+DISABLE_INDEX          = YES
+GENERATE_TREEVIEW      = YES
+FULL_SIDEBAR           = YES
+GENERATE_LATEX         = NO
+HAVE_DOT               = YES
+DOT_FONTSIZE           = 12
+
+## NOTE: Uncomment the following lines to generate function call graphs.
+## They are very interesting, but take quite some time to generate.
+## CALL_GRAPH             = YES
+## CALLER_GRAPH           = YES

@@ -82,18 +82,40 @@ extern GenericAllocation *generic_allocations;
 extern size_t generic_allocations_count;
 extern size_t generic_allocations_freed;
 
-/// payload is a malloc()-derived pointer,
-/// ref is the referring Atom that, when
-/// garbage collected, will free the payload.
+/** Attach allocated pointer to an existing Atom to be freed when the
+ *  Atom is.
+ *
+ * @param ref The referring atom that the payload will be attached to.
+ * @param payload A pointer to allocated memory that will be freed when
+ *                the Atom is no longer needed.
+ *
+ * @retval ERROR_NONE Success
+ * @retval ERROR_ARGUMENTS One of the arguments was NULL.
+ * @retval ERROR_MEMORY Could not allocate memory for new generic
+ *                      allocation.
+ */
 Error gcol_generic_allocation(Atom *ref, void *payload);
 
-/// Mark cons and generic allocations as needed,
-/// so as to not free them on the next gcol().
+/** Mark atoms that are accessible from a given root as in-use,
+ *  preventing them from being garbage collected.
+ *
+ * This will mark pairs that have been allocated with `cons`, as well
+ * as generic allocations registered to atoms.
+ *
+ * @param root All atoms accessible from this atom will be marked.
+ */
 void gcol_mark(Atom *root);
 
-/// Garbage collect all unmarked allocations.
+/** Do a garbage collection, freeing all un-marked atoms that have been
+ *  allocated.
+ */
 void gcol();
 
+/** Print all data collected surrounding garbage collection.
+ *
+ * This includes amount of created and freed allocations for both types
+ * of allocation (pair/cons and generic).
+ */
 void print_gcol_data();
 
 //================================================================ END garbage_collection
@@ -101,17 +123,66 @@ void print_gcol_data();
 /// Returns a heap-allocated pair atom with car and cdr set.
 Atom cons(Atom car_atom, Atom cdr_atom);
 
-/// Returns boolean-like value, 0 = false.
+/// If given atom is a given list, return 1. Otherwise, return 0.
 int listp(Atom expr);
-/// Get a single element in a list from a given index.
+
+/** Get a single element in a list from a given index.
+ *
+ * This function does not check for nil, so ensure to give it an
+ * in-bounds index.
+ *
+ * @param list The list to get an element from.
+ * @param k The index of the element within the list to get.
+ *
+ * @return The element at index `k` within the given list.
+ */
 Atom list_get(Atom list, int k);
-/// Get all elements in a list past a given index.
+
+/** Get the rest of the elements in a list after a given index.
+ *
+ * This function does not check for nil, so ensure to give it an
+ * in-bounds index.
+ *
+ * @param list The list to get the rest of the elements from.
+ * @param k The index to get the returned elements after (inclusive).
+ *
+ * @return A list containing the rest of the elements of the given list
+ *         starting at index `k`.
+ */
 Atom list_get_past(Atom list, int k);
-/// Set an elements value from a given index.
+
+/** Set the element at index `k` to the Atom `value`.
+ *
+ * This function does not check for nil, so ensure to give it an
+ * in-bounds index.
+ *
+ * @param list The list to modify.
+ * @param k The index to get the returned elements after (inclusive).
+ * @param value The atom that will be placed at index `k` in the given
+ *              list.
+ */
 void list_set(Atom list, int k, Atom value);
-/// Push a value on to the beginning of a list.
+
+/** Push a value on to the given list, adding it to the beginning.
+ *
+ * @param list A pointer to the list to modify.
+ * @param value The atom that will be placed at the beginning of the
+ *              given list.
+ */
 void list_push(Atom *list, Atom value);
+
+/** Reverse a given list.
+ *
+ * @param list A pointer to the list to reverse.
+ */
 void list_reverse(Atom *list);
+
+/** Create a new Atom that is a copy of an existing list.
+ *
+ * @param list The list to copy.
+ *
+ * @return A list that is the exact copy of the given list.
+ */
 Atom copy_list(Atom list);
 
 /// Returns boolean-like value, 0 = false.
@@ -134,21 +205,34 @@ Atom make_builtin(BuiltInFunction function, char *name, char *docstring);
 Error make_closure(Atom environment, Atom arguments, Atom body, Atom *result);
 Atom make_buffer(Atom environment, char *path);
 
+/// Return a pointer to the global symbol table (never NULL).
 Atom *sym_table();
+/// Return a pointer to the global buffer table (never NULL).
 Atom *buf_table();
 
+/** Get a heap-allocated string containing the textual representation
+ *  of the given atom.
+ *
+ * @param atom The atom that will be represented in text.
+ * @param str A pointer to a heap-allocated string that will be
+ *            appended to. If NULL, a new string is created.
+ *
+ * @return A string containing the textual representation of the given
+ *         atom.
+ */
 char *atom_string(Atom atom, char *str);
 
 /** Compare two atoms.
  *
- * This is how 'EQ' is declared.
+ * The `EQ` builtin uses this comparison function.
  *
  * @return T iff atoms a and b are equal, otherwise NIL.
  */
 Atom compare_atoms(Atom a, Atom b);
 
+/// Print an atom to standard out.
 void print_atom(Atom atom);
-/// Print lists' CDR on newline.
+/// Exactly like print_atom, except print lists' CDR on a newline.
 void pretty_print_atom(Atom atom);
 
 #endif /* #ifndef LITE_TYPES_H */

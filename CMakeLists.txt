@@ -66,3 +66,12 @@ if (LITE_GFX)
   )
 endif()
 
+# Doxygen Documentation Target
+find_program(DOXYGEN_PROGRAM doxygen)
+if(DOXYGEN_PROGRAM)
+  add_custom_target(
+    docs
+    COMMAND doxygen Doxyfile
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/docs
+  )
+endif()

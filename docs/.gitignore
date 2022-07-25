@@ -1,0 +1,14 @@
+*.html
+*.png
+*.pdf
+*.js
+*.css
+*.svg
+*.tex
+*.sty
+*.rtf
+
+html
+latex
+rtf
+pdf

@@ -1,0 +1,153 @@
+/* LITE stylesheet for doxygen docs (dark mode by default) */
+
+html, body {
+    background-color: #282828;
+    color: white;
+}
+
+/* Remove white images, borders, etc. */
+
+div.header {
+    border-bottom: 1px solid #565656;
+    background-image: none;
+    background-color: #323232;
+}
+
+#titlearea {
+    border-bottom: 1px solid #565656;
+}
+
+#nav-tree {
+    background-image: none;
+    background-color: #323232;
+}
+
+/* Darken the resiable border of the tree view. */
+.ui-resizable-e {
+    filter: brightness(42%);
+}
+
+/* Hyperlinks were not readable with the dark background. */
+
+a, .contents a {
+    color: #4d9cd1;
+}
+
+a:visited, .contents a:visited {
+    color: #b37ac9;
+}
+
+/* Tables were striped white and black. */
+
+.directory tr.even {
+    background-color: #363636;
+}
+
+/* Detail levels selector buttons were very dark. */
+
+.directory .levels span {
+    color: #2980b9;
+}
+
+/* Members were an un-readable white-on-white. */
+
+.memtitle, .memproto, .memdoc {
+    background-image: none;
+    background-color: inherit;
+    color: inherit;
+    border-top-color: #808080;
+    border-left-color: #808080;
+    border-right-color: #808080;
+    border-bottom-color: #808080;
+}
+
+.memproto {
+    text-shadow: 0px 1px 1px #606060;
+}
+
+.mdescLeft, .mdescRight, .memItemLeft, .memItemRight,
+.memTemplItemLeft, .memTemplItemRight, .memTemplParams {
+    background-color: #282828;
+    color: white;
+}
+
+/* Field table (enums) */
+
+table.fieldtable {
+    border-color: #808080;
+}
+
+.fieldtable th {
+    background-image: none;
+    color: white;
+    background-color: inherit;
+    border-bottom-color: #808080;
+}
+
+.fieldtable td.fieldname {
+    border-right-color: #808080;
+    border-bottom-color: #808080;
+}
+
+.fieldtable td.fielddoc {
+    border-bottom-color: #808080;
+}
+
+
+/* White member separator sticks out like sore thumb. */
+
+.memSeparator {
+    border-bottom-color: #808080;
+}
+
+/* "Data Fields" text too dark. */
+/* Weird blue lines near members. */
+
+h2.groupheader {
+    color: inherit;
+    border-bottom: 1px solid #808080;
+}
+
+/* Horizontal rules were blue. */
+
+hr {
+    border-top: 1px solid #b0b0b0;
+}
+
+
+/* Source code has white background. */
+
+div.fragment {
+    background-color: inherit;
+    color: inherit;
+    border-color: #808080;
+}
+
+span.lineno {
+    background-color: inherit;
+}
+
+span.lineno a {
+    background-color: #424242;
+}
+
+span.lineno a:hover {
+    background-color: #565656;
+}
+
+/* Source code syntax highlighting fixes. */
+
+span.keywordtype { color: #ba642a; }
+
+span.preprocessor { color: #909090; }
+
+span.mlabel {
+    border-color: #909090;
+    background-color: #565656;
+}
+
+.paramname {
+    /* color: #eac938; */
+    color: #59b72a;
+    /* color: #b7312a; */
+}
