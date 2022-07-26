@@ -1,0 +1,39 @@
+;; Redefine '+' operator to handle any amount of integer arguments.
+(define +
+    (let ((old+ +))
+      (lambda ints (foldl old+ 0 ints)))
+  "Return the sum of any amount of integer arguments.")
+
+;; Redefine '*' operator to handle any amount of integer arguments.
+(define *
+    (let ((old* *))
+      (lambda ints (foldl old* 1 ints)))
+  "Return the product of any amount of integer arguments.")
+
+(define abs
+    (lambda (x)
+      (if (< x 0)
+          (* x -1)
+          x))
+  "Return X's distance from zero, which is always positive,
+also known as the absolute value.")
+
+(define gcd
+    (lambda (m n)
+      (if (> m n)
+          (gcd n m)
+          (if (= 0 (% n m)) m
+              (gcd (% n m) m))))
+  "Euclidian greatest common divisor recursive function. This was one
+of the functions mentioned in the original LISP paper in the 1960s.")
+
+(define sqrt-newton
+    (lambda (a x epsilon)
+      (if (< (- (* x x) a) epsilon) x
+          (sqrt-newton a (/ (+ x (/ a x)) 2) epsilon)))
+  "Newtonian approximate square root recursive function.
+This was one of the functions mentioned in the original LISP paper in the 1960s.")
+
+(define sqrt
+    (lambda (n) (sqrt-newton n (/ n 2) 1))
+  "Return the approximate square root of a given number N.")

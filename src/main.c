@@ -35,7 +35,12 @@ int main(int argc, char **argv) {
   int arg_script_index = -1;
   for (int i = 1; i < argc; ++i) {
     if (strcmp(argv[i], "--script") == 0) {
+      if (arg_script_index != -1) {
+        printf("LITE does not accept multiple `--script` arguments.\n");
+        exit(1);
+      }
       arg_script_index = i;
+      break;
     }
   }
 

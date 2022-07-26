@@ -1,0 +1,120 @@
+;; More easily access nested pair elements.
+(define caar
+    (lambda (x)
+      (car (car x)))
+  "Get the left side of the left side of the given pair.")
+(define cadr
+    (lambda (x)
+      (car (cdr x)))
+  "Get the left side of the right side of the given pair.
+
+Most often used to get the next element in a list.")
+
+;; LIST FOLDING FUNCTIONS
+;; https://en.wikipedia.org/wiki/Fold_(higher-order_function)
+
+;; Fold List Left
+(define foldl
+    (lambda (some-function initial-value some-list)
+      (if some-list
+          (foldl some-function
+                 (some-function initial-value (car some-list))
+                 (cdr some-list))
+          initial-value))
+  "Apply SOME-FUNCTION to each element within SOME-LIST in reverse order,
+as well as place INITIAL-VALUE at the beginning of SOME-LIST.")
+
+;; Fold List Right
+(define foldr
+    (lambda (some-function initial-value some-list)
+      (if some-list
+          (some-function (car some-list)
+                         (foldr some-function
+                                initial-value
+                                (cdr some-list)))
+          initial-value))
+  "Applies SOME-FUNCTION to each element within SOME-LIST,
+as well as places INITIAL-VALUE at the end of SOME-LIST.")
+
+;; LIST UTILITY FUNCTIONS
+
+(define list
+    (lambda items
+      (foldr cons nil items))
+  "Create a list from any amount of given ITEMS.")
+
+(define list-reverse
+    (lambda items
+      (foldl (lambda (a b) (cons b a)) nil items))
+  "Create a list from any amount of given ITEMS in reverse order.")
+
+(define reverse-list
+    (lambda (list)
+      (foldl (lambda (a b) (cons b a)) nil list))
+  "Reverse a given LIST.")
+
+;; Append list B to list A.
+(define append
+    (lambda (a b)
+      (foldr cons b a))
+  "Append list A to list B")
+
+;; MAPPING
+
+(define unary-map
+    (lambda (some-function some-list)
+      (foldr (lambda (x rest) (cons (some-function x) rest))
+             nil
+             some-list)))
+
+(define map
+    (lambda (some-function . arg-lists)
+      (if (car arg-lists)
+          (cons (apply some-function (unary-map car arg-lists))
+                (apply map (cons some-function (unary-map cdr arg-lists))))
+          nil)))
+
+;; QUASIQUOTATION
+
+(macro quasiquote (x)
+       "Quote the given expression, but parse 'UNQUOTE' and 'UNQUOTE-SPLICING'."
+       (if (pairp x)
+           (if (eq (car x) 'unquote)
+               (cadr x)
+               (if (pairp (car x))
+                   (if (eq (caar x) 'unquote-splicing)
+                       (list 'append
+                             (cadr (car x))
+                             (list 'quasiquote (cdr x)))
+                       (list 'cons
+                             (list 'quasiquote (car x))
+                             (list 'quasiquote (cdr x))))
+                   (list 'cons
+                         (list 'quasiquote (car x))
+                         (list 'quasiquote (cdr x)))))
+           (list 'quote x)))
+
+;; Make UNQUOTE and UNQUOTE-SPLICING cause an error when used outside of quasiquote
+(macro unquote _
+       "Disallow UNQUOTE outside of QUASIQUOTE"
+       (print "UNQUOTE should not be used outside of QUASIQUOTE."))
+(macro unquote-splicing _
+       "Disallow UNQUOTE-SPLICING outside of QUASIQUOTE"
+       (print "UNQUOTE-SPLICING should not be used outside of QUASIQUOTE."))
+
+;; HELPER MACROS
+
+;; `DEFUN` enforces a docstring when defining a named lambda.
+(macro defun (name args docstring . body)
+       "Define a named lambda function with a given docstring."
+       `(define ,name (lambda ,args ,@body) ,docstring))
+
+;; `DEFMACRO` allows for macro bodies to be evaluated sequentially, like progn.
+(macro defmacro (macro-name args docstring . body)
+       "Define a macro."
+       `(macro ,macro-name ,args ,docstring ((lambda () ,@body))))
+
+(macro let (defs . body)
+       "Bind the given symbols to the given values while evaluating body."
+       `((lambda ,(map car defs) ,@body)
+         ,@(map cadr defs)))

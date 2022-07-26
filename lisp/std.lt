@@ -1,186 +1,26 @@
 ;; Include this file in LITE by passing the path to this file as a command-line argument.
 
-;; More easily access nested pair elements.
-(define caar
-    (lambda (x)
-      (car (car x)))
-  "Get the left side of the left side of the given pair.")
-(define cadr
-    (lambda (x)
-      (car (cdr x)))
-  "Get the left side of the right side of the given pair.
+(evaluate-file "lisp/std/basics.lt")
+(evaluate-file "lisp/std/maths.lt")
 
-Most often used to get the next element in a list.")
+(defmacro when (condition . body)
+  "Evaluate BODY iff CONDITION evaluates to any non-nil value."
+  `(if ,condition ((lambda () ,@body)) nil))
 
-;; LIST FOLDING FUNCTIONS
-;; https://en.wikipedia.org/wiki/Fold_(higher-order_function)
+(defmacro unless (condition . body)
+  "Evaluate BODY iff CONDITION evaluates to nil."
+  `(if (! ,condition) ((lambda () ,@body)) nil))
 
-;; Fold List Left
-(define foldl
-    (lambda (some-function initial-value some-list)
-      (if some-list
-          (foldl some-function
-                 (some-function initial-value (car some-list))
-                 (cdr some-list))
-          initial-value))
-  "Apply SOME-FUNCTION to each element within SOME-LIST in reverse order,
-as well as place INITIAL-VALUE at the beginning of SOME-LIST.")
-
-;; Fold List Right
-(define foldr
-    (lambda (some-function initial-value some-list)
-      (if some-list
-          (some-function (car some-list)
-                         (foldr some-function
-                                initial-value
-                                (cdr some-list)))
-          initial-value))
-  "Applies SOME-FUNCTION to each element within SOME-LIST,
-as well as places INITIAL-VALUE at the end of SOME-LIST.")
-
-;; LIST UTILITY FUNCTIONS
-
-(define list
-    (lambda items
-      (foldr cons nil items))
-  "Create a list from any amount of given ITEMS.")
-
-(define list-reverse
-    (lambda items
-      (foldl (lambda (a b) (cons b a)) nil items))
-  "Create a list from any amount of given ITEMS in reverse order.")
-
-(define reverse-list
-    (lambda (list)
-      (foldl (lambda (a b) (cons b a)) nil list))
-  "Reverse a given LIST.")
-
-;; Append list B to list A.
-(define append
-    (lambda (a b)
-      (foldr cons b a))
-  "Append list A to list B")
-
-;; MAPPING
-
-(define unary-map
-    (lambda (some-function some-list)
-      (foldr (lambda (x rest) (cons (some-function x) rest))
-             nil
-             some-list)))
-
-(define map
-    (lambda (some-function . arg-lists)
-      (if (car arg-lists)
-          (cons (apply some-function (unary-map car arg-lists))
-                (apply map (cons some-function (unary-map cdr arg-lists))))
-          nil)))
-
-;; QUASIQUOTATION
-
-(macro quasiquote (x)
-       "Quote the given expression, but parse 'UNQUOTE' and 'UNQUOTE-SPLICING'."
-       (if (pairp x)
-           (if (eq (car x) 'unquote)
-               (cadr x)
-               (if (pairp (car x))
-                   (if (eq (caar x) 'unquote-splicing)
-                       (list 'append
-                             (cadr (car x))
-                             (list 'quasiquote (cdr x)))
-                       (list 'cons
-                             (list 'quasiquote (car x))
-                             (list 'quasiquote (cdr x))))
-                   (list 'cons
-                         (list 'quasiquote (car x))
-                         (list 'quasiquote (cdr x)))))
-           (list 'quote x)))
-
-;; Make UNQUOTE and UNQUOTE-SPLICING cause an error when used outside of quasiquote
-(macro unquote _
-       "Disallow UNQUOTE outside of QUASIQUOTE"
-       (print "UNQUOTE should not be used outside of QUASIQUOTE."))
-(macro unquote-splicing _
-       "Disallow UNQUOTE-SPLICING outside of QUASIQUOTE"
-       (print "UNQUOTE-SPLICING should not be used outside of QUASIQUOTE."))
-
-;; HELPER MACROS
-
-;; `DEFUN` enforces a docstring when defining a named lambda.
-(macro defun (name args docstring . body)
-       "Define a named lambda function with a given docstring."
-       `(define ,name (lambda ,args ,@body) ,docstring))
-
-;; `DEFMACRO` allows for macro bodies to be evaluated sequentially, like progn.
-(macro defmacro (macro-name args docstring . body)
-       "Define a macro."
-       `(macro ,macro-name ,args ,docstring ((lambda () ,@body))))
-
-(macro let (defs . body)
-       "Bind the given symbols to the given values while evaluating body."
-       `((lambda ,(map car defs) ,@body)
-         ,@(map cadr defs)))
-
-;; ARITHMETIC & LOGIC
-
-;; Redefine '+' operator to handle any amount of integer arguments.
-(define +
-    (let ((old+ +))
-      (lambda ints (foldl old+ 0 ints)))
-  "Return the sum of any amount of integer arguments.")
-
-;; Redefine '*' operator to handle any amount of integer arguments.
-(define *
-    (let ((old* *))
-      (lambda ints (foldl old* 1 ints)))
-  "Return the product of any amount of integer arguments.")
-
-(define abs
-    (lambda (x)
-      (if (< x 0)
-          (* x -1)
-          x))
-  "Return X's distance from zero, which is always positive,
-also known as the absolute value.")
-
-(define gcd
-    (lambda (m n)
-      (if (> m n)
-          (gcd n m)
-          (if (= 0 (% n m)) m
-              (gcd (% n m) m))))
-  "Euclidian greatest common divisor recursive function. This was one
-of the functions mentioned in the original LISP paper in the 1960s.")
-
-(define sqrt-newton
-    (lambda (a x epsilon)
-      (if (< (- (* x x) a) epsilon) x
-          (sqrt-newton a (/ (+ x (/ a x)) 2) epsilon)))
-  "Newtonian approximate square root recursive function.
-This was one of the functions mentioned in the original LISP paper in the 1960s.")
-
-(define sqrt
-    (lambda (n) (sqrt-newton n (/ n 2) 1))
-  "Return the approximate square root of a given number N.")
-
-(macro when (condition . body)
-       "Evaluate BODY iff CONDITION evaluates to any non-nil value."
-       `(if ,condition ((lambda () ,@body)) nil))
-
-(macro unless (condition . body)
-       "Evaluate BODY iff CONDITION evaluates to nil."
-       `(if (! ,condition) ((lambda () ,@body)) nil))
-
-(macro dolist (spec . body)
-       "Given SPEC is of the form '(ELEMENT LIST VALUE)', evaluate body
+(defmacro dolist (spec . body)
+  "Given SPEC is of the form '(ELEMENT LIST VALUE)', evaluate body
 for each element of the list, binding it to ELEMENT. VALUE is returned."
-       `(let ((list ,(car (cdr spec))))
-          (let ((list-it list))
-            (while list-it
-              (let ((,(car spec) (car list-it)))
-                ,@body)
-              (define list-it (cdr list-it))))
-          ,(car (cdr (cdr spec)))))
+  `(let ((list ,(car (cdr spec))))
+     (let ((list-it list))
+       (while list-it
+         (let ((,(car spec) (car list-it)))
+           ,@body)
+         (define list-it (cdr list-it))))
+     ,(car (cdr (cdr spec)))))
 
 ;; LISTS
 
