@@ -1,0 +1,21 @@
+;;ABCDEF
+;;123
+
+;; Quasiquotation is part of the standard library.
+;; It would be smart to separate it out into multiple files so that
+;; these standard library tests can test specific pieces without
+;; evaluating the entire thing, as that can get quite lengthy.
+(evaluate-file "lisp/std/basics.lt")
+
+(define testing-testing 123)
+
+;; Test some simple quasiquotation to replace X but not evaluate QUOTE.
+(defmacro my-quote (x)
+  "Return 'QUOTE' of X."
+  `(quote ,x))
+(print (my-quote abcdef))
+
+(defmacro evaluate-symbol (symbol)
+  "Evaluate the given symbol and return it's value in the environment."
+  `,symbol)
+(print (evaluate-symbol testing-testing))

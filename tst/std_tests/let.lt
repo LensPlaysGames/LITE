@@ -1,0 +1,29 @@
+;;1
+;;FOO
+;;BAR
+;;69
+;;"one"
+
+;; LET is a macro defined in the standard library.
+(evaluate-file "lisp/std/basics.lt")
+
+;; Create a variable binding in the environment.
+(define one "one")
+
+;; Bind a variable with the same name as one that is already bound in
+;; the environment, ensuring the newest binding is printed.
+(let ((one 1))
+  (print one))
+
+;; Multiple bindings in a single LET form.
+(let ((foo 'foo)
+      (bar 'bar))
+  (print foo)
+  (print bar))
+
+;; A binding that has to be evaluated.
+(let ((evaluated-bind (/ (* 138 4) 8)))
+  (print evaluated-bind))
+
+;; Ensure that LET did not over-ride variable binding in environment.
+(print one)

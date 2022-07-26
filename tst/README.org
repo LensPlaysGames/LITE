@@ -1,0 +1,67 @@
+* LITE TST
+
+LITE has a lot going on in development, and it would be great if we
+could ensure that the code we have already written that we don't want
+to break doesn't break, ya know?
+
+For that, we have tests. Currently, we have end-to-end tests written
+in =Free Pascal=.
+
+** Dependencies
+
+- [[https://www.freepascal.org/download.html][Free Pascal Compiler]]
+- A LITE executable in the ~bin~ subdirectory of the repository.
+  For more information, see the =Building= section within the
+  README found at the root of the repository.
+
+On Debian-based Linux distributions, you may use the following to
+install ~fpc~ if you prefer not to install binaries from the link above:
+#+begin_src shell
+  sudo apt install fpc
+#+end_src
+
+** Building the Test Runner
+
+To build the test-running executable from pascal source, use ~fpc~:
+#+begin_src shell
+  fpc -Px86_64 test.pas
+#+end_src
+
+** Running Tests
+
+To run the tests found in this directory, run the compiled test-running
+executable with a working directory of the base of the repository.
+
+For now, it will recursively run all tests in the ~tst~ subdirectory.
+
+Eventually, I plan to add the ability to run individual tests, as well
+as specific directories by passing different command line options/flags.
+
+** Writing New Tests
+
+Be sure to name the file with the proper extension for LITE LISP, ~.lt~.
+This is the extension that is looked for in this directory by the test
+running program.
+
+Put the expected output at the top of the file, commented with a single
+semi-colon followed by any character followed by the expected output.
+
+Here is an example.
+#+begin_example
+; 69
+
+(print (+ 34 35))
+#+end_example
+
+Here is a multi-line example.
+#+begin_example
+; 69
+; NICE
+; 420
+; BLAZE-IT
+
+(print (/ 138 2))
+(print 'NICE)
+(print (/ 840 2))
+(print 'BLAZE-IT)
+#+end_example
