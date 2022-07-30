@@ -64,4 +64,10 @@ int handle_events();
 /// Do one iteration of the GUI based on graphical context.
 int do_gui(GUIContext *ctx);
 
+/// @return Zero upon success.
+int change_font(char *path, size_t size);
+
+/// @return Zero upon success.
+int change_font_size(size_t size);
+
 #endif /* GUI_H */

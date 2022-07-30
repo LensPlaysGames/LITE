@@ -317,6 +317,19 @@ Atom default_environment() {
                        (char *)builtin_member_name,
                        (char *)builtin_member_docstring));
 
+# ifdef LITE_GFX
+
+  env_set(environment, make_sym((char *)builtin_change_font_name),
+          make_builtin(builtin_change_font,
+                       (char *)builtin_change_font_name,
+                       (char *)builtin_change_font_docstring));
+  env_set(environment, make_sym((char *)builtin_change_font_size_name),
+          make_builtin(builtin_change_font_size,
+                       (char *)builtin_change_font_size_name,
+                       (char *)builtin_change_font_size_docstring));
+
+# endif /* #ifdef LITE_GFX */
+
   env_set(environment, make_sym((char *)"WHILE-RECURSE-LIMIT"), make_int_with_docstring
           (10000,
            "This is the maximum amount of times a while loop may loop.\n"

@@ -214,4 +214,15 @@ extern const char *const builtin_finish_read_name;
 extern const char *const builtin_finish_read_docstring;
 int builtin_finish_read(Atom arguments, Atom *result);
 
+#ifdef LITE_GFX
+
+extern const char *const builtin_change_font_name;
+extern const char *const builtin_change_font_docstring;
+int builtin_change_font(Atom arguments, Atom *result);
+extern const char *const builtin_change_font_size_name;
+extern const char *const builtin_change_font_size_docstring;
+int builtin_change_font_size(Atom arguments, Atom *result);
+
+#endif /* #ifdef LITE_GFX */
+
 #endif /* LITE_BUILTINS_H */

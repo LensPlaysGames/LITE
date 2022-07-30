@@ -147,6 +147,94 @@ static inline TTF_Font *try_open_font(const char *name, size_t size) {
   return try_open_system_font(name, size);
 }
 
+int change_font(char *path, size_t size) {
+  if (!path) { return 1; }
+
+  TTF_Font *working_font = NULL;
+  char *working_path = NULL;
+
+  // Search current directory.
+  working_font = TTF_OpenFont(path, size);
+  if (working_font) {
+    font = working_font;
+    return 0;
+  }
+
+  // Assume working directory of base of the repository.
+  working_path = string_join("gfx/fonts/apache/", path);
+  if (!working_path) { return 2; }
+  working_font = TTF_OpenFont(working_path, size);
+  free(working_path);
+  if (working_font) {
+    font = working_font;
+    return 0;
+  }
+
+  // Assume working directory of bin repository subdirectory.
+  working_path = string_join("../gfx/fonts/apache/", path);
+  if (!working_path) { return 2; }
+  working_font = TTF_OpenFont(working_path, size);
+  free(working_path);
+  if (working_font) {
+    font = working_font;
+    return 0;
+  }
+
+  // Assume working directory of gfx repository subdirectory.
+  working_path = string_join("fonts/apache/", path);
+  if (!working_path) { return 2; }
+  working_font = TTF_OpenFont(working_path, size);
+  free(working_path);
+  if (working_font) {
+    font = working_font;
+    return 0;
+  }
+
+# if defined (_WIN32) || defined (_WIN64)
+
+  working_path = string_join("C:/Windows/fonts/", path);
+  if (!working_path) { return 2; }
+  working_font = TTF_OpenFont(working_path, size);
+  free(working_path);
+  if (working_font) {
+    font = working_font;
+    return 0;
+  }
+
+# elif defined (__unix)
+
+  working_path = string_join("/usr/share/fonts/", path);
+  if (!working_path) { return 2; }
+  working_font = TTF_OpenFont(working_path, size);
+  free(working_path);
+  if (working_font) {
+    font = working_font;
+    return 0;
+  }
+
+  working_path = string_join("/usr/local/share/fonts/", path);
+  if (!working_path) { return NULL; }
+  working_font = TTF_OpenFont(working_path, size);
+  free(working_path);
+  if (working_font) {
+    font = working_font;
+    return 0;
+  }
+
+# endif
+
+  return 10;
+}
+
+int change_font_size(size_t size) {
+  int status = TTF_SetFontSize(font, size);
+  if (status == 0) {
+    font_height = TTF_FontHeight(font);
+    return 0;
+  }
+  return 1;
+}
+
 static int created_gui_marker = 0;
 int create_gui() {
   if (created_gui_marker != 0) { return 3; }

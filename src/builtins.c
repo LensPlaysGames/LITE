@@ -1120,3 +1120,47 @@ int builtin_finish_read(Atom arguments, Atom *result) {
   *result = nil;
   return ERROR_NONE;
 }
+
+#ifdef LITE_GFX
+
+const char *const builtin_change_font_name = "CHANGE-FONT";
+const char *const builtin_change_font_docstring =
+  "(change-font FONT-FILENAME POINT-SIZE)\n"
+  "\n"
+  "Attempt to change font to FONT-FILENAME with POINT-SIZE.";
+int builtin_change_font(Atom arguments, Atom *result) {
+  BUILTIN_ENSURE_TWO_ARGUMENTS(arguments);
+  Atom font_path = car(arguments);
+  if (!stringp(font_path)) {
+    return ERROR_TYPE;
+  }
+  Atom font_size = car(cdr(arguments));
+  if (!integerp(font_size)) {
+    return ERROR_TYPE;
+  }
+  *result = nil;
+  if (change_font(font_path.value.symbol, font_size.value.integer) == 0) {
+    *result = make_sym("T");
+  }
+  return ERROR_NONE;
+}
+
+const char *const builtin_change_font_size_name = "CHANGE-FONT-SIZE";
+const char *const builtin_change_font_size_docstring =
+  "(change-font-size POINT-SIZE)\n"
+  "\n"
+  "Attempt to change the current font's size to POINT-SIZE.";
+int builtin_change_font_size(Atom arguments, Atom *result) {
+  BUILTIN_ENSURE_ONE_ARGUMENT(arguments);
+  Atom font_size = car(arguments);
+  if (!integerp(font_size)) {
+    return ERROR_TYPE;
+  }
+  *result = nil;
+  if (change_font_size(font_size.value.integer) == 0) {
+    *result = make_sym("T");
+  }
+  return ERROR_NONE;
+}
+
+#endif /* #ifdef LITE_GFX */
