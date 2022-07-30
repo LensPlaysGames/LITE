@@ -1,3 +1,5 @@
+// -*- mode:opascal -*-
+
 program lite_test_runner;
 
 {$mode objfpc}{$H+}
@@ -21,28 +23,28 @@ var
    LITERoot  : string;
    LITEExe   : string;
 
-function ArrayOfCharToString(characters : array of char; len: integer): string;
+function ArrayOfCharToString(Characters : array of char; Size: integer): string;
 var
-   i : integer;
+   I : integer;
 begin
    ArrayOfCharToString := '';
-   for i := 0 to len - 1 do
-      ArrayOfCharToString := ArrayOfCharToString + characters[i];
+   for I := 0 to Size - 1 do
+      ArrayOfCharToString := ArrayOfCharToString + Characters[i];
 end;
 
 // Return zero upon successful test.
-function run_test(path: string): integer;
+function RunTest(Path: string): integer;
 var
    proc       : TProcess;
    out        : array [0..511] of char;
    outstring  : string;
-   read_count : integer;
+   ReadCount  : integer;
    expected   : string;
    TmpString  : string;
    infile     : TextFile;
 begin
    //writeln('RUNNING TEST: ', path);
-   run_test := 1;
+   RunTest := 1;
    expected := '';
    AssignFile(infile, path);
    Reset(infile);
@@ -68,14 +70,14 @@ begin
       proc.Parameters.Add(path);
       proc.CurrentDirectory := LITERoot;
       proc.Execute;
-      run_test := 0;
-      read_count := Min(512, proc.Output.NumBytesAvailable);
-      proc.Output.Read(out, read_count);
-      outstring := ArrayOfCharToString(out, Max(read_count, Min(512, Length(expected))));
+      RunTest := 0;
+      ReadCount := Min(512, proc.Output.NumBytesAvailable);
+      proc.Output.Read(out, ReadCount);
+      outstring := ArrayOfCharToString(out, Max(ReadCount, Min(512, Length(expected))));
       if outstring <> expected then begin
          writeln('  Output:   ', outstring);
          writeln('  Expected: ', expected);
-         run_test := 1;
+         RunTest := 1;
       end;
    finally
       proc.Free;
@@ -105,7 +107,7 @@ begin;
          With dirent do begin
             inc(TestCount);
             TestPath := directory + DirectorySeparator + name;
-            status := run_test(TestPath);
+            status := RunTest(TestPath);
             if status <> 0 then begin
                FailedTests.Add(TestPath);
                inc(FailCount);

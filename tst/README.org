@@ -24,7 +24,7 @@ install ~fpc~ if you prefer not to install binaries from the link above:
 
 To build the test-running executable from pascal source, use ~fpc~:
 #+begin_src shell
-  fpc -Px86_64 test.pas
+  fpc -Px86_64 LITETestRunner.pas
 #+end_src
 
 ** Running Tests
