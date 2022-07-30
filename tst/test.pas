@@ -13,10 +13,13 @@ SysUtils;
 // TODO: 'Verbose' variable based on cmd line flag to print each tests'
 //       output, expected output, etc.
 var
-   TestStr  : string;
-   TestPath : string;
-   LITERoot : string;
-   LITEExe  : string;
+   TestCount : integer;
+   PassCount : integer;
+   FailCount : integer;
+   TestStr   : string;
+   TestPath  : string;
+   LITERoot  : string;
+   LITEExe   : string;
 
 function ArrayOfCharToString(characters : array of char; len: integer): string;
 var
@@ -77,6 +80,7 @@ begin
    finally
       proc.Free;
    end;
+   TestCount := TestCount + 1;
 end;
 
 procedure RunTests(directory : string);
@@ -89,7 +93,8 @@ var
    FailedTests : TStringList;
    DirEnt      : TSearchRec;
 begin;
-   writeln('RUNNING TESTS    IN ' + directory);
+   writeln('RUNNING TESTS IN    ' + directory);
+
    TestCount := 0;
    PassedTests := 0;
    FailedTests := TStringList.Create;
@@ -103,15 +108,19 @@ begin;
             status := run_test(TestPath);
             if status <> 0 then begin
                FailedTests.Add(TestPath);
+               inc(FailCount);
                writeln('FAIL: ', TestPath);
             end else begin
-               inc(PassedTests);
+               inc(PassedTests); // Local count
+               inc(PassCount);   // Global count
                writeln('PASS: ', TestPath);
             end;
          end;
       until FindNext(dirent) <> 0;
       FindClose(dirent);
    end;
+   if testcount = 0 then writeln('NO TESTS RUN IN     ' + directory);
+
    writeln('');
 
    // Loop over all directories in the given test directory that end in "_tests" and recursively
@@ -129,23 +138,20 @@ begin;
       FindClose(dirent);
    end;
 
-   if testcount = 0 then begin
-      writeln('NO TESTS RUN     IN ' + directory);
-   end else if passedtests = testcount then begin
-      writeln('ALL TESTS PASSED IN ' + directory);
-   end else if PassedTests > 0 then
-      writeln(passedtests, ' PASSED TESTS');
+   if testcount<>0 then begin
+     if passedtests = testcount then begin
+        writeln('ALL TESTS PASSED IN ' + directory);
+     end else if PassedTests > 0 then
+        writeln(passedtests, ' PASSED TESTS');
 
-   if FailedTests.count > 0 then begin
-      writeln(failedtests.count, ' FAILED TESTS');
-      for i := 0 to FailedTests.count - 1 do
-         writeln('  ', failedtests[i]);
+     if FailedTests.count > 0 then begin
+        writeln(failedtests.count, ' FAILED TESTS');
+        for i := 0 to FailedTests.count - 1 do
+           writeln('  ', failedtests[i]);
+     end;
    end;
-
    FailedTests.Destroy;
 end;
-
-
 
 // MAIN PROGRAM ENTRY
 begin
@@ -162,6 +168,14 @@ begin
       end;
       GetDir(0, LITERoot);
    end;
+
    LITEExe := LITERoot + DirectorySeparator + 'bin' + DirectorySeparator + 'LITE';
    RunTests('tst');
+
+   write(stdout, LineEnding, TestCount, ' TESTS RUN, ');
+   if PassCount = TestCount then begin
+      writeln('ALL PASSED');
+   end else begin
+      writeln(FailCount ,' FAILED');
+   end;
 end.
