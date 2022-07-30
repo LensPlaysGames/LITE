@@ -13,6 +13,8 @@ SysUtils;
 // TODO: 'Verbose' variable based on cmd line flag to print each tests'
 //       output, expected output, etc.
 var
+   TestStr  : string;
+   TestPath : string;
    LITERoot : string;
    LITEExe  : string;
 
@@ -77,7 +79,7 @@ begin
    end;
 end;
 
-procedure run_tests(directory : string);
+procedure RunTests(directory : string);
 var
    i           : integer;
    status      : integer;
@@ -87,10 +89,12 @@ var
    FailedTests : TStringList;
    DirEnt      : TSearchRec;
 begin;
-   writeln('Running tests in ', directory);
+   writeln('RUNNING TESTS    IN ' + directory);
    TestCount := 0;
    PassedTests := 0;
    FailedTests := TStringList.Create;
+
+   // Run every LITE LISP source file in the given test directory as a test.
    if FindFirst(directory + DirectorySeparator + '*.lt', 0, dirent) = 0 then begin
       repeat
          With dirent do begin
@@ -110,11 +114,14 @@ begin;
    end;
    writeln('');
 
+   // Loop over all directories in the given test directory that end in "_tests" and recursively
+   // call "RunTests" on each of those directories. This allows for much greater organization of
+   // tests within the file tree.
    if FindFirst(directory + DirectorySeparator + '*_tests', faDirectory, dirent) = 0 then begin
       repeat
          With dirent do begin
             if Attr and faDirectory > 0 then begin
-               run_tests(directory + DirectorySeparator + name);
+               RunTests(directory + DirectorySeparator + name);
                writeln('');
             end;
          end;
@@ -123,7 +130,7 @@ begin;
    end;
 
    if testcount = 0 then begin
-      writeln('NO TESTS RUN IN     ' + directory);
+      writeln('NO TESTS RUN     IN ' + directory);
    end else if passedtests = testcount then begin
       writeln('ALL TESTS PASSED IN ' + directory);
    end else if PassedTests > 0 then
@@ -138,9 +145,23 @@ begin;
    FailedTests.Destroy;
 end;
 
+
+
 // MAIN PROGRAM ENTRY
 begin
    GetDir(0, LITERoot);
+   TestStr := DirectorySeparator + 'tst';
+   TestPath := Copy(LITERoot, Length(LITERoot) - Length(TestStr) + 1, Length(TestStr));
+   if TestPath = TestStr then begin
+      {$I-}
+      ChDir('..');
+      if IOResult<>0 then begin
+         writeln('ERROR: Failed to change directory. ' + LineEnding +
+                 'Try starting with working directory of LITE repository root.');
+         Exit;
+      end;
+      GetDir(0, LITERoot);
+   end;
    LITEExe := LITERoot + DirectorySeparator + 'bin' + DirectorySeparator + 'LITE';
-   run_tests('tst');
+   RunTests('tst');
 end.

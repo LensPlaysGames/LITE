@@ -1017,7 +1017,7 @@ const char *const builtin_print_docstring =
   "Print the given ARG to standard out, prettily.";
 int builtin_print(Atom arguments, Atom *result) {
   BUILTIN_ENSURE_ONE_ARGUMENT(arguments);
-  pretty_print_atom(car(arguments));
+  print_atom(car(arguments));
   putchar('\n');
   *result = nil;
   return ERROR_NONE;

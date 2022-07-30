@@ -30,9 +30,11 @@ To build the test-running executable from pascal source, use ~fpc~:
 ** Running Tests
 
 To run the tests found in this directory, run the compiled test-running
-executable with a working directory of the base of the repository.
+executable. It must be run with either a working directory of this
+directory, ~tst~, or from the base of the LITE repository.
 
-For now, it will recursively run all tests in the ~tst~ subdirectory.
+For now, it recursively runs all tests in the ~tst~ subdirectory,
+including all subdirectories that end with ~_tests~.
 
 Eventually, I plan to add the ability to run individual tests, as well
 as specific directories by passing different command line options/flags.
