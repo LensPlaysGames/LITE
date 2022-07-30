@@ -177,18 +177,18 @@ Error evaluate_return_value(Atom *stack, Atom *expr, Atom *environment, Atom *re
   } else if (operator.type == ATOM_TYPE_SYMBOL) {
     char define_locality = -1;
     if ((define_locality = strcmp(operator.value.symbol, "DEFINE")) == 0
-        || (define_locality = !strcmp(operator.value.symbol, "SET")) == !0) {
+        || (define_locality = !strcmp(operator.value.symbol, "SET")) != 0) {
       // Here is where env_set is called, since
       // arguments have now been evaluated.
       Atom arguments = list_get(*stack, 4);
       Atom symbol = car(arguments);
       Atom docstring = cdr(arguments);
-      if(!nilp(docstring)) {
+      if(stringp(docstring)) {
         result->docstring = strdup(docstring.value.symbol);
         gcol_generic_allocation(result, result->docstring);
       }
-      Atom define_environment = define_locality == 0 ? *environment : *genv();
-      err = env_set(define_environment, symbol, *result);
+      Atom *define_environment = define_locality == 0 ? environment : genv();
+      err = env_set(*define_environment, symbol, *result);
       if (err.type) { return err; }
       *stack = car(*stack);
       *expr = cons(make_sym("QUOTE"), cons(symbol, nil));

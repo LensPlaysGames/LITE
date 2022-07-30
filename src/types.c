@@ -64,7 +64,11 @@ void gcol_mark(Atom *root) {
     return;
   }
   if (root->galloc) {
-    root->galloc->mark = 1;
+    GenericAllocation *galloc = root->galloc;
+    while (galloc) {
+      galloc->mark = 1;
+      galloc = galloc->more;
+    }
   }
   // Any type made with `cons()` belongs here.
   if (pairp(*root) || closurep(*root) || macrop(*root)) {
