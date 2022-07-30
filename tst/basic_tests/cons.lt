@@ -1,0 +1,11 @@
+; (0)
+; (6 . 9)
+; (42 0)
+; (42 69)
+; ((42 . 0) 69)
+
+(print (cons 0 nil))
+(print (cons 6 9))
+(print (cons 42 (cons 0 nil)))
+(print (cons 42 (cons 69 nil)))
+(print (cons (cons 42 0) (cons 69 nil)))

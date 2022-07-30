@@ -1,0 +1,16 @@
+; 69
+; 69
+; 420
+; 420
+; 420
+
+;; `FOLDL` and `FOLDR` are defined in the standard library basics.
+(evaluate-file "lisp/std/basics.lt")
+
+(print (foldl + 0 '(24 10 20 5 5 5)))
+(print (foldr + 0 '(24 10 20 5 5 5)))
+
+(print (foldr - 0 '(840 420)))
+
+(print (foldl * 1 '(7 3 4 5)))
+(print (foldr * 1 '(7 3 4 5)))

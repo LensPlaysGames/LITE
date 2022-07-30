@@ -21,6 +21,7 @@ Most often used to get the next element in a list.")
                  (some-function initial-value (car some-list))
                  (cdr some-list))
           initial-value))
+  ;; TODO: This is a terrible docstring, because it's wrong!
   "Apply SOME-FUNCTION to each element within SOME-LIST in reverse order,
 as well as place INITIAL-VALUE at the beginning of SOME-LIST.")
 

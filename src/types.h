@@ -40,6 +40,7 @@ typedef struct Atom {
   char *docstring;
   GenericAllocation *galloc;
 } Atom;
+
 typedef struct Pair {
   Atom atom[2];
 } Pair;

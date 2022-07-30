@@ -259,8 +259,6 @@ void parser_print_stackframe(ParserStack *stack, int depth) {
   } while (stack);
 }
 
-// (defs . body)
-
 /// Eat the next LISP object from source.
 Error parse_expr(const char *source, const char **end, Atom *result) {
   Error err = ok;
@@ -326,7 +324,6 @@ Error parse_expr(const char *source, const char **end, Atom *result) {
     // LIST PARSING
 
     // Check for end of list. If found, check parser stack to ensure nested list handling.
-    // TODO: Handle improper list '.' operator properly.
     const char *end_copy = *end;
 
     if (list_improper) {

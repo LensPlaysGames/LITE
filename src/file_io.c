@@ -123,17 +123,11 @@ void free_file(SimpleFile file) {
   }
 }
 
-Error evaluate_file(Atom environment, const char* path, Atom *result) {
+Error evaluate_file(Atom environment, const char *path, Atom *result) {
   Error err;
   if (!path) {
     PREP_ERROR(err, ERROR_ARGUMENTS, nil
                , "Path must not be NULL."
-               , NULL);
-    return err;
-  }
-  if (!result) {
-    PREP_ERROR(err, ERROR_ARGUMENTS, nil
-               , "Result atom must not be NULL."
                , NULL);
     return err;
   }

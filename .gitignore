@@ -10,7 +10,6 @@
 /build*
 /dbg*
 /debug*
-/tst/
 /test/
 /testing/
 /win*
@@ -26,3 +25,7 @@
 **/.swp
 **/TODO.md
 **/TODO.org
+
+# Build artifacts/files
+**/*.exe
+**/*.o
