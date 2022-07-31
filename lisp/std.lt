@@ -111,12 +111,8 @@ This function mutates GIVEN-ALIST in place."
   (if (symbolp `,id-symbol)
       `(if (structurep ',structure)
            (set ,id-symbol ',structure ,docstring)
-           (progn
-             (print "ERROR: defstruct argument STRUCTURE must be a structure.")
-             "defstruct argument STRUCTURE must be a structure."))
-      (progn
-        (print "ERROR: defstruct argument ID-SYMBOL must be a symbol.")
-        "defstruct argument ID-SYMBOL must be a symbol.")))
+           (error "defstruct argument STRUCTURE must be a structure."))
+      (error "defstruct argument ID-SYMBOL must be a symbol.")))
 
 (defmacro make (symbol)
   "Return a copy of the structure bound to SYMBOL, or nil if SYMBOL is not bound to a structure."
@@ -151,9 +147,7 @@ while evaluating BODY. Like 'LET', but for a structure's members."
   "Within STRUCTURE, bind ID to VALUE."
   (if (member id (map car structure))
       (setcar (alist-get structure id) value)
-      (progn
-        (print "ERROR: ID passed to SET-MEMBER must be a member of STRUCTURE.")
-        "ID passed to SET-MEMBER must be a member of STRUCTURE.")))
+      (error "ERROR: ID passed to SET-MEMBER must be a member of STRUCTURE.")))
 
 ;; BUFFERS
 

@@ -317,6 +317,9 @@ Atom default_environment() {
                        (char *)builtin_member_name,
                        (char *)builtin_member_docstring));
 
+  // TODO: Define these even when LITE_GFX isn't defined, but implement
+  // them in such a way that simply discards their use. This may allow
+  // graphical configurations to also work on the REPL version, easier.
 # ifdef LITE_GFX
 
   env_set(environment, make_sym((char *)builtin_change_font_name),
