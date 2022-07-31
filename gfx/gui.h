@@ -94,4 +94,11 @@ enum GFXWindowMode {
 /// @return Zero upon success.
 int change_window_mode(enum GFXWindowMode mode);
 
+enum GFXWindowVisible {
+  GFX_WINDOW_VISIBLE = 0,
+  GFX_WINDOW_INVISIBLE,
+};
+
+void change_window_visibility(enum GFXWindowVisible visible);
+
 #endif /* GUI_H */

@@ -489,6 +489,8 @@ int enter_lite_gui() {
   gctx = initialize_lite_gui_ctx();
   if (!gctx) { return 70; }
 
+  change_window_visibility(GFX_WINDOW_VISIBLE);
+
   int open = 1;
   while (open) {
     open = gui_loop();

@@ -184,6 +184,7 @@ int create_gui() {
      , 640, 480
      , SDL_WINDOW_RESIZABLE
      | SDL_WINDOW_INPUT_FOCUS
+     | SDL_WINDOW_HIDDEN
      );
   if (!gwindow) {
     printf("GFX::SDL:ERROR: Could not create SDL window.\n");
@@ -936,6 +937,8 @@ void change_window_size(size_t width, size_t height) {
   SDL_SetWindowSize(gwindow, width, height);
 }
 
+// TODO: Add window_mode() query to get current window mode using
+//       SDL_GetWindowFlags().
 int change_window_mode(enum GFXWindowMode mode) {
   uint32_t flags = 0;
   switch (mode) {
@@ -948,4 +951,12 @@ int change_window_mode(enum GFXWindowMode mode) {
     break;
   }
   SDL_SetWindowFullscreen(gwindow, flags);
+}
+
+void change_window_visibility(enum GFXWindowVisible visible) {
+  if (visible == GFX_WINDOW_VISIBLE) {
+    SDL_ShowWindow(gwindow);
+  } else if (visible == GFX_WINDOW_INVISIBLE) {
+    SDL_HideWindow(gwindow);
+  }
 }
