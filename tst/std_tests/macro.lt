@@ -1,10 +1,7 @@
 ;;ABCDEF
 ;;123
 
-;; Quasiquotation is part of the standard library.
-;; It would be smart to separate it out into multiple files so that
-;; these standard library tests can test specific pieces without
-;; evaluating the entire thing, as that can get quite lengthy.
+;; Quasiquotation is part of the standard library basics.
 (evaluate-file "lisp/std/basics.lt")
 
 (define testing-testing 123)

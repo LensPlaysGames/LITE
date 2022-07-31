@@ -132,6 +132,9 @@ and any arguments passed are subsequent elements.
 (define foo 42)
 #+end_example
 
+The first element in a list that is to be evaluated is referred to as
+the ~operator~.
+
 *** Atoms
 
 Every object in LISP is called an ~Atom~. Every Atom has a type, a value,
@@ -384,10 +387,80 @@ same as ~MACRO~.
 When the environment variable ~DEBUG/MACRO~ is non-nil, extra output
 concerning macros is produced.
 
+*** Special Forms
+
+Special forms are hard-coded symbols that go in the operator position.
+They are the most fundamental building blocks of how LITE LISP operates.
+
+Here is a list of all of the special forms currently in LITE LISP.
+
+- QUOTE :: Pass one and only argument through without evaluating it.
+
+  There is also a short-form built in to the parser: ~'~ (single quote).
+  This allows code to be written much faster, as quoting is something
+  that happens quite often in the land of LISP.
+  : 'X == (QUOTE X)
+
+- DEFINE and SET :: Bind a symbol to a given atomic value within the
+  LISP environment.
+
+  ~(DEFINE SYMBOL VALUE [DOCSTRING])~
+
+  ~DEFINE~ binds within the local environment, while ~set~ binds within
+  the global environment.
+
+- LAMBDA :: Create a closure from the given expected arguments and body.
+
+  ~(LAMBDA ARGS BODY)~
+
+  This closure can then be placed in the operator position, and any
+  further elements in the list will be bound to the argument symbols
+  given in the lambda definition while the body is evaluated.
+
+- IF :: A conditional expression.
+
+  ~(IF CONDITION THEN OTHERWISE)~
+
+  Evaluate the given condition. If result is non-nil, evaluate the
+  second argument given. Otherwise, evaluate the third argument.
+
+- WHILE :: A conditional loop.
+
+  ~(WHILE CONDITION BODY)~
+
+  Evaluate condition. If result is non-nil, evaluate BODY one time.
+  Repeat each time body is evaluated.
+
+  Extra information regarding ~WHILE~ loops is output when the
+  ~DEBUG/WHILE~ debug flag is set to a non-nil value.
+
+- PROGN :: Evaluate sequence of expressions, returning result of last expression.
+
+  This is mainly used within ~IF~ to be able to evaluate multiple expressions
+  within the ~THEN~ or ~OTHERWISE~ singular expression argument.
+
+- MACRO :: Create a closure, except the passed arguments are not
+  evaluated, and the value returned from the macro is evaluated,
+  then that return value is the result.
+
+- DOCSTRING :: Return the docstring of any given atom, if it exists.
+
+- EVALUATE :: Return the result of the given argument after evaluating it.
+
+  This is mostly used in macros to evaluate certain arguments.
+
+  NOTE: Currently, nested calls to ~EVALUATE~ do not behave as expected.
+
+- ENV :: Return the current environment.
+
+- ERROR :: Print the given message to standard out after an error indicator.
+  Returns the given message. Halts evaluation.
+
+
 *** Structures
 
 Structures are defined in the standard library, and can not be used
-unless it is included. You have been warned :^).
+unless it is included.
 
 In LITE LISP, structures are basically an associative list with
 stricter rules.
@@ -407,14 +480,12 @@ Let's look at how to define a new structure:
 Here, we have a structure, ~my-struct~, with a single member, ~my-member~.
 
 It should be noted that the syntax for defining members matches ~let~
-exactly, at least for now.
-
-One important thing to note is that initial values given to members
-are not evaluated, and so must be a self-evaluating value (a literal).
-For example, attempting to put the name of a function as an initial
-value *does not work* (at least not as expected). The member will be
-bound to the symbol that matches the name of the function, not the
-function itself.
+exactly, at least on the surface. One important thing to note is that
+initial values given to members are not evaluated, and so must be a
+self-evaluating value (a literal). For example, attempting to put the
+name of a function as an initial value *does not work* (at least not as
+expected). The member will be bound to the symbol that matches the name
+of the function, not the function itself.
 
 To access the value of any given member within a structure, use ~get-member~:
 #+begin_src lisp
@@ -439,19 +510,19 @@ Afterwards, use ~set-member~, which evaluates the value argument:
 At this point, ~my-member~ of ~my-struct~ has a value of the closure
 which was bound to the symbol ~+~.
 
-We can now call this member function using ~call-member~:
+We can now call this member function using the ~call-member~ macro:
 #+begin_src lisp
   (call-member my-struct my-member 34 35)
 #+end_src
 
-Any arguments after the structure symbol and member ID are passed to
-the called function.
+Any arguments after the structure symbol and member ID are passed
+through to the called function.
 
 As you may already be thinking, you don't always want to use structures
 in the way shown above, where the actual structure definition is the
 mutable data. In most cases, it is preferable to define a structure
-once, and have multiple instances of the defined structure for different
-tasks and such. This is possible with the ~make~ macro:
+once, and have multiple instances of the defined. This is possible with
+the ~make~ macro:
 #+begin_src lisp
   (defstruct vector3
     "A vector of three integers, X, Y, and Z."
@@ -483,13 +554,6 @@ tasks and such. This is possible with the ~make~ macro:
 - Symbol Table
 
   Get the current symbol table with the ~SYM~ operator.
-
-  Alternatively, visualize the environment by setting
-  ~DEBUG/ENVIRONMENT~ to any non-nil value.
-
-- Environment
-
-  Get the current environment by using the ~ENV~ operator.
 
   Alternatively, visualize the environment by setting
   ~DEBUG/ENVIRONMENT~ to any non-nil value.

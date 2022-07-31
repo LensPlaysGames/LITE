@@ -171,8 +171,7 @@ Error parse_string(const char *beg, const char **end, Atom *result) {
             break;
           case '_':
             // "\\_" -> ""
-            // The unescape escape character, mostly for strings that
-            // need a backslash at the end.
+            // This sequence escapes to nothing.
             break;
           case 'n':
             // "\\n" -> 0xa ('\n')

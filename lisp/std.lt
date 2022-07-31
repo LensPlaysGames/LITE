@@ -124,11 +124,15 @@ This function mutates GIVEN-ALIST in place."
        (copy ,symbol)
        (print "ERROR: STRUCT-SYMBOL passed to MAKE must be bound to a structure.")))
 
-(defmacro access (symbol . body)
-  "Bind member identifiers to member values from structure bound to SYMBOL.
+;; FIXME: This currently works for literal structures passed in-line,
+;; but it doesn't work if passed a symbol that is bound to a struct.
+;; I think I need a better `evaluate` special form to fix this, as I
+;; would be able to evaluate the given symbol into the literal struct
+;; at time of unquoting (macro expansion).
+(defmacro access-impl (structure . body)
+  "Bind member identifiers to member values from STRUCTURE.
 Like 'LET', but for a structure's members."
-  (let ((structure (evaluate symbol)))
-    `((lambda ,(map car structure) ,@body) ,@(map cadr structure))))
+  `((lambda ,(map car structure) ,@body) ,@(map cadr structure)))
 
 (defmacro get-member (symbol member-id)
   "Get value of member within struct bound to SYMBOL with identifier of MEMBER-ID."
