@@ -34,7 +34,7 @@ To enter the REPL, run the following:
 #+end_src
 
 On Windows:
-#+begin_src shell
+#+begin_src powershell
   .\bin\LITE .\lisp\std.lt
 #+end_src
 
@@ -154,8 +154,8 @@ to allocate memory as needed and ensure it is freed */after/* using it.
 *** Types
 
 Here are the different types an Atom may have in LITE LISP:
-- Nil -- This is the definition of false, nothing, etc.
-- Pair -- A recursive pair, containing a left-hand Atom and a right-hand Atom.
+- Nil :: This is the definition of false, nothing, etc.
+- Pair :: A recursive pair, containing a left-hand Atom and a right-hand Atom.
 
   A pair has special terminology for the two sides; the left is
   referred to as ~car~, while the right is referred to as ~cdr~.
@@ -163,15 +163,16 @@ Here are the different types an Atom may have in LITE LISP:
   A list is a pair with a value on the left,
   and another pair, or nil, on the right.
 
-- Symbol  -- A sequence of bytes that may be bound in the environment.
+- Symbol  :: A sequence of bytes that may be bound in the environment.
 
   All symbols are located in the /symbol table/ with no duplicates.
 
-- String  -- A sequence of bytes, usually denoting human readable text.
-- Integer -- An integer number, like ~1~, ~-420~, or ~69~.
-- BuiltIn -- A function implemented in LITE source code that is able to be called from LITE LISP.
-- Closure -- A function implemented in LITE LISP; a lambda.
-- Macro   -- A closure with unevaluated arguments that creates an expression that is then evaluated.
+- String  :: A sequence of bytes, usually denoting human readable text.
+- Integer :: An integer number, like ~1~, ~-420~, or ~69~.
+- BuiltIn :: A function implemented in LITE source code that is able to be called from LITE LISP.
+- Closure :: A function implemented in LITE LISP; a lambda.
+- Macro   :: A closure with unevaluated arguments that creates an expression that is then evaluated.
+- Buffer  :: An opened file that may be edited in LITE.
 
 *** Environment, Variables, and QUOTE
 

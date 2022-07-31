@@ -1163,4 +1163,58 @@ int builtin_change_font_size(Atom arguments, Atom *result) {
   return ERROR_NONE;
 }
 
+const char *const builtin_window_size_name = "WINDOW-SIZE";
+const char *const builtin_window_size_docstring =
+  "(window-size)\n"
+  "\n"
+  "Return a pair containing the graphical window's size.";
+int builtin_window_size(Atom arguments, Atom *result) {
+  BUILTIN_ENSURE_NO_ARGUMENTS(arguments);
+  size_t width = 0;
+  size_t height = 0;
+  window_size(&width, &height);
+  *result = cons(make_int(width), make_int(height));
+  return ERROR_NONE;
+}
+
+const char *const builtin_change_window_size_name = "CHANGE-WINDOW-SIZE";
+const char *const builtin_change_window_size_docstring =
+  "(change-window-size WIDTH HEIGHT)\n"
+  "\n"
+  "Attempt to change size of window to WIDTH by HEIGHT.";
+int builtin_change_window_size(Atom arguments, Atom *result) {
+  BUILTIN_ENSURE_TWO_ARGUMENTS(arguments);
+  Atom width = car(arguments);
+  Atom height = car(cdr(arguments));
+  if (!integerp(width) || !integerp(height)) {
+    return ERROR_TYPE;
+  }
+  *result = make_sym("T");
+  change_window_size(width.value.integer, height.value.integer);
+  return ERROR_NONE;
+}
+
+// TODO: Accept 'windowed, 'fullscreen, 'maximized symbols as arguments.
+const char *const builtin_change_window_mode_name = "CHANGE-WINDOW-MODE";
+const char *const builtin_change_window_mode_docstring =
+  "(change-window-mode N)\n"
+  "\n"
+  "If N is 1, set window mode to fullscreen. Otherwise, set it to windowed.";
+int builtin_change_window_mode(Atom arguments, Atom *result) {
+  BUILTIN_ENSURE_ONE_ARGUMENT(arguments);
+  Atom n = car(arguments);
+  if (!integerp(n)) {
+    return ERROR_TYPE;
+  }
+  enum GFXWindowMode mode = GFX_WINDOW_MODE_WINDOWED;
+  if (n.value.integer == 1) {
+    mode = GFX_WINDOW_MODE_FULLSCREEN;
+  }
+  *result = nil;
+  if (change_window_mode(mode) == 0) {
+    *result = make_sym("T");
+  }
+  return ERROR_NONE;
+}
+
 #endif /* #ifdef LITE_GFX */

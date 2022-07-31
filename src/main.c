@@ -17,6 +17,7 @@
 
 #ifdef LITE_GFX
 #  include <api.h>
+#  include <gui.h>
 #endif
 
 Atom initialize_buffer_or_panic(const char *const path) {
@@ -54,7 +55,13 @@ int main(int argc, char **argv) {
 #   ifdef LITE_GFX
     Atom popup_buffer = initialize_buffer_or_panic(".popup");
     env_set(*genv(), make_sym("POPUP-BUFFER"), popup_buffer);
+
+    int status = create_gui();
+    if (status != CREATE_GUI_OK && status != CREATE_GUI_ALREADY_CREATED) {
+      return 420;
+    }
 #   endif
+
   }
 
   // Evaluate all the arguments as file paths, except for detected

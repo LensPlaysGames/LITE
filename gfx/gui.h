@@ -49,7 +49,18 @@ typedef struct GUIContext {
   char reading;
 } GUIContext;
 
-/// Returns 0 upon success.
+enum CreateGUIReturnValue {
+  CREATE_GUI_OK = 0,
+  CREATE_GUI_ALREADY_CREATED = 3,
+};
+
+/** Attempt to initialize and create the GUI.
+ *
+ * Any value not specified below is assumed to be a failure.
+ *
+ * @retval CREATE_GUI_OK Successful creation of GUI.
+ * @retval CREATE_GUI_ALREADY_CREATED Can not create two GUIs.
+ */
 int create_gui();
 void destroy_gui();
 
@@ -69,5 +80,18 @@ int change_font(char *path, size_t size);
 
 /// @return Zero upon success.
 int change_font_size(size_t size);
+
+void window_size(size_t *width, size_t *height);
+
+/// @return Zero upon success.
+void change_window_size(size_t width, size_t height);
+
+enum GFXWindowMode {
+  GFX_WINDOW_MODE_WINDOWED = 0,
+  GFX_WINDOW_MODE_FULLSCREEN,
+};
+
+/// @return Zero upon success.
+int change_window_mode(enum GFXWindowMode mode);
 
 #endif /* GUI_H */

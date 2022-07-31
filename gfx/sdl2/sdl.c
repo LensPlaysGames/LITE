@@ -237,7 +237,7 @@ int change_font_size(size_t size) {
 
 static int created_gui_marker = 0;
 int create_gui() {
-  if (created_gui_marker != 0) { return 3; }
+  if (created_gui_marker != 0) { return CREATE_GUI_ALREADY_CREATED; }
   created_gui_marker = 1;
   if (SDL_Init(SDL_INIT_VIDEO) != 0) {
     printf("GFX::SDL:ERROR: Failed to initialize SDL.\n");
@@ -292,7 +292,7 @@ int create_gui() {
     return 1;
   }
   printf("GFX::SDL: SDL_ttf Initialized\n");
-  return 0;
+  return CREATE_GUI_OK;
 }
 
 static inline void gui_color_to_sdl(SDL_Color *dst, GUIColor *src) {
@@ -992,4 +992,26 @@ void destroy_gui() {
     SDL_Quit();
     created_gui_marker = 0;
   }
+}
+
+void window_size(size_t *width, size_t *height) {
+  SDL_GetWindowSize(gwindow, (int *)width, (int *)height);
+}
+
+void change_window_size(size_t width, size_t height) {
+  SDL_SetWindowSize(gwindow, width, height);
+}
+
+int change_window_mode(enum GFXWindowMode mode) {
+  uint32_t flags = 0;
+  switch (mode) {
+  default:
+  case GFX_WINDOW_MODE_WINDOWED:
+    flags = 0;
+    break;
+  case GFX_WINDOW_MODE_FULLSCREEN:
+    flags = SDL_WINDOW_FULLSCREEN_DESKTOP;
+    break;
+  }
+  SDL_SetWindowFullscreen(gwindow, flags);
 }

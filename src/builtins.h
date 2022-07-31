@@ -223,6 +223,16 @@ extern const char *const builtin_change_font_size_name;
 extern const char *const builtin_change_font_size_docstring;
 int builtin_change_font_size(Atom arguments, Atom *result);
 
+extern const char *const builtin_window_size_name;
+extern const char *const builtin_window_size_docstring;
+int builtin_window_size(Atom arguments, Atom *result);
+extern const char *const builtin_change_window_size_name;
+extern const char *const builtin_change_window_size_docstring;
+int builtin_change_window_size(Atom arguments, Atom *result);
+extern const char *const builtin_change_window_mode_name;
+extern const char *const builtin_change_window_mode_docstring;
+int builtin_change_window_mode(Atom arguments, Atom *result);
+
 #endif /* #ifdef LITE_GFX */
 
 #endif /* LITE_BUILTINS_H */

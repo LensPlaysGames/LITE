@@ -481,11 +481,13 @@ int gui_loop() {
 }
 
 int enter_lite_gui() {
-  if (create_gui()) {
+  int status = create_gui();
+  if (status != CREATE_GUI_OK && status != CREATE_GUI_ALREADY_CREATED) {
     return 69;
   }
+
   gctx = initialize_lite_gui_ctx();
-  if (!gctx) { return 69; }
+  if (!gctx) { return 70; }
 
   int open = 1;
   while (open) {

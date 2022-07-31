@@ -328,6 +328,19 @@ Atom default_environment() {
                        (char *)builtin_change_font_size_name,
                        (char *)builtin_change_font_size_docstring));
 
+  env_set(environment, make_sym((char *)builtin_window_size_name),
+          make_builtin(builtin_window_size,
+                       (char *)builtin_window_size_name,
+                       (char *)builtin_window_size_docstring));
+  env_set(environment, make_sym((char *)builtin_change_window_size_name),
+          make_builtin(builtin_change_window_size,
+                       (char *)builtin_change_window_size_name,
+                       (char *)builtin_change_window_size_docstring));
+  env_set(environment, make_sym((char *)builtin_change_window_mode_name),
+          make_builtin(builtin_change_window_mode,
+                       (char *)builtin_change_window_mode_name,
+                       (char *)builtin_change_window_mode_docstring));
+
 # endif /* #ifdef LITE_GFX */
 
   env_set(environment, make_sym((char *)"WHILE-RECURSE-LIMIT"), make_int_with_docstring
