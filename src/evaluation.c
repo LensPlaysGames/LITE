@@ -34,6 +34,10 @@ void print_stackframe(Atom stack, int depth) {
   while (--d >= 0) { putchar(' '); }
   printf("operator: ");
   print_atom(list_get(stack, 2));
+  printf(", pre-args: ");
+  print_atom(list_get(stack, 3));
+  printf(", args: ");
+  print_atom(list_get(stack, 4));
   putchar('\n');
   print_stackframe(car(stack), depth + 2);
 }
@@ -70,7 +74,7 @@ Error evaluate_bind_arguments(Atom *stack, Atom *expr, Atom *environment) {
   MAKE_ERROR(error_args, ERROR_ARGUMENTS, arguments, "Could not bind arguments.", NULL);
   while (!nilp(argument_names)) {
     // Handle variadic arguments.
-    if (argument_names.type == ATOM_TYPE_SYMBOL) {
+    if (symbolp(argument_names)) {
       env_set(*environment, argument_names, arguments);
       arguments = nil;
       break;
@@ -98,7 +102,7 @@ Error evaluate_apply(Atom *stack, Atom *expr, Atom *environment) {
     list_reverse(&arguments);
     list_set(*stack, 4, arguments);
   }
-  if (operator.type == ATOM_TYPE_SYMBOL) {
+  if (symbolp(operator)) {
     if (strcmp(operator.value.symbol, "APPLY") == 0) {
       // Replace current frame with new frame.
       *stack = car(*stack);
@@ -130,7 +134,7 @@ Error evaluate_apply(Atom *stack, Atom *expr, Atom *environment) {
       return ok;
     }
   }
-  if (operator.type == ATOM_TYPE_BUILTIN) {
+  if (builtinp(operator)) {
     *stack = car(*stack);
     *expr = cons(operator, arguments);
     return ok;
@@ -159,7 +163,7 @@ Error evaluate_return_value(Atom *stack, Atom *expr, Atom *environment, Atom *re
     // Operator has been evaluated.
     operator = *result;
     list_set(*stack, 2, operator);
-    if (operator.type == ATOM_TYPE_MACRO) {
+    if (macrop(operator)) {
       arguments = list_get(*stack, 3);
       *stack = make_frame(*stack, *environment, nil);
       operator.type = ATOM_TYPE_CLOSURE;
@@ -174,7 +178,7 @@ Error evaluate_return_value(Atom *stack, Atom *expr, Atom *environment, Atom *re
       }
       return evaluate_bind_arguments(stack, expr, environment);
     }
-  } else if (operator.type == ATOM_TYPE_SYMBOL) {
+  } else if (symbolp(operator)) {
     char define_locality = -1;
     if ((define_locality = strcmp(operator.value.symbol, "DEFINE")) == 0
         || (define_locality = !strcmp(operator.value.symbol, "SET")) != 0) {
@@ -210,6 +214,17 @@ Error evaluate_return_value(Atom *stack, Atom *expr, Atom *environment, Atom *re
       }
       *stack = new_stack;
       *expr = *result; // Return result of last expression of body.
+      return ok;
+    } else if (strcmp(operator.value.symbol, "EVALUATE") == 0) {
+      // Pop EVALUATE stack, we have finished evaluating it.
+      Atom new_stack = car(*stack);
+      if (!nilp(new_stack)) {
+        // Update stack environment. This is needed to allow
+        // for definitions in the body to affect outside of it.
+        list_set(new_stack, 1, list_get(*stack, 1));
+      }
+      *stack = new_stack;
+      *expr = *result; // Return result of expression.
       return ok;
     } else if (strcmp(operator.value.symbol, "WHILE") == 0) {
       arguments = list_get(*stack, 3);
@@ -273,7 +288,7 @@ Error evaluate_return_value(Atom *stack, Atom *expr, Atom *environment, Atom *re
       arguments = list_get(*stack, 4);
       list_set(*stack, 4, cons(*result, arguments));
     }
-  } else if (operator.type == ATOM_TYPE_MACRO) {
+  } else if (macrop(operator)) {
     *expr = *result;
     if (env_non_nil(*environment, make_sym("DEBUG/MACRO"))) {
       printf("          result: ");
@@ -377,7 +392,7 @@ Error evaluate_expression(Atom expr, Atom environment, Atom *result) {
         printf("=====\n");
       }
     }
-    if (expr.type == ATOM_TYPE_SYMBOL) {
+    if (symbolp(expr)) {
       err = env_get(environment, expr, result);
     } else if (expr.type != ATOM_TYPE_PAIR) {
       *result = expr;
@@ -399,7 +414,7 @@ Error evaluate_expression(Atom expr, Atom environment, Atom *result) {
         print_atom(arguments);
         putchar('\n');
       }
-      if (operator.type == ATOM_TYPE_SYMBOL) {
+      if (symbolp(operator)) {
         // Special forms
         if (strcmp(operator.value.symbol, "QUOTE") == 0) {
           if (nilp(arguments) || !nilp(cdr(arguments))) {
@@ -565,7 +580,7 @@ Error evaluate_expression(Atom expr, Atom environment, Atom *result) {
             return err;
           }
           Atom atom = car(arguments);
-          if (atom.type == ATOM_TYPE_SYMBOL) {
+          if (symbolp(atom)) {
             Atom symbol_in = atom;
             PREP_ERROR(err, ERROR_NONE, atom, "DOCSTRING: Error while evaluating symbol.", NULL);
             err = env_get(environment, symbol_in, &atom);
@@ -575,34 +590,32 @@ Error evaluate_expression(Atom expr, Atom environment, Atom *result) {
           // FIXME: The docstring could be set to this value instead of
           // creating this new string each time the docstring is fetched.
           char *docstring = NULL;
-          if (atom.type == ATOM_TYPE_CLOSURE
-              || atom.type == ATOM_TYPE_MACRO)
-            {
-              // Prepend docstring with closure signature.
-              char *signature = atom_string(car(cdr(atom)), NULL);
-              size_t siglen = 0;
-              if (signature && (siglen = strlen(signature)) != 0) {
-                if (atom.docstring) {
-                  size_t newlen = strlen(atom.docstring) + siglen + 10;
-                  char *newdoc = (char *)malloc(newlen);
-                  if (newdoc) {
-                    memcpy(newdoc, "ARGS: \0", 7);
-                    strcat(newdoc, signature);
-                    strcat(newdoc, "\n\n");
-                    strcat(newdoc, atom.docstring);
-                    docstring = newdoc;
-                  } else {
-                    // Could not allocate buffer for new docstring,
-                    // free allocated memory and use regular docstring.
-                    newdoc = (char *)atom.docstring;
-                  }
-                  free(signature);
+          if (closurep(atom) || macrop(atom)) {
+            // Prepend docstring with closure signature.
+            char *signature = atom_string(car(cdr(atom)), NULL);
+            size_t siglen = 0;
+            if (signature && (siglen = strlen(signature)) != 0) {
+              if (atom.docstring) {
+                size_t newlen = strlen(atom.docstring) + siglen + 10;
+                char *newdoc = (char *)malloc(newlen);
+                if (newdoc) {
+                  memcpy(newdoc, "ARGS: \0", 7);
+                  strcat(newdoc, signature);
+                  strcat(newdoc, "\n\n");
+                  strcat(newdoc, atom.docstring);
                   docstring = newdoc;
                 } else {
-                  docstring = signature;
+                  // Could not allocate buffer for new docstring,
+                  // free allocated memory and use regular docstring.
+                  newdoc = (char *)atom.docstring;
                 }
+                free(signature);
+                docstring = newdoc;
+              } else {
+                docstring = signature;
               }
             }
+          }
           if (docstring) {
             *result = make_string(docstring);
             free(docstring);
@@ -614,6 +627,17 @@ Error evaluate_expression(Atom expr, Atom environment, Atom *result) {
               *result = nil;
             }
           }
+        } else if (strcmp(operator.value.symbol, "EVAL-SIMPLE") == 0) {
+          const char *usage_evaluate = "Usage: (EVAL-SIMPLE <expression>)";
+          if (nilp(arguments) || !nilp(cdr(arguments))) {
+            PREP_ERROR(err, ERROR_ARGUMENTS
+                       , arguments
+                       , "EVAL-SIMPLE: Only a single expression is accepted."
+                       , usage_evaluate);
+            return err;
+          }
+          expr = car(arguments);
+          continue;
         } else if (strcmp(operator.value.symbol, "EVALUATE") == 0) {
           const char *usage_evaluate = "Usage: (EVALUATE <expression>)";
           if (nilp(arguments) || !nilp(cdr(arguments))) {
@@ -623,6 +647,10 @@ Error evaluate_expression(Atom expr, Atom environment, Atom *result) {
                        , usage_evaluate);
             return err;
           }
+          stack = make_frame(stack, environment, nil);
+          list_set(stack, 2, operator);
+          list_set(stack, 4, arguments);
+          // Evaluate expression, result handled in evaluate_return_value().
           expr = car(arguments);
           continue;
         } else if (strcmp(operator.value.symbol, "ENV") == 0) {
@@ -662,7 +690,7 @@ Error evaluate_expression(Atom expr, Atom environment, Atom *result) {
           expr = operator;
           continue;
         }
-      } else if (operator.type == ATOM_TYPE_BUILTIN) {
+      } else if (builtinp(operator)) {
         PREP_ERROR(err, ERROR_NONE, operator, NULL, NULL);
         err.type = (*operator.value.builtin.function)(arguments, result);
       } else {

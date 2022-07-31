@@ -134,6 +134,11 @@ This function mutates GIVEN-ALIST in place."
 Like 'LET', but for a structure's members."
   `((lambda ,(map car structure) ,@body) ,@(map cadr structure)))
 
+(defmacro access (symbol . body)
+  "Bind member identifiers to member values from structure bound to SYMBOL
+while evaluating BODY. Like 'LET', but for a structure's members."
+  `(access-impl ,(evaluate symbol) ,@body))
+
 (defmacro get-member (symbol member-id)
   "Get value of member within struct bound to SYMBOL with identifier of MEMBER-ID."
   `(car (alist-get ,symbol ',member-id)))
@@ -149,10 +154,6 @@ Like 'LET', but for a structure's members."
       (progn
         (print "ERROR: ID passed to SET-MEMBER must be a member of STRUCTURE.")
         "ID passed to SET-MEMBER must be a member of STRUCTURE.")))
-
-(defmacro set-member-sym (symbol member value)
-  ""
-  `(setcar (alist-get ,symbol ',member) ,(evaluate value)))
 
 ;; BUFFERS
 

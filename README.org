@@ -537,6 +537,13 @@ the ~make~ macro:
   (set-member my-coordinates 'z 11)
   ;; Print the instance of the structure to standard out.
   (print my-coordinates)
+  ;; Access all the members of a struct using the `ACCESS` macro.
+  ;; It is like `LET`, except it binds all of a structure's arguments
+  ;; to their values, then evaluates the given body.
+  (access my-coordinates
+          (print x)
+          (print y)
+          (print z))
   ;; Accessing member IDs and values as separate lists.
   (let ((coordinate-members (map car my-coordinates))
         (coordinate-values (map cadr my-coordinates)))
