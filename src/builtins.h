@@ -218,6 +218,13 @@ extern const char *const builtin_finish_read_name;
 extern const char *const builtin_finish_read_docstring;
 int builtin_finish_read(Atom arguments, Atom *result);
 
+extern const char *const builtin_clipboard_copy_name;
+extern const char *const builtin_clipboard_copy_docstring;
+int builtin_clipboard_copy(Atom arguments, Atom *result);
+extern const char *const builtin_clipboard_paste_name;
+extern const char *const builtin_clipboard_paste_docstring;
+int builtin_clipboard_paste(Atom arguments, Atom *result);
+
 #ifdef LITE_GFX
 
 extern const char *const builtin_change_font_name;

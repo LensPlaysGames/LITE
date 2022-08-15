@@ -423,7 +423,7 @@ const char *const builtin_buffer_region_length_name = "BUFFER-REGION-LENGTH";
 const char *const builtin_buffer_region_length_docstring =
   "(buffer-region-length BUFFER)\n"
   "\n"
-  "Get byte difference between mark and point within BUFFER: "
+  "Get byte difference between mark and point within BUFFER; "
   "the byte length of the selected region";
 int builtin_buffer_region_length(Atom arguments, Atom *result) {
   BUILTIN_ENSURE_ONE_ARGUMENT(arguments);
@@ -1233,6 +1233,57 @@ int builtin_change_window_mode(Atom arguments, Atom *result) {
   return ERROR_NONE;
 }
 
+#endif /* #ifdef LITE_GFX */
+
+
+
+Atom terrible_copy_paste_implementation = { ATOM_TYPE_NIL, { 0 }, NULL, NULL };
+
+const char *const builtin_clipboard_copy_name = "CLIPBOARD-COPY";
+const char *const builtin_clipboard_copy_docstring =
+  "(clipboard-copy BUFFER)\n"
+  "\n"
+  "Copy the selected region from BUFFER, if active.";
+int builtin_clipboard_copy(Atom arguments, Atom *result) {
+  BUILTIN_ENSURE_ONE_ARGUMENT(arguments);
+  *result = nil;
+
+  Atom buffer = car(arguments);
+  if (!bufferp(buffer) || !buffer.value.buffer) {
+    return ERROR_TYPE;
+  }
+  if (buffer_mark_active(*buffer.value.buffer)) {
+
+    char *region = buffer_region(*buffer.value.buffer);
+
+    // TODO: Add to some copy stack or something.
+    terrible_copy_paste_implementation = make_string(region);
+
+    *result = make_sym("T");
+  }
+
+  return ERROR_NONE;
+}
+const char *const builtin_clipboard_paste_name = "CLIPBOARD-PASTE";
+const char *const builtin_clipboard_paste_docstring =
+  "(clipboard-paste BUFFER)\n"
+  "\n"
+  "Insert the most-recently clipboarded string into the current buffer at point.";
+int builtin_clipboard_paste(Atom arguments, Atom *result) {
+  BUILTIN_ENSURE_ONE_ARGUMENT(arguments);
+  Atom buffer = car(arguments);
+  if (!bufferp(buffer) || !buffer.value.buffer) {
+    return ERROR_TYPE;
+  }
+  *result = nil;
+  if (stringp(terrible_copy_paste_implementation)) {
+    *result = make_sym("T");
+    buffer_insert(buffer.value.buffer, terrible_copy_paste_implementation.value.symbol);
+  }
+  return ERROR_NONE;
+}
+
+
 //const char *const builtin__name = "LISP-SYMBOL";
 //const char *const builtin__docstring =
 //  "(lisp-symbol)\n"
@@ -1241,5 +1292,3 @@ int builtin_change_window_mode(Atom arguments, Atom *result) {
 //int builtin_(Atom arguments, Atom *result) {
 //  return ERROR_TODO;
 //}
-
-#endif /* #ifdef LITE_GFX */
