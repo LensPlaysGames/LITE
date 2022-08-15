@@ -1242,6 +1242,33 @@ Atom terrible_copy_paste_implementation = { .type = ATOM_TYPE_STRING,
                                             .galloc = NULL,
                                             .docstring = NULL };
 
+const char *const builtin_clipboard_cut_name = "CLIPBOARD-CUT";
+const char *const builtin_clipboard_cut_docstring =
+  "(clipboard-cut BUFFER)\n"
+  "\n"
+  "Cut the selected region from BUFFER, if active.\n"
+  "The selected region will be removed and placed in the copy and paste buffer.";
+int builtin_clipboard_cut(Atom arguments, Atom *result) {
+  BUILTIN_ENSURE_ONE_ARGUMENT(arguments);
+  *result = nil;
+
+  Atom buffer = car(arguments);
+  if (!bufferp(buffer) || !buffer.value.buffer) {
+    return ERROR_TYPE;
+  }
+  if (buffer_mark_active(*buffer.value.buffer)) {
+    char *region = buffer_region(*buffer.value.buffer);
+    Error err = buffer_remove_region(buffer.value.buffer);
+    if (err.type) {
+      print_error(err);
+      return err.type;
+    }
+    // TODO: This is a terrible copy and paste implementation!
+    terrible_copy_paste_implementation = make_string(region);
+    *result = make_sym("T");
+  }
+  return ERROR_NONE;
+}
 const char *const builtin_clipboard_copy_name = "CLIPBOARD-COPY";
 const char *const builtin_clipboard_copy_docstring =
   "(clipboard-copy BUFFER)\n"

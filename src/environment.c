@@ -321,6 +321,10 @@ Atom default_environment() {
                        (char *)builtin_member_name,
                        (char *)builtin_member_docstring));
 
+  env_set(environment, make_sym((char *)builtin_clipboard_cut_name),
+          make_builtin(builtin_clipboard_cut,
+                       (char *)builtin_clipboard_cut_name,
+                       (char *)builtin_clipboard_cut_docstring));
   env_set(environment, make_sym((char *)builtin_clipboard_copy_name),
           make_builtin(builtin_clipboard_copy,
                        (char *)builtin_clipboard_copy_name,

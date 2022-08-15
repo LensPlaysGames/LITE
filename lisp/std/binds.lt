@@ -178,6 +178,7 @@
   (keymap-push alts-keymap "0" '(evaluate-first-line))
 
   ;; keybinds: Clipboard copy/paste
+  (keymap-push alts-keymap "x" '(clipboard-cut current-buffer))
   (keymap-push alts-keymap "c" '(clipboard-copy current-buffer))
   (keymap-push alts-keymap "v" '(clipboard-paste current-buffer))
 

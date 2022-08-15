@@ -307,6 +307,27 @@ char *buffer_region(Buffer buffer) {
   return region;
 }
 
+Error buffer_remove_region(Buffer *buffer) {
+  Error err = ok;
+  if (!buffer) {
+    PREP_ERROR(err, ERROR_ARGUMENTS, nil,
+               "Can not remove region from NULL buffer.",
+               NULL);
+    return err;
+  }
+  size_t length = 0;
+  size_t mark_byte = buffer_mark(*buffer);
+  if (buffer->point_byte < mark_byte) {
+    length = mark_byte - buffer->point_byte;
+    buffer_remove_bytes_forward(buffer, length);
+  } else {
+    length = buffer->point_byte - mark_byte;
+    buffer_remove_bytes(buffer, length);
+  }
+
+  return err;
+}
+
 size_t buffer_region_length(Buffer buffer) {
   size_t length = 0;
   size_t mark_byte = buffer_mark(buffer);

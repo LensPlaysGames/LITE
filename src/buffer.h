@@ -115,6 +115,14 @@ char *buffer_region(Buffer buffer);
  */
 size_t buffer_region_length(Buffer buffer);
 
+/** Remove the text in the selected region from the given buffer.
+ *
+ * @param[in] buffer
+ *   The buffer to remove the selected region from. The selected region
+ *   is between the buffer's mark and point.
+ */
+Error buffer_remove_region(Buffer *buffer);
+
 /**
  * Move buffer point to the next byte that is within the control
  * string. If no matching bytes are found, don't move point_byte.

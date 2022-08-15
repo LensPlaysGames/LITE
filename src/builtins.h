@@ -218,6 +218,9 @@ extern const char *const builtin_finish_read_name;
 extern const char *const builtin_finish_read_docstring;
 int builtin_finish_read(Atom arguments, Atom *result);
 
+extern const char *const builtin_clipboard_cut_name;
+extern const char *const builtin_clipboard_cut_docstring;
+int builtin_clipboard_cut(Atom arguments, Atom *result);
 extern const char *const builtin_clipboard_copy_name;
 extern const char *const builtin_clipboard_copy_docstring;
 int builtin_clipboard_copy(Atom arguments, Atom *result);
