@@ -1,5 +1,6 @@
 #include <buffer.h>
 
+#include <environment.h>
 #include <error.h>
 #include <errno.h>
 #include <file_io.h>
@@ -306,6 +307,17 @@ char *buffer_region(Buffer buffer) {
   return region;
 }
 
+size_t buffer_region_length(Buffer buffer) {
+  size_t length = 0;
+  size_t mark_byte = buffer_mark(buffer);
+  if (buffer.point_byte < mark_byte) {
+    length = mark_byte - buffer.point_byte;
+  } else {
+    length = buffer.point_byte - mark_byte;
+  }
+  return length;
+}
+
 size_t buffer_seek_until_byte
 (Buffer *const buffer,
  char *control_string,
@@ -525,4 +537,12 @@ void buffer_free(Buffer* buffer) {
     free(buffer->path);
   }
   free(buffer);
+}
+
+Atom initialize_buffer_or_panic(const char *const path) {
+  Atom buffer = make_buffer(env_create(nil), (char *)path);
+  if (nilp(buffer)) {
+    exit(1);
+  }
+  return buffer;
 }

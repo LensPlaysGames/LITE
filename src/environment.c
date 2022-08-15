@@ -227,6 +227,10 @@ Atom default_environment() {
           make_builtin(builtin_buffer_region,
                        (char *)builtin_buffer_region_name,
                        (char *)builtin_buffer_region_docstring));
+  env_set(environment, make_sym((char *)builtin_buffer_region_length_name),
+          make_builtin(builtin_buffer_region_length,
+                       (char *)builtin_buffer_region_length_name,
+                       (char *)builtin_buffer_region_length_docstring));
 
   env_set(environment, make_sym((char *)builtin_buffer_table_name),
           make_builtin(builtin_buffer_table,

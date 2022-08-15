@@ -53,9 +53,11 @@ Error buffer_insert_byte_indexed(Buffer *buffer, size_t byte_index,
 Error buffer_prepend_byte(Buffer *buffer, char byte);
 Error buffer_append_byte(Buffer *buffer, char byte);
 
+/// Remove the given amount of bytes starting at point going backward.
 Error buffer_remove_bytes(Buffer *buffer, size_t count);
 Error buffer_remove_byte(Buffer *buffer);
 
+/// Remove the given amount of bytes starting at point going forward.
 Error buffer_remove_bytes_forward(Buffer *buffer, size_t count);
 Error buffer_remove_byte_forward(Buffer *buffer);
 
@@ -95,11 +97,23 @@ Error buffer_toggle_mark(Buffer *buffer);
  */
 Error buffer_set_mark(Buffer *buffer, size_t mark);
 
-/** Return a string containing the contents between the mark and the point.
+/** Get the selected region as a null-terminated string of bytes.
  * @param[in] buffer
  *   The buffer to read the point and mark from.
+ *
+ * @return
+ *   A string containing the contents between the mark and the point.
  */
 char *buffer_region(Buffer buffer);
+
+/** Get the byte length of the selected region.
+ * @param[in] buffer
+ *   The buffer to read the point and mark from.
+
+ * @return
+ *   The absolute value of the byte difference between point and mark.
+ */
+size_t buffer_region_length(Buffer buffer);
 
 /**
  * Move buffer point to the next byte that is within the control
@@ -145,10 +159,21 @@ char *buffer_line(Buffer buffer, size_t line_number);
 /// Return the line surrounding `point_byte`
 char *buffer_current_line(Buffer buffer);
 
+/// Debug output to stdout concerning given buffer.
 void buffer_print(Buffer buffer);
 
+/// Save the given buffer to it's visited filepath.
 Error buffer_save(Buffer buffer);
 
 void buffer_free(Buffer* buffer);
+
+/** Create and initialize a buffer atom and return it, if possible.
+ *
+ * @param[in] path
+ *   The file path the returned buffer will be visiting.
+ *
+ * @return A buffer initialized at path, or panic the program (exit).
+ */
+Atom initialize_buffer_or_panic(const char *const path);
 
 #endif /* LITE_BUFFER_H */

@@ -20,14 +20,6 @@
 #  include <gui.h>
 #endif
 
-Atom initialize_buffer_or_panic(const char *const path) {
-  Atom buffer = make_buffer(env_create(nil), (char *)path);
-  if (nilp(buffer)) {
-    exit(1);
-  }
-  return buffer;
-}
-
 int main(int argc, char **argv) {
   Error err = ok;
   Atom result = nil;

@@ -126,6 +126,10 @@ extern const char *const builtin_buffer_region_name;
 extern const char *const builtin_buffer_region_docstring;
 int builtin_buffer_region(Atom arguments, Atom *result);
 
+extern const char *const builtin_buffer_region_length_name;
+extern const char *const builtin_buffer_region_length_docstring;
+int builtin_buffer_region_length(Atom arguments, Atom *result);
+
 extern const char *const builtin_open_buffer_name;
 extern const char *const builtin_open_buffer_docstring;
 int builtin_open_buffer(Atom arguments, Atom *result);

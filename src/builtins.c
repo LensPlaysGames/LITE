@@ -419,6 +419,22 @@ int builtin_buffer_region(Atom arguments, Atom *result) {
   return ERROR_NONE;
 }
 
+const char *const builtin_buffer_region_length_name = "BUFFER-REGION-LENGTH";
+const char *const builtin_buffer_region_length_docstring =
+  "(buffer-region-length BUFFER)\n"
+  "\n"
+  "Get byte difference between mark and point within BUFFER: "
+  "the byte length of the selected region";
+int builtin_buffer_region_length(Atom arguments, Atom *result) {
+  BUILTIN_ENSURE_ONE_ARGUMENT(arguments);
+  Atom buffer = car(arguments);
+  if (!bufferp(buffer) || !buffer.value.buffer) {
+    return ERROR_TYPE;
+  }
+  *result = make_int(buffer_region_length(*buffer.value.buffer));
+  return ERROR_NONE;
+}
+
 const char *const builtin_open_buffer_name = "OPEN-BUFFER";
 const char *const builtin_open_buffer_docstring =
   "(open-buffer PATH)\n\nReturn a buffer visiting PATH.";
@@ -1216,5 +1232,14 @@ int builtin_change_window_mode(Atom arguments, Atom *result) {
   }
   return ERROR_NONE;
 }
+
+//const char *const builtin__name = "LISP-SYMBOL";
+//const char *const builtin__docstring =
+//  "(lisp-symbol)\n"
+//  "\n"
+//  "";
+//int builtin_(Atom arguments, Atom *result) {
+//  return ERROR_TODO;
+//}
 
 #endif /* #ifdef LITE_GFX */
