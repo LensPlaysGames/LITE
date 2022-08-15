@@ -1,0 +1,71 @@
+;;; LITE LISP STANDARD STRUCTURES
+;;; Depends on:
+;;; -> basics.lt
+;;; -> lists.lt
+
+(defun structurep (structure)
+  "Return T iff STRUCTURE has the structure of a structure, otherwise nil. :^)"
+  (progn
+    (let ((member (car structure)))
+      (if (pairp member)
+          (if (symbolp (car member))
+              (if (cdr structure) (structurep (cdr structure)) t)
+              (progn
+                (print "structure member identifying symbol must be a symbol.")
+                (print (car member))
+                nil))
+          (progn
+            (print "structure member is not a pair")
+            (print member)
+            nil)))))
+
+;; TODO: It would be very cool to define parameterized constructors
+;;       automatically for every structure that is defined.
+;;       i.e. for vector3 structure generate something like:
+;;       (set construct-vector3 (lambda (x y z) ...) "...")
+(defmacro defstruct (id-symbol docstring structure)
+  "Set ID-SYMBOL to STRUCTURE after type-checking."
+  (if (symbolp `,id-symbol)
+      `(if (structurep ',structure)
+           (set ,id-symbol ',structure ,docstring)
+           (error "defstruct argument STRUCTURE must be a structure."))
+      (error "defstruct argument ID-SYMBOL must be a symbol.")))
+
+(defmacro make (symbol)
+  "Return a copy of the structure bound to SYMBOL, or nil if SYMBOL is not bound to a structure."
+  `(if (structurep ,symbol)
+       (copy ,symbol)
+       (print "ERROR: STRUCT-SYMBOL passed to MAKE must be bound to a structure.")))
+
+;; FIXME: This currently works for literal structures passed in-line,
+;; but it doesn't work if passed a symbol that is bound to a struct.
+;; I think I need a better `evaluate` special form to fix this, as I
+;; would be able to evaluate the given symbol into the literal struct
+;; at time of unquoting (macro expansion).
+(defmacro access-impl (structure . body)
+  "Bind member identifiers to member values from STRUCTURE.
+Like 'LET', but for a structure's members."
+  `((lambda ,(map car structure) ,@body) ,@(map cadr structure)))
+
+(defmacro access (symbol . body)
+  "Bind member identifiers to member values from structure bound to SYMBOL
+while evaluating BODY. Like 'LET', but for a structure's members."
+  `(access-impl ,(evaluate symbol) ,@body))
+
+(defmacro get-member (symbol member-id)
+  "Get value of member within struct bound to SYMBOL with identifier of MEMBER-ID."
+  `(car (alist-get ,symbol ',member-id)))
+
+(defmacro call-member (symbol member-id . args)
+  "Get value of member within struct bound to SYMBOL with identifier of MEMBER-ID."
+  `((car (alist-get ,symbol ',member-id)) ,@args))
+
+(defun set-member (structure id value)
+  "Within STRUCTURE, bind ID to VALUE."
+  (if (member id (map car structure))
+      (setcar (alist-get structure id) value)
+      (error "ERROR: ID passed to SET-MEMBER must be a member of STRUCTURE.")))
+
+(defmacro set-member-sym (symbol id value)
+  "Within STRUCTURE, bind ID to VALUE"
+  `(setcar (alist-get ,symbol ',id) ,value))

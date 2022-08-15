@@ -1,0 +1,76 @@
+;;; LITE LISP LIST UTILITIES
+;;; Depends on:
+;;; -> basics.lt
+
+(defmacro dolist (spec . body)
+  "Given SPEC is of the form '(ELEMENT LIST VALUE)', evaluate body
+for each element of the list, binding it to ELEMENT. VALUE is returned."
+  `(let ((list ,(car (cdr spec))))
+     (let ((list-it list))
+       (while list-it
+         (let ((,(car spec) (car list-it)))
+           ,@body)
+         (define list-it (cdr list-it))))
+     ,(car (cdr (cdr spec)))))
+
+;; LISTS
+
+(defun add-to-list-impl (given-list element)
+  "Return a LIST with ELEMENT within it. Will not add duplicates."
+  (let ((list-it given-list)
+        (out-element given-list))
+    (while list-it
+      (define out-element list-it)
+      (if (eq (car list-it) element)
+          (define list-it nil)
+          (progn
+            (define list-it (cdr list-it))
+            (define out-element 'flag-symbol))))
+    (if (eq out-element 'flag-symbol)
+        (cons element given-list)
+        given-list)))
+
+(defmacro add-to-list (given-list element)
+  "Define LIST to LIST with ELEMENT in it. Will not add duplicates."
+  `(define ,given-list (add-to-list-impl ,given-list ,element)))
+
+;; ASSOCIATION LISTS
+;; also known as ALISTS
+
+(defmacro alist-set (alist key value)
+  "Return ALIST with KEY associated to VALUE."
+  `(cons (cons ,key ,value) ,alist))
+
+(defun alist-get (alist key)
+  "Get the value associated with KEY in ALIST, or nil if not found."
+  (if (eq key (caar alist))
+      (cdr (car alist))
+      (when (cdr alist)
+        (alist-get (cdr alist) key))))
+
+(defun alist-item (alist key)
+  "Get the item with KEY in ALIST, or nil if not found."
+  (if (eq key (caar alist))
+      (car alist)
+      (when (cdr alist)
+        (alist-item (cdr alist) key))))
+
+(defun add-to-alist (given-alist key value)
+  "Return ALIST with KEY associated to VALUE, no duplicates.
+If KEY is already bound to a value, it will be over-written.
+Otherwise, mutate list to contain KEY bound to VALUE.
+
+This function mutates GIVEN-ALIST in place."
+  (let ((resolved-item (alist-item given-alist key)))
+    (if resolved-item
+        (setcdr resolved-item value)
+        (progn
+          (setcdr given-alist (copy given-alist))
+          (setcar given-alist (cons key value))))
+    given-alist))
+
+(defun add-to-alist-immutative (given-alist key value)
+  "Return a copy of ALIST with KEY associated to VALUE, no duplicates."
+  (let ((mutable-alist (copy given-alist)))
+    (add-to-alist mutable-alist key value)
+    mutable-alist))

@@ -2,152 +2,8 @@
 
 (evaluate-file "lisp/std/basics.lt")
 (evaluate-file "lisp/std/maths.lt")
-
-(defmacro when (condition . body)
-  "Evaluate BODY iff CONDITION evaluates to any non-nil value."
-  `(if ,condition ((lambda () ,@body)) nil))
-
-(defmacro unless (condition . body)
-  "Evaluate BODY iff CONDITION evaluates to nil."
-  `(if (! ,condition) ((lambda () ,@body)) nil))
-
-(defmacro dolist (spec . body)
-  "Given SPEC is of the form '(ELEMENT LIST VALUE)', evaluate body
-for each element of the list, binding it to ELEMENT. VALUE is returned."
-  `(let ((list ,(car (cdr spec))))
-     (let ((list-it list))
-       (while list-it
-         (let ((,(car spec) (car list-it)))
-           ,@body)
-         (define list-it (cdr list-it))))
-     ,(car (cdr (cdr spec)))))
-
-;; LISTS
-
-(defun add-to-list-impl (given-list element)
-  "Return a LIST with ELEMENT within it. Will not add duplicates."
-  (let ((list-it given-list)
-        (out-element given-list))
-    (while list-it
-      (define out-element list-it)
-      (if (eq (car list-it) element)
-          (define list-it nil)
-          (progn
-            (define list-it (cdr list-it))
-            (define out-element 'flag-symbol))))
-    (if (eq out-element 'flag-symbol)
-        (cons element given-list)
-        given-list)))
-
-(defmacro add-to-list (given-list element)
-  "Define LIST to LIST with ELEMENT in it. Will not add duplicates."
-  `(define ,given-list (add-to-list-impl ,given-list ,element)))
-
-;; ASSOCIATION LISTS
-;; also known as ALISTS
-
-(defmacro alist-set (alist key value)
-  "Return ALIST with KEY associated to VALUE."
-  `(cons (cons ,key ,value) ,alist))
-
-(defun alist-get (alist key)
-  "Get the value associated with KEY in ALIST, or nil if not found."
-  (if (eq key (caar alist))
-      (cdr (car alist))
-      (when (cdr alist)
-        (alist-get (cdr alist) key))))
-
-(defun alist-item (alist key)
-  "Get the item with KEY in ALIST, or nil if not found."
-  (if (eq key (caar alist))
-      (car alist)
-      (when (cdr alist)
-        (alist-item (cdr alist) key))))
-
-(defun add-to-alist (given-alist key value)
-  "Return ALIST with KEY associated to VALUE, no duplicates.
-If KEY is already bound to a value, it will be over-written.
-Otherwise, mutate list to contain KEY bound to VALUE.
-
-This function mutates GIVEN-ALIST in place."
-  (let ((resolved-item (alist-item given-alist key)))
-    (if resolved-item
-        (setcdr resolved-item value)
-        (progn
-          (setcdr given-alist (copy given-alist))
-          (setcar given-alist (cons key value))))
-    given-alist))
-
-(defun add-to-alist-immutative (given-alist key value)
-  "Return a copy of ALIST with KEY associated to VALUE, no duplicates."
-  (let ((mutable-alist (copy given-alist)))
-    (add-to-alist mutable-alist key value)
-    mutable-alist))
-
-;; STRUCTURES
-
-(defun structurep (structure)
-  "Return T iff STRUCTURE has the structure of a structure, otherwise nil. :^)"
-  (progn
-    (let ((member (car structure)))
-      (if (pairp member)
-          (if (symbolp (car member))
-              (if (cdr structure) (structurep (cdr structure)) t)
-              (progn
-                (print "structure member identifying symbol must be a symbol.")
-                (print (car member))
-                nil))
-          (progn
-            (print "structure member is not a pair")
-            (print member)
-            nil)))))
-
-;; TODO: It would be very cool to define parameterized constructors
-;;       automatically for every structure that is defined.
-;;       i.e. for vector3 structure generate something like:
-;;       (set construct-vector3 (lambda (x y z) ...) "...")
-(defmacro defstruct (id-symbol docstring structure)
-  "Set ID-SYMBOL to STRUCTURE after type-checking."
-  (if (symbolp `,id-symbol)
-      `(if (structurep ',structure)
-           (set ,id-symbol ',structure ,docstring)
-           (error "defstruct argument STRUCTURE must be a structure."))
-      (error "defstruct argument ID-SYMBOL must be a symbol.")))
-
-(defmacro make (symbol)
-  "Return a copy of the structure bound to SYMBOL, or nil if SYMBOL is not bound to a structure."
-  `(if (structurep ,symbol)
-       (copy ,symbol)
-       (print "ERROR: STRUCT-SYMBOL passed to MAKE must be bound to a structure.")))
-
-;; FIXME: This currently works for literal structures passed in-line,
-;; but it doesn't work if passed a symbol that is bound to a struct.
-;; I think I need a better `evaluate` special form to fix this, as I
-;; would be able to evaluate the given symbol into the literal struct
-;; at time of unquoting (macro expansion).
-(defmacro access-impl (structure . body)
-  "Bind member identifiers to member values from STRUCTURE.
-Like 'LET', but for a structure's members."
-  `((lambda ,(map car structure) ,@body) ,@(map cadr structure)))
-
-(defmacro access (symbol . body)
-  "Bind member identifiers to member values from structure bound to SYMBOL
-while evaluating BODY. Like 'LET', but for a structure's members."
-  `(access-impl ,(evaluate symbol) ,@body))
-
-(defmacro get-member (symbol member-id)
-  "Get value of member within struct bound to SYMBOL with identifier of MEMBER-ID."
-  `(car (alist-get ,symbol ',member-id)))
-
-(defmacro call-member (symbol member-id . args)
-  "Get value of member within struct bound to SYMBOL with identifier of MEMBER-ID."
-  `((car (alist-get ,symbol ',member-id)) ,@args))
-
-(defun set-member (structure id value)
-  "Within STRUCTURE, bind ID to VALUE."
-  (if (member id (map car structure))
-      (setcar (alist-get structure id) value)
-      (error "ERROR: ID passed to SET-MEMBER must be a member of STRUCTURE.")))
+(evaluate-file "lisp/std/lists.lt")
+(evaluate-file "lisp/std/structures.lt")
 
 ;; BUFFERS
 
@@ -322,242 +178,33 @@ Otherwise, set mark to current point."
           (buffer-toggle-mark current-buffer)
           (buffer-set-mark current-buffer (buffer-point current-buffer)))))
 
-;; STANDARD KEYBINDINGS
+(defun insert-lf ()
+  "Insert a newline character, but keep point where it is."
+  (buffer-insert current-buffer "\\n")
+  (buffer-set-point current-buffer (- (buffer-point current-buffer) 1)))
 
-(defmacro keymap-push (given-alist key value)
-  "Define GIVEN-ALIST to an alist with KEY associated to VALUE, no checking for duplicates."
-  `(define ,given-alist (alist-set ,given-alist ,key ,value)))
+(defun insert-crlf ()
+  "Insert a carriage return and a newline character, but keep point
+where it is."
+  (buffer-insert current-buffer "\\r\\n")
+  (buffer-set-point current-buffer (- (buffer-point current-buffer) 2)))
 
-(defmacro keymap-set (given-alist key value)
-  "Define GIVEN-ALIST to an alist with KEY associated to VALUE, no duplicates."
-  `(add-to-alist ,given-alist ,key ,value))
+(defun select-current-line ()
+  "Mark region of the line the point resides within in the current buffer."
+  (beginning-of-line)
+  (set-or-toggle-mark)
+  (end-of-line)
+  )
 
-(defun make-simple-keymap ()
-  "Create a small keymap with the usual rebinds that are used for modifier keys."
-  (let ((simple-keymap nil))
-    (keymap-push simple-keymap "LEFT-SUPER"    "SUPR")
-    (keymap-push simple-keymap "RIGHT-SUPER"   "SUPR")
-    (keymap-push simple-keymap "LEFT-CONTROL"  "CTRL")
-    (keymap-push simple-keymap "RIGHT-CONTROL" "CTRL")
-    (keymap-push simple-keymap "LEFT-ALT"      "ALTS")
-    (keymap-push simple-keymap "RIGHT-ALT"     "ALTS")
-    (keymap-push simple-keymap "LEFT-SHIFT"    "SHFT")
-    (keymap-push simple-keymap "RIGHT-SHIFT"   "SHFT")
-    simple-keymap))
+(defun copy-current-line ()
+  "Copy the current line to the clipboard."
+  (let ((original-point (buffer-point current-buffer))
+        (original-mark (buffer-mark current-buffer)))
+    (select-current-line)
+    (clipboard-copy current-buffer)
+    (buffer-toggle-mark current-buffer)
+    (buffer-set-point current-buffer original-point)
+    (buffer-set-mark current-buffer original-mark)))
 
-(defmacro get-keymap-or-make-simple (keymap keystring)
-  "Get keymap within KEYMAP at KEYSTRING, or make a simple keymap if it doesn't already exist."
-  `(let ((keymap-at-keystring (alist-get ,keymap ,keystring)))
-    (if keymap-at-keystring keymap-at-keystring (make-simple-keymap))))
 
-(set keymap (make-simple-keymap) "The global keymap containing keybindings.")
-
-;; keybinds: Newlines
-;; UNIX
-(keymap-push keymap "<return>" "\\n")
-;; DOS
-;;(keymap-push keymap "<return>" "\\r\\n")
-
-;; keybinds: Backspace
-(keymap-push keymap "<backspace>" '(buffer-remove current-buffer 1))
-
-;; keybinds: Tab is four spaces (by default)
-(keymap-push keymap "<tab>" "    ")
-
-;; keybinds: Escape
-(keymap-push keymap "<escape>" 'ignore)
-
-;; keybinds: Miscellaneous keys
-(keymap-push keymap "<insert>"       'ignore)
-(keymap-push keymap "<delete>"       "<backspace>")
-(keymap-push keymap "<home>"         '(beginning-of-line))
-(keymap-push keymap "<end>"          '(end-of-line))
-(keymap-push keymap "<page-up>"      'ignore)
-(keymap-push keymap "<page-down>"    'ignore)
-(keymap-push keymap "<up-arrow>"     '(backward-line))
-(keymap-push keymap "<down-arrow>"   '(forward-line))
-(keymap-push keymap "<left-arrow>"   '(backward-byte))
-(keymap-push keymap "<right-arrow>"  '(forward-byte))
-(keymap-push keymap "<capslock>"     'ignore)
-(keymap-push keymap "<print-screen>" 'ignore)
-(keymap-push keymap "<pause>"        'ignore)
-(keymap-push keymap "<scroll-lock>"  'ignore)
-
-;; keybinds: Numpad (numeric keypad)
-(keymap-push keymap "<numpad:lock>"      'ignore)
-(keymap-push keymap "<numpad: >"         " ")
-(keymap-push keymap "<numpad:backspace>" "<backspace>")
-(keymap-push keymap "<numpad:tab>"       "<tab>")
-(keymap-push keymap "<numpad:return>"    "<return>")
-(keymap-push keymap "<numpad:.>"         ".")
-(keymap-push keymap "<numpad:0>"         "0")
-(keymap-push keymap "<numpad:00>"        "00")
-(keymap-push keymap "<numpad:000>"       "000")
-(keymap-push keymap "<numpad:1>"         "1")
-(keymap-push keymap "<numpad:2>"         "2")
-(keymap-push keymap "<numpad:3>"         "3")
-(keymap-push keymap "<numpad:4>"         "4")
-(keymap-push keymap "<numpad:5>"         "5")
-(keymap-push keymap "<numpad:6>"         "6")
-(keymap-push keymap "<numpad:7>"         "7")
-(keymap-push keymap "<numpad:8>"         "8")
-(keymap-push keymap "<numpad:9>"         "9")
-(keymap-push keymap "<numpad:plus>"      "+")
-(keymap-push keymap "<numpad:minus>"     "-")
-(keymap-push keymap "<numpad:plusminus>" 'ignore)
-(keymap-push keymap "<numpad:multiply>"  "*")
-(keymap-push keymap "<numpad:divide>"    "/")
-(keymap-push keymap "<numpad:equals>"    "=")
-(keymap-push keymap "<numpad:xor>"       'ignore)
-(keymap-push keymap "<numpad:power>"     "^")
-(keymap-push keymap "<numpad:%>"         "%")
-(keymap-push keymap "<numpad:&>"         "&")
-(keymap-push keymap "<numpad:&&>"        "&&")
-(keymap-push keymap "<numpad:|>"         "|")
-(keymap-push keymap "<numpad:||>"        "||")
-(keymap-push keymap "<numpad:(>"         "(")
-(keymap-push keymap "<numpad:)>"         ")")
-(keymap-push keymap "<numpad:{>"         "{")
-(keymap-push keymap "<numpad:}>"         "}")
-(keymap-push keymap "<numpad:!>"         "!")
-(keymap-push keymap "<numpad::>"         ":")
-(keymap-push keymap "<numpad:,>"         ",")
-(keymap-push keymap "<numpad:@>"         "@")
-(keymap-push keymap "<numpad:octal>"       'ignore)
-(keymap-push keymap "<numpad:decimal>"     'ignore)
-(keymap-push keymap "<numpad:hexadecimal>" 'ignore)
-(keymap-push keymap "<numpad:A>"         "A")
-(keymap-push keymap "<numpad:B>"         "B")
-(keymap-push keymap "<numpad:C>"         "C")
-(keymap-push keymap "<numpad:D>"         "D")
-(keymap-push keymap "<numpad:E>"         "E")
-(keymap-push keymap "<numpad:F>"         "F")
-
-;; keybinds: Function Keys
-(keymap-push keymap "<f1>"    'ignore)
-(keymap-push keymap "<f2>"    'ignore)
-(keymap-push keymap "<f3>"    'ignore)
-(keymap-push keymap "<f4>"    'ignore)
-(keymap-push keymap "<f5>"    'ignore)
-(keymap-push keymap "<f6>"    'ignore)
-(keymap-push keymap "<f7>"    'ignore)
-(keymap-push keymap "<f8>"    'ignore)
-(keymap-push keymap "<f9>"    'ignore)
-(keymap-push keymap "<f10>"   'ignore)
-(keymap-push keymap "<f11>"   'ignore)
-(keymap-push keymap "<f12>"   'ignore)
-(keymap-push keymap "<f13>"   'ignore)
-(keymap-push keymap "<f14>"   'ignore)
-(keymap-push keymap "<f15>"   'ignore)
-(keymap-push keymap "<f16>"   'ignore)
-(keymap-push keymap "<f17>"   'ignore)
-(keymap-push keymap "<f18>"   'ignore)
-(keymap-push keymap "<f19>"   'ignore)
-(keymap-push keymap "<f20>"   'ignore)
-(keymap-push keymap "<f21>"   'ignore)
-(keymap-push keymap "<f22>"   'ignore)
-(keymap-push keymap "<f23>"   'ignore)
-(keymap-push keymap "<f24>"   'ignore)
-
-;; TODO Bind default SHFT remappings (need double quote escape sequence, as well as better single backslash support.)
-(let ((ctrl-keymap (get-keymap-or-make-simple keymap "CTRL")))
-  (let ((ctrl-shft-keymap (get-keymap-or-make-simple ctrl-keymap "SHFT")))
-
-    ;; keybinds: Backspace and... forwardspace?
-    (keymap-push ctrl-shft-keymap "d" "<backspace>")
-    (keymap-push
-     ctrl-keymap "d"
-     '(buffer-remove-forward current-buffer 1))
-
-    ;; ctrl keybinds: Simple buffer navigation
-    (keymap-push ctrl-keymap " " '(set-or-toggle-mark))
-    (keymap-push ctrl-keymap "f" '(forward-byte))
-    (keymap-push ctrl-keymap "b" '(backward-byte))
-    (keymap-push ctrl-keymap "n" '(forward-line))
-    (keymap-push ctrl-keymap "p" '(backward-line))
-    (keymap-push ctrl-keymap "a" '(beginning-of-line))
-    (keymap-push ctrl-keymap "e" '(end-of-line))
-
-    ;; ctrl keybinds: Prompted
-    (keymap-push ctrl-keymap "i" '(search-forward))
-    (keymap-push ctrl-keymap "r" '(search-backward))
-    (keymap-push
-     ctrl-keymap "s"
-     '(save-current-buffer-with-msg "Saved"))
-
-    ;; Update nested keymap(s) in local keymap.
-    (keymap-set ctrl-keymap "SHFT" ctrl-shft-keymap)
-    ;; Update keymap in global environment from local keymap.
-    (keymap-set keymap "CTRL" ctrl-keymap)))
-
-(let ((alts-keymap (get-keymap-or-make-simple keymap "ALTS")))
-  ;; keybinds: Evaluation
-  (keymap-push alts-keymap "e" '(evaluate-line))
-  (keymap-push alts-keymap "0" '(evaluate-first-line))
-
-  ;; keybinds: Prompted
-  (keymap-push alts-keymap "o" '(switch-current-buffer))
-
-  (keymap-push alts-keymap "f" '(forward-word))
-  (keymap-push alts-keymap "b" '(backward-word))
-
-  (keymap-push alts-keymap "c" '(clipboard-copy current-buffer))
-  (keymap-push alts-keymap "v" '(clipboard-paste current-buffer))
-
-  ;; Update keymap in global environemt from local keymap.
-  (keymap-set keymap "ALTS" alts-keymap))
-
-(let ((shft-keymap (get-keymap-or-make-simple keymap "SHFT")))
-  ;; keybind: Shift enter to insert DOS newline (CRLF).
-  (keymap-push shft-keymap "<return>" "\\r\\n")
-
-  (keymap-push shft-keymap "q" "Q")
-  (keymap-push shft-keymap "w" "W")
-  (keymap-push shft-keymap "e" "E")
-  (keymap-push shft-keymap "r" "R")
-  (keymap-push shft-keymap "t" "T")
-  (keymap-push shft-keymap "y" "Y")
-  (keymap-push shft-keymap "u" "U")
-  (keymap-push shft-keymap "i" "I")
-  (keymap-push shft-keymap "o" "O")
-  (keymap-push shft-keymap "p" "P")
-  (keymap-push shft-keymap "[" "{")
-  (keymap-push shft-keymap "]" "}")
-  (keymap-push shft-keymap "\\\_" "|")
-  (keymap-push shft-keymap "a" "A")
-  (keymap-push shft-keymap "s" "S")
-  (keymap-push shft-keymap "d" "D")
-  (keymap-push shft-keymap "f" "F")
-  (keymap-push shft-keymap "g" "G")
-  (keymap-push shft-keymap "h" "H")
-  (keymap-push shft-keymap "j" "J")
-  (keymap-push shft-keymap "k" "K")
-  (keymap-push shft-keymap "l" "L")
-  (keymap-push shft-keymap ";" ":")
-  (keymap-push shft-keymap "'" "\\"") ;") << syntax highlight fix
-  (keymap-push shft-keymap "z" "Z")
-  (keymap-push shft-keymap "x" "X")
-  (keymap-push shft-keymap "c" "C")
-  (keymap-push shft-keymap "v" "V")
-  (keymap-push shft-keymap "b" "B")
-  (keymap-push shft-keymap "n" "N")
-  (keymap-push shft-keymap "m" "M")
-  (keymap-push shft-keymap "," "<")
-  (keymap-push shft-keymap "." ">")
-  (keymap-push shft-keymap "/" "?")
-  (keymap-push shft-keymap "`" "~")
-  (keymap-push shft-keymap "1" "!")
-  (keymap-push shft-keymap "2" "@")
-  (keymap-push shft-keymap "3" "#")
-  (keymap-push shft-keymap "4" "$")
-  (keymap-push shft-keymap "5" "%")
-  (keymap-push shft-keymap "6" "^")
-  (keymap-push shft-keymap "7" "&")
-  (keymap-push shft-keymap "8" "*")
-  (keymap-push shft-keymap "9" "(")
-  (keymap-push shft-keymap "0" ")")
-  (keymap-push shft-keymap "-" "_")
-  (keymap-push shft-keymap "=" "+")
-
-  ;; Update keymap in global environemt from local keymap.
-  (keymap-set keymap "SHFT" shft-keymap))
+(evaluate-file "lisp/std/binds.lt")

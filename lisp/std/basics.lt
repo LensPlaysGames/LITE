@@ -1,3 +1,5 @@
+;;; LITE LISP STANDARD BASICS
+
 ;; More easily access nested pair elements.
 (define caar
     (lambda (x)
@@ -119,3 +121,12 @@ as well as places INITIAL-VALUE at the end of SOME-LIST.")
        "Bind the given symbols to the given values while evaluating body."
        `((lambda ,(map car defs) ,@body)
          ,@(map cadr defs)))
+
+(macro when (condition . body)
+  "Evaluate BODY iff CONDITION evaluates to any non-nil value."
+  `(if ,condition ((lambda () ,@body)) nil))
+
+(macro unless (condition . body)
+  "Evaluate BODY iff CONDITION evaluates to nil."
+  `(if (! ,condition) ((lambda () ,@body)) nil))
+

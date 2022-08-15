@@ -1237,7 +1237,10 @@ int builtin_change_window_mode(Atom arguments, Atom *result) {
 
 
 
-Atom terrible_copy_paste_implementation = { ATOM_TYPE_NIL, { 0 }, NULL, NULL };
+Atom terrible_copy_paste_implementation = { .type = ATOM_TYPE_STRING,
+                                            .value = { .symbol = "Paste and ye shall recieve." },
+                                            .galloc = NULL,
+                                            .docstring = NULL };
 
 const char *const builtin_clipboard_copy_name = "CLIPBOARD-COPY";
 const char *const builtin_clipboard_copy_docstring =
@@ -1253,12 +1256,9 @@ int builtin_clipboard_copy(Atom arguments, Atom *result) {
     return ERROR_TYPE;
   }
   if (buffer_mark_active(*buffer.value.buffer)) {
-
     char *region = buffer_region(*buffer.value.buffer);
-
-    // TODO: Add to some copy stack or something.
+    // TODO: This is a terrible copy and paste implementation!
     terrible_copy_paste_implementation = make_string(region);
-
     *result = make_sym("T");
   }
 
@@ -1276,10 +1276,11 @@ int builtin_clipboard_paste(Atom arguments, Atom *result) {
     return ERROR_TYPE;
   }
   *result = nil;
-  if (stringp(terrible_copy_paste_implementation)) {
-    *result = make_sym("T");
-    buffer_insert(buffer.value.buffer, terrible_copy_paste_implementation.value.symbol);
+  if (!stringp(terrible_copy_paste_implementation)) {
+    return ERROR_TYPE;
   }
+  *result = make_sym("T");
+  buffer_insert(buffer.value.buffer, terrible_copy_paste_implementation.value.symbol);
   return ERROR_NONE;
 }
 
