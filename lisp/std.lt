@@ -109,22 +109,24 @@ Attempts to keep point column the same."
   "Set the point to the beginning of the prompted-for string if it is found in current buffer."
   (buffer-seek-substring current-buffer (read-prompted "search forward: ") -1))
 
-(set forward-word-delimiters "., \\n({[<"
-     "Each of the bytes within this string is a possible delimiter that
-will separate a word for 'FORWARD-WORD'.")
-(set backward-word-delimiters "., \\n)}]>"
-     "Each of the bytes within this string is a possible delimiter that
-will separate a word for 'BACKWARD-WORD'.")
+(set word-delimiters "., \\n(){}[]<>"
+     "Each of the bytes within this string is a word delimiter.")
 
 (defun forward-word ()
-  "Move forward by one word (separated by 'FORWARD-WORD-DELIMITERS')."
-  (when (= (buffer-seek-byte current-buffer forward-word-delimiters 1) 0)
-    (forward-bytes 999999999999)))
+  "Move forward by one word (separated by 'WORD-DELIMITERS')."
+  (buffer-seek-past-byte current-buffer word-delimiters 1)
+  (when (= (buffer-seek-byte current-buffer word-delimiters 1) 0)
+      (forward-bytes 999999999999)))
 
 (defun backward-word ()
-  "Move backward by one word (separated by 'BACKWARD-WORD-DELIMITERS')."
-  (when (= (buffer-seek-byte current-buffer backward-word-delimiters -1) 0)
-    (backward-bytes 999999999999)))
+  "Move backward by one word (separated by 'WORD-DELIMITERS')."
+  ;; Skip backwards past word delimiters
+  (buffer-seek-past-byte current-buffer word-delimiters -1)
+  ;; Skip backwards to word delimiter
+  (if (= (buffer-seek-byte current-buffer word-delimiters -1) 0)
+      (backward-bytes 999999999999)
+      ;; If a word was skipped, move forward one byte.
+      (forward-byte)))
 
 ;; MISCELLANEOUS
 

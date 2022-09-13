@@ -802,6 +802,29 @@ int builtin_buffer_seek_byte(Atom arguments, Atom *result) {
   return ERROR_NONE;
 }
 
+const char *const builtin_buffer_seek_past_byte_name = "BUFFER-SEEK-PAST-BYTE";
+const char *const builtin_buffer_seek_past_byte_docstring =
+  "(buffer-seek-past-byte buffer bytes direction)\n"
+  "\n"
+  "Move BUFFER point to the next byte that is NOT within the control string.\n"
+  "Returns the amount of bytes BUFFER's point was moved.\n"
+  "When DIRECTION is negative, seek backwards.";
+int builtin_buffer_seek_past_byte(Atom arguments, Atom *result) {
+  BUILTIN_ENSURE_THREE_ARGUMENTS(arguments);
+  Atom buffer = car(arguments);
+  Atom bytes = car(cdr(arguments));
+  Atom direction = car(cdr(cdr(arguments)));
+  if (!bufferp(buffer) || !stringp(bytes) || !integerp(direction)) {
+    return ERROR_TYPE;
+  }
+  size_t bytes_moved = buffer_seek_while_byte
+    (buffer.value.buffer,
+     (char *)bytes.value.symbol,
+     direction.value.integer);
+  *result = make_int(bytes_moved);
+  return ERROR_NONE;
+}
+
 const char *const builtin_buffer_seek_substring_name = "BUFFER-SEEK-SUBSTRING";
 const char *const builtin_buffer_seek_substring_docstring =
   "(buffer-seek-substring buffer substring direction)\n"

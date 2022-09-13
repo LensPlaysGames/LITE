@@ -375,6 +375,35 @@ size_t buffer_seek_until_byte
   return 0;
 }
 
+size_t buffer_seek_while_byte
+(Buffer *const buffer, char *control_string, char direction) {
+  if (!buffer || !buffer->rope || !control_string || control_string[0] == '\0') {
+    return 0;
+  }
+  if (direction >= 0) {
+    for (size_t i = buffer->point_byte + 1;
+         i >= buffer->point_byte && i < buffer->rope->weight;
+         ++i) {
+      if (strchr(control_string, rope_index(buffer->rope, i)) == NULL) {
+        size_t offset = i - buffer->point_byte;
+        buffer->point_byte = i;
+        return offset;
+      }
+    }
+  } else {
+    for (long long i = buffer->point_byte - 1;
+         i >= 0 && i <= (long long)buffer->point_byte;
+         --i) {
+      if (strchr(control_string, rope_index(buffer->rope, i)) == NULL) {
+        size_t offset = buffer->point_byte - i;
+        buffer->point_byte = i;
+        return offset;
+      }
+    }
+  }
+  return 0;
+}
+
 size_t buffer_seek_until_substr
 (Buffer *const buffer, char *substring, char direction) {
   if (!buffer || !buffer->rope || !substring || substring[0] == '\0') {

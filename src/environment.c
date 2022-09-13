@@ -288,6 +288,10 @@ Atom default_environment() {
           make_builtin(builtin_buffer_seek_byte,
                        (char *)builtin_buffer_seek_byte_name,
                        (char *)builtin_buffer_seek_byte_docstring));
+  env_set(environment, make_sym((char *)builtin_buffer_seek_past_byte_name),
+          make_builtin(builtin_buffer_seek_past_byte,
+                       (char *)builtin_buffer_seek_past_byte_name,
+                       (char *)builtin_buffer_seek_past_byte_docstring));
   env_set(environment, make_sym((char *)builtin_buffer_seek_substring_name),
           make_builtin(builtin_buffer_seek_substring,
                        (char *)builtin_buffer_seek_substring_name,

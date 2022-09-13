@@ -143,6 +143,25 @@ size_t buffer_seek_until_byte(Buffer *const buffer,
                               char direction);
 
 /**
+ * Move buffer point to the next byte that is *not* within the control
+ * string.
+ *
+ * @param[in,out] buffer
+ *   The buffer to seek within. May alter point_byte member.
+ * @param[in] control_string
+ *   The search stops when the byte under point is not found within
+ *   this string.
+ * @param[in] direction
+ *   Search backwards when this value is negative, otherwise search
+ *   forward.
+ *
+ * @return The amount of bytes point_byte was moved by.
+ */
+size_t buffer_seek_while_byte(Buffer *const buffer,
+                              char *control_string,
+                              char direction);
+
+/**
  * Move buffer point to the beginning of the given substring, if it
  * exists. If no matching substring is found, don't move point_byte.
  *
