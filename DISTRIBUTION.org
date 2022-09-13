@@ -1,0 +1,18 @@
+LITE is a text editor that may be configured; hopefully, all
+configuration can stay within the distribution folder itself. This
+means that we can always use relative paths in our program, and we have
+a known, expected filesystem environment surrounding the executable.
+
+#+begin_example
+LITE_RLS_Vx.x.x
+|-- LITE.exe
+|-- lisp
+|   |-- std.lt
+|   |-- std
+|   |   `-- LITE LISP standard library files loaded by `std.lt`...
+|   `-- Any other included LITE LISP...
+`-- gfx
+    `-- fonts
+        `-- apache
+            `-- Fonts licensed under Apache license...
+#+end_example
