@@ -56,6 +56,13 @@ int main(int argc, char **argv) {
 
   }
 
+  // Attempt to load the standard library.
+  err = evaluate_file(*genv(), "lisp/std.lt", &result);
+  if (err.type && err.type != ERROR_FILE) {
+    print_error(err);
+    return 7;
+  }
+
   // Evaluate all the arguments as file paths, except for detected
   // valid arguments.
   for (int i = 1; i < argc; ++i) {
