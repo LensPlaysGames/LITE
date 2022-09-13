@@ -21,6 +21,9 @@ for text editing and general scripting that is *easy to port*.
 
 Initially, development followed [[https://www.lwh.jp/lisp/][this LISP interpreter tutorial]] ([[https://web.archive.org/web/20220617192957/https://www.lwh.jp/lisp][archive]]).
 
+One glaring difference between Emacs and LITE is that LITE does not use
+a [[https://en.wikipedia.org/wiki/Gap_buffer][=gap buffer=]] data structure to edit text; rather, it uses a [[https://en.wikipedia.org/wiki/Rope_(data_structure)][=Rope=]].
+
 NOTE: Any and all shell commands assume a working directory of the base of this repository.
 
 *** Usage
@@ -60,8 +63,8 @@ To see a list of available build systems, use the following command:
   cmake -G
 #+end_src
 
-I recommend [[https://www.ninja-build.org][Ninja]], it is modern, fast, and
-designed for use in conjunction with CMake.
+I recommend [[https://www.ninja-build.org][Ninja]], it is modern, fast, and designed for use in
+conjunction with CMake.
 
 First, generate an out-of-source build tree:
 #+begin_src sh

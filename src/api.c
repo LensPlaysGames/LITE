@@ -190,6 +190,14 @@ void handle_keydown(char *keystring) {
   env_get(*genv(), make_sym("CURRENT-KEYMAP"), &current_keymap);
   if (nilp(current_keymap)) {
     env_get(*genv(), make_sym("KEYMAP"), &current_keymap);
+    if (nilp(current_keymap)) {
+      // At this point, it is most likely that LITE has been started
+      // without any keymap configuration whatsoever (no standard
+      // library), or the user has purposefully borked it.
+      // TODO: Do something like restoring default keymap or something
+      // that is more useful than just flopping around like a dead fish.
+      fprintf(stderr, "ERROR: There is no bound keymap!\n");
+    }
   }
   if (debug_keybinding) {
     printf("Current keymap: ");
