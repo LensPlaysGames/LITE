@@ -4,6 +4,10 @@
 struct Atom;
 typedef struct Atom Atom;
 
+extern const char *const builtin_docstring_name;
+extern const char *const builtin_docstring_docstring;
+int builtin_docstring(Atom arguments, Atom *result);
+
 // TYPES
 
 extern const char *const builtin_nilp_name;
@@ -193,6 +197,9 @@ int builtin_save(Atom arguments, Atom *result);
 extern const char *const builtin_string_length_name;
 extern const char *const builtin_string_length_docstring;
 int builtin_string_length(Atom arguments, Atom *result);
+extern const char *const builtin_string_concat_name;
+extern const char *const builtin_string_concat_docstring;
+int builtin_string_concat(Atom arguments, Atom *result);
 
 // OTHER
 
@@ -214,6 +221,9 @@ int builtin_symbol_table(Atom arguments, Atom *result);
 extern const char *const builtin_print_name;
 extern const char *const builtin_print_docstring;
 int builtin_print(Atom arguments, Atom *result);
+extern const char *const builtin_prins_name;
+extern const char *const builtin_prins_docstring;
+int builtin_prins(Atom arguments, Atom *result);
 extern const char *const builtin_read_prompted_name;
 extern const char *const builtin_read_prompted_docstring;
 int builtin_read_prompted(Atom arguments, Atom *result);

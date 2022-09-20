@@ -570,63 +570,6 @@ Error evaluate_expression(Atom expr, Atom environment, Atom *result) {
           gcol_generic_allocation(&macro, macro.docstring);
           (void)env_set(environment, name, macro);
           *result = name;
-        } else if (strcmp(operator.value.symbol, "DOCSTRING") == 0) {
-          const char *usage_docstring = "(DOCSTRING <symbol>)";
-          if (nilp(arguments) || !nilp(cdr(arguments))) {
-            PREP_ERROR(err, ERROR_ARGUMENTS
-                       , arguments
-                       , "DOCSTRING: A single argument is expected."
-                       , usage_docstring);
-            return err;
-          }
-          Atom atom = car(arguments);
-          if (symbolp(atom)) {
-            Atom symbol_in = atom;
-            PREP_ERROR(err, ERROR_NONE, atom, "DOCSTRING: Error while evaluating symbol.", NULL);
-            err = env_get(environment, symbol_in, &atom);
-            if (err.type) { return err; }
-          }
-          // If atom is of type closure, show closure signature (arguments).
-          // FIXME: The docstring could be set to this value instead of
-          // creating this new string each time the docstring is fetched.
-          char *docstring = NULL;
-          if (closurep(atom) || macrop(atom)) {
-            // Prepend docstring with closure signature.
-            char *signature = atom_string(car(cdr(atom)), NULL);
-            size_t siglen = 0;
-            if (signature && (siglen = strlen(signature)) != 0) {
-              if (atom.docstring) {
-                size_t newlen = strlen(atom.docstring) + siglen + 10;
-                char *newdoc = (char *)malloc(newlen);
-                if (newdoc) {
-                  memcpy(newdoc, "ARGS: \0", 7);
-                  strcat(newdoc, signature);
-                  strcat(newdoc, "\n\n");
-                  strcat(newdoc, atom.docstring);
-                  docstring = newdoc;
-                } else {
-                  // Could not allocate buffer for new docstring,
-                  // free allocated memory and use regular docstring.
-                  newdoc = (char *)atom.docstring;
-                }
-                free(signature);
-                docstring = newdoc;
-              } else {
-                docstring = signature;
-              }
-            }
-          }
-          if (docstring) {
-            *result = make_string(docstring);
-            free(docstring);
-            docstring = NULL;
-          } else {
-            if (atom.docstring) {
-              *result = make_string(atom.docstring);
-            } else {
-              *result = nil;
-            }
-          }
         } else if (strcmp(operator.value.symbol, "EVAL-SIMPLE") == 0) {
           const char *usage_evaluate = "Usage: (EVAL-SIMPLE <expression>)";
           if (nilp(arguments) || !nilp(cdr(arguments))) {

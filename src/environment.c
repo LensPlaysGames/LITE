@@ -78,6 +78,10 @@ int boundp(Atom environment, Atom symbol) {
 Atom default_environment() {
   Atom environment = env_create(nil);
   env_set(environment, make_sym("T"), make_sym("T"));
+  env_set(environment, make_sym((char *)builtin_docstring_name),
+          make_builtin(builtin_docstring,
+                       (char *)builtin_docstring_name,
+                       (char *)builtin_docstring_docstring));
   env_set(environment, make_sym((char *)builtin_car_name),
           make_builtin(builtin_car,
                        (char *)builtin_car_name,
@@ -202,6 +206,10 @@ Atom default_environment() {
           make_builtin(builtin_print,
                        (char *)builtin_print_name,
                        (char *)builtin_print_docstring));
+    env_set(environment, make_sym((char *)builtin_prins_name),
+          make_builtin(builtin_prins,
+                       (char *)builtin_prins_name,
+                       (char *)builtin_prins_docstring));
   env_set(environment, make_sym((char *)builtin_symbol_table_name),
           make_builtin(builtin_symbol_table,
                        (char *)builtin_symbol_table_name,
@@ -310,6 +318,10 @@ Atom default_environment() {
           make_builtin(builtin_string_length,
                        (char *)builtin_string_length_name,
                        (char *)builtin_string_length_docstring));
+    env_set(environment, make_sym((char *)builtin_string_concat_name),
+          make_builtin(builtin_string_concat,
+                       (char *)builtin_string_concat_name,
+                       (char *)builtin_string_concat_docstring));
 
   env_set(environment, make_sym((char *)builtin_evaluate_string_name),
           make_builtin(builtin_evaluate_string,

@@ -5,6 +5,26 @@
 (evaluate-file "lisp/std/lists.lt")
 (evaluate-file "lisp/std/structures.lt")
 
+;; UTILITY
+
+(defun list-functions ()
+  "List all of the functions currently defined in the environment."
+  (dolist (item (car (env)) t)
+    (when (closurep (cdr item))
+      (print (car item)))))
+
+(defun all-functions ()
+  "List all of the functions currently defined in the environment,
+and print out their respective docstrings."
+  (dolist (item (car (env)) t)
+    (when (closurep (cdr item))
+      (prins (car item))
+      (let ((docstr (docstring (car item) (env))))
+        (when docstr
+          (prins (string-concat docstr "\\n\\n"))
+          ))
+      )))
+
 ;; BUFFERS
 
 (defun buffer-prev-line (buffer)

@@ -3,7 +3,7 @@
 ;;; -> basics.lt
 
 (defmacro dolist (spec . body)
-  "Given SPEC is of the form '(ELEMENT LIST VALUE)', evaluate body
+  "Given SPEC is of the form '(ELEMENT LIST VALUE)', evaluate BODY
 for each element of the list, binding it to ELEMENT. VALUE is returned."
   `(let ((list ,(car (cdr spec))))
      (let ((list-it list))

@@ -51,6 +51,84 @@
       }                                                     \
   } while (0);
 
+#define BUILTIN_ENSURE_FOUR_ARGUMENTS(builtin_args) do {    \
+    if (nilp(builtin_args)                                  \
+        || nilp(cdr(builtin_args))                          \
+        || nilp(cdr(cdr(builtin_args)))                     \
+        || nilp(cdr(cdr(cdr(builtin_args))))                \
+        || !nilp(cdr(cdr(cdr(cdr(builtin_args))))))         \
+      {                                                     \
+        return ERROR_ARGUMENTS;                             \
+      }                                                     \
+  } while (0);
+
+const char *const builtin_docstring_name = "DOCSTRING";
+const char *const builtin_docstring_docstring =
+  "(docstring SYMBOL ENVIRONMENT)\n"
+  "\n"
+  "Return the docstring of SYMBOL within ENVIRONMENT as a string.";
+int builtin_docstring(Atom arguments, Atom *result) {
+  BUILTIN_ENSURE_TWO_ARGUMENTS(arguments);
+
+  Atom atom = car(arguments);
+  Atom environment = car(cdr(arguments));
+
+  if (!pairp(environment)) {
+    return ERROR_TYPE;
+  }
+
+  if (symbolp(atom)) {
+    Atom symbol_in = atom;
+    Error err = env_get(environment, symbol_in, &atom);
+    print_error(err);
+    if (err.type) { return err.type; }
+  }
+
+  // If atom is of type closure, show closure signature (arguments).
+  // FIXME: The docstring could be set to this value instead of
+  // creating this new string each time the docstring is fetched.
+  char *docstring = NULL;
+  if (closurep(atom) || macrop(atom)) {
+    // Prepend docstring with closure signature.
+    char *signature = atom_string(car(cdr(atom)), NULL);
+    size_t siglen = 0;
+    if (signature && (siglen = strlen(signature)) != 0) {
+      if (atom.docstring) {
+        size_t newlen = strlen(atom.docstring) + siglen + 10;
+        char *newdoc = (char *)malloc(newlen);
+        if (newdoc) {
+          memcpy(newdoc, "ARGS: \0", 7);
+          strcat(newdoc, signature);
+          strcat(newdoc, "\n\n");
+          strcat(newdoc, atom.docstring);
+          docstring = newdoc;
+        } else {
+          // Could not allocate buffer for new docstring,
+          // free allocated memory and use regular docstring.
+          newdoc = (char *)atom.docstring;
+        }
+        free(signature);
+        docstring = newdoc;
+      } else {
+        docstring = signature;
+      }
+    }
+  }
+  if (docstring) {
+    *result = make_string(docstring);
+    free(docstring);
+    docstring = NULL;
+  } else {
+    if (atom.docstring) {
+      *result = make_string(atom.docstring);
+    } else {
+      *result = nil;
+    }
+  }
+
+  return ERROR_NONE;
+}
+
 int typep(Atom arguments, enum AtomType type, Atom *result) {
   BUILTIN_ENSURE_ONE_ARGUMENT(arguments);
   *result = car(arguments).type == type ? make_sym("T") : nil;
@@ -909,6 +987,27 @@ int builtin_string_length(Atom arguments, Atom *result) {
   return ERROR_NONE;
 }
 
+const char *const builtin_string_concat_name = "STRING-CONCAT";
+const char *const builtin_string_concat_docstring =
+  "(string-concat STRING-A STRING-B)\n"
+  "\n"
+  "Return a new string consisting of STRING-A followed by STRING-B.";
+int builtin_string_concat(Atom arguments, Atom *result) {
+  BUILTIN_ENSURE_TWO_ARGUMENTS(arguments);
+  Atom string_a = car(arguments);
+  Atom string_b = car(cdr(arguments));
+  if (!stringp(string_a) || !stringp(string_b)) {
+    return ERROR_TYPE;
+  }
+  size_t string_length = strlen(string_a.value.symbol) + strlen(string_b.value.symbol);
+  char *string = malloc(string_length + 1);
+  snprintf(string, string_length + 1, "%s%s", string_a.value.symbol, string_b.value.symbol);
+  string[string_length] = '\0';
+  *result = make_string(string);
+  free(string);
+  return ERROR_NONE;
+}
+
 const char *const builtin_evaluate_string_name = "EVALUATE-STRING";
 const char *const builtin_evaluate_string_docstring =
   "(evaluate-string STRING)\n"
@@ -1053,11 +1152,30 @@ const char *const builtin_print_name = "PRINT";
 const char *const builtin_print_docstring =
   "(print ARG)\n"
   "\n"
-  "Print the given ARG to standard out, prettily.";
+  "Print the given ARG to standard out.";
 int builtin_print(Atom arguments, Atom *result) {
   BUILTIN_ENSURE_ONE_ARGUMENT(arguments);
   print_atom(car(arguments));
-  putchar('\n');
+  fputc('\n', stdout);
+  fflush(stdout);
+  *result = nil;
+  return ERROR_NONE;
+}
+
+const char *const builtin_prins_name = "PRINS";
+const char *const builtin_prins_docstring =
+  "(prins STRING)\n"
+  "\n"
+  "Print the given STRING to standard out.\n"
+  "When FLUSH is non-nil, flush standard out after writing.";
+int builtin_prins(Atom arguments, Atom *result) {
+  BUILTIN_ENSURE_ONE_ARGUMENT(arguments);
+  Atom string = car(arguments);
+  if (!stringp(string)) {
+    return ERROR_TYPE;
+  }
+  fputs(string.value.symbol, stdout);
+  fflush(stdout);
   *result = nil;
   return ERROR_NONE;
 }
