@@ -219,6 +219,10 @@ Atom default_environment() {
           make_builtin(builtin_buffer_toggle_mark,
                        (char *)builtin_buffer_toggle_mark_name,
                        (char *)builtin_buffer_toggle_mark_docstring));
+  env_set(environment, make_sym((char *)builtin_buffer_set_mark_activation_name),
+          make_builtin(builtin_buffer_set_mark_activation,
+                       (char *)builtin_buffer_set_mark_activation_name,
+                       (char *)builtin_buffer_set_mark_activation_docstring));
   env_set(environment, make_sym((char *)builtin_buffer_set_mark_name),
           make_builtin(builtin_buffer_set_mark,
                        (char *)builtin_buffer_set_mark_name,

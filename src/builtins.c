@@ -432,6 +432,26 @@ int builtin_buffer_toggle_mark(Atom arguments, Atom *result) {
   return ERROR_NONE;
 }
 
+const char *const builtin_buffer_set_mark_activation_name = "BUFFER-SET-MARK-ACTIVATION";
+const char *const builtin_buffer_set_mark_activation_docstring =
+  "(buffer-set-mark-activation BUFFER STATE)"
+  "\n"
+  "Set activation state of mark in BUFFER based on STATE being non-nil or not.";
+int builtin_buffer_set_mark_activation(Atom arguments, Atom *result) {
+  BUILTIN_ENSURE_TWO_ARGUMENTS(arguments);
+  Atom buffer = car(arguments);
+  Atom state = car(cdr(arguments));
+  if (!bufferp(buffer) || !buffer.value.buffer) {
+    return ERROR_TYPE;
+  }
+  Error err = buffer_set_mark_activation(buffer.value.buffer, !nilp(state));
+  if (err.type) {
+    print_error(err);
+    return err.type;
+  }
+  return ERROR_NONE;
+}
+
 const char *const builtin_buffer_set_mark_name = "BUFFER-SET-MARK";
 const char *const builtin_buffer_set_mark_docstring =
   "(buffer-set-mark BUFFER MARK)\n\nSet marked byte in BUFFER to MARK.";

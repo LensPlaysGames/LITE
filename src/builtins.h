@@ -114,6 +114,10 @@ extern const char *const builtin_buffer_toggle_mark_name;
 extern const char *const builtin_buffer_toggle_mark_docstring;
 int builtin_buffer_toggle_mark(Atom arguments, Atom *result);
 
+extern const char *const builtin_buffer_set_mark_activation_name;
+extern const char *const builtin_buffer_set_mark_activation_docstring;
+int builtin_buffer_set_mark_activation(Atom arguments, Atom *result);
+
 extern const char *const builtin_buffer_set_mark_name;
 extern const char *const builtin_buffer_set_mark_docstring;
 int builtin_buffer_set_mark(Atom arguments, Atom *result);

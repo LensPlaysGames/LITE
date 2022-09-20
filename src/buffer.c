@@ -262,6 +262,21 @@ size_t buffer_mark_active(Buffer buffer) {
   return buffer.mark_byte & BUFFER_MARK_ACTIVATION_BIT ? 1 : 0;
 }
 
+Error buffer_set_mark_activation(Buffer *buffer, char active) {
+  if (!buffer) {
+    MAKE_ERROR(err, ERROR_ARGUMENTS, nil,
+               "Can not set mark activation state on NULL buffer.",
+               NULL);
+    return err;
+  }
+  // Clear mark active bit.
+  buffer->mark_byte &= ~BUFFER_MARK_ACTIVATION_BIT;
+  if (active) {
+    buffer->mark_byte |= BUFFER_MARK_ACTIVATION_BIT;
+  }
+  return ok;
+}
+
 Error buffer_toggle_mark(Buffer *buffer) {
   if (!buffer) {
     MAKE_ERROR(err, ERROR_ARGUMENTS, nil,

@@ -78,6 +78,15 @@ size_t buffer_mark(Buffer buffer);
  */
 size_t buffer_mark_active(Buffer buffer);
 
+/** Set mark activation state in given buffer to given state.
+ *
+ * @param buffer
+ *   The buffer to alter mark activation state within.
+ * @param active
+ *   When non-zero, activate mark in buffer, otherwise de-activate.
+ */
+Error buffer_set_mark_activation(Buffer *buffer, char active);
+
 /** Toggle BUFFER's mark activation state.
  *
  * When the mark is activated in the given BUFFER, it will be
