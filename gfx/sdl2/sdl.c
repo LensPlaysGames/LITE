@@ -571,7 +571,7 @@ void draw_gui(GUIContext *ctx) {
 HOTFUNCTION
 int handle_event(SDL_Event *event) {
   if (!event) { return 0; }
-  GUIModifierKey mod;
+  static GUIModifierKey mod;
   switch(event->type) {
   default:
     //printf("GFX::SDL: Unhandled event: %u\n", event.type);

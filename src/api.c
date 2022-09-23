@@ -213,6 +213,7 @@ void handle_keydown(char *keystring) {
   if (!handle_character_dn_modifiers(current_keymap, &keybind_recurse_count)) {
     return;
   }
+
   while (keystring && keybind_recurse_count < keybind_recurse_limit) {
     env_get(*genv(), make_sym("CURRENT-KEYMAP"), &current_keymap);
     if (debug_keybinding) {
@@ -235,104 +236,116 @@ void handle_keydown(char *keystring) {
         printf("Nested keymap found, updating CURRENT-KEYMAP\n");
       }
       env_set(*genv(), make_sym("CURRENT-KEYMAP"), keybind);
-      keystring = NULL;
-      continue;
-    } else {
-      Atom root_keymap = nil;
-      env_get(*genv(), make_sym("KEYMAP"), &root_keymap);
-      if (nilp(keybind)) {
-        // If keybind is nil, it means that the keystring is not bound in current keymap.
-        if (pairp(current_keymap) && pairp(root_keymap)
-            && current_keymap.value.pair == root_keymap.value.pair)
-          {
-            // If current keymap is root keymap, key is not bound at all.
-            if (debug_keybinding) {
-              printf("Key not bound: \"%s\"\n", keystring);
-            }
-            // Default behaviour of un-bound input, just insert it.
-            // Maybe this should change? I'm not certain.
-            Error err = buffer_insert(current_buffer.value.buffer, keystring);
-            if (err.type) {
-              print_error(err);
-              update_gui_string(&gctx->footline, error_string(err));
-              return;
-            }
-            keystring = NULL;
-            continue;
+      break;
+    }
+    Atom root_keymap = nil;
+    env_get(*genv(), make_sym("KEYMAP"), &root_keymap);
+    if (nilp(keybind)) {
+      // If keybind is nil, it means that the keystring is not bound in current keymap.
+      if (pairp(current_keymap) && pairp(root_keymap)
+          && current_keymap.value.pair == root_keymap.value.pair)
+        {
+          // If current keymap is root keymap, key is not bound at all.
+          if (debug_keybinding) {
+            printf("Key not bound: \"%s\"\n", keystring);
           }
-        // Key not bound in current keymap, set current to root_keymap and try again.
-        env_set(*genv(), make_sym("CURRENT-KEYMAP"), root_keymap);
-        keybind_recurse_count += 1;
-        if (debug_keybinding) {
-          printf("keybind_recurse_count: %zu\n", keybind_recurse_count);
-        }
-        continue;
-      }
-      if (symbolp(keybind)) {
-        // Explicitly insert with 'SELF-INSERT' symbol.
-        if (keybind.value.symbol && keybind.value.symbol[0] != '\0') {
-          if (strcmp(keybind.value.symbol, "IGNORE") == 0) {
+          // Default behaviour of un-bound input, just insert it.
+          // TODO/FIXME: Maybe this should change? I'm not certain.
+          Error err = buffer_insert(current_buffer.value.buffer, keystring);
+          if (err.type) {
+            print_error(err);
+            update_gui_string(&gctx->footline, error_string(err));
             return;
           }
-          if (strcmp(keybind.value.symbol, "SELF-INSERT") == 0) {
-            Error err = buffer_insert(current_buffer.value.buffer, keystring);
-            if (err.type) {
-              print_error(err);
-              update_gui_string(&gctx->footline, error_string(err));
-              return;
-            }
-            keystring = NULL;
-            continue;
-          }
+          break;
         }
-      } else if (stringp(keybind)) {
-        // Rebind characters using a string associated value.
-        if (keybind.value.symbol && keybind.value.symbol[0] != '\0') {
-          keystring = (char *)keybind.value.symbol;
-          // Go around again!
-          keybind_recurse_count += 1;
-          if (debug_keybinding) {
-            printf("keybind_recurse_count: %zu\n", keybind_recurse_count);
-          }
-          continue;
-        }
-      }
+      // Key not bound in current keymap, set current to root_keymap and try again.
+      // FIXME: I don't think this makes any sense whatsoever.
+      env_set(*genv(), make_sym("CURRENT-KEYMAP"), root_keymap);
+      keybind_recurse_count += 1;
       if (debug_keybinding) {
-        printf("Attempting to evaluate keybind: ");
-        print_atom(keybind);
-        putchar('\n');
+        printf("keybind_recurse_count: %zu\n", keybind_recurse_count);
       }
-      Atom result = nil;
-      Error err = evaluate_expression(keybind, *genv(), &result);
-      if (err.type) {
-        printf("KEYBIND ");
-        print_error(err);
-        update_gui_string(&gctx->footline, error_string(err));
-        env_set(*genv(), make_sym("CURRENT-KEYMAP"), root_keymap);
+      continue;
+    }
+    if (symbolp(keybind)) {
+      if (keybind.value.symbol && keybind.value.symbol[0] != '\0') {
+        // Intentionally ignore with 'IGNORE' symbol.
+        if (strcmp(keybind.value.symbol, "IGNORE") == 0) {
+          return;
+        }
+        // Explicitly insert with 'SELF-INSERT' symbol.
+        if (strcmp(keybind.value.symbol, "SELF-INSERT") == 0) {
+          Error err = buffer_insert(current_buffer.value.buffer, keystring);
+          if (err.type) {
+            print_error(err);
+            update_gui_string(&gctx->footline, error_string(err));
+            return;
+          }
+          break;
+        }
+        // If symbol is not recognized, just attempt to evaluate it
+        // (fallthrough).
+      }
+    } else if (stringp(keybind)) {
+      // Rebind characters using a string associated value.
+      if (!keybind.value.symbol || keybind.value.symbol[0] == '\0') {
+        fprintf(stderr, "Can not follow rebind of %s to empty string!\n", keystring);
         return;
       }
+      keystring = (char *)keybind.value.symbol;
+      // Go around again!
+      keybind_recurse_count += 1;
       if (debug_keybinding) {
-        printf("Result: ");
-        print_atom(result);
-        putchar('\n');
+        printf("keybind_recurse_count: %zu\n", keybind_recurse_count);
       }
-      update_gui_string(&gctx->footline, atom_string(result, NULL));
+      continue;
+      // String is either empty or invalid, either way we should probably return an error.
     }
-    // Reset current keymap
-    env_get(*genv(), make_sym("KEYMAP"), &current_keymap);
-    env_set(*genv(), make_sym("CURRENT-KEYMAP"), current_keymap);
     if (debug_keybinding) {
-      printf("Keymap reset: ");
-      print_atom(current_keymap);
+      printf("Attempting to evaluate keybind: ");
+      print_atom(keybind);
       putchar('\n');
     }
-    keybind_recurse_count += 1;
-    if (debug_keybinding) {
-      printf("keybind_recurse_count: %zu\n", keybind_recurse_count);
+    Atom result = nil;
+    Error err = evaluate_expression(keybind, *genv(), &result);
+    if (err.type) {
+      printf("KEYBIND ");
+      print_error(err);
+      update_gui_string(&gctx->footline, error_string(err));
+      env_set(*genv(), make_sym("CURRENT-KEYMAP"), root_keymap);
+      return;
     }
-    // End keybind loop.
-    keystring = NULL;
+
+    if (env_non_nil(*genv(), make_sym("USER/QUIT"))) {
+      return;
+    }
+
+    if (debug_keybinding) {
+      printf("Result: ");
+      print_atom(result);
+      putchar('\n');
+    }
+    update_gui_string(&gctx->footline, atom_string(result, NULL));
+
+    // Keystring handled through evaluation, break out of keystring
+    // handling loop.
+    break;
   }
+
+  // Reset current keymap
+  env_get(*genv(), make_sym("KEYMAP"), &current_keymap);
+  env_set(*genv(), make_sym("CURRENT-KEYMAP"), current_keymap);
+  if (debug_keybinding) {
+    printf("Keymap reset: ");
+    print_atom(current_keymap);
+    putchar('\n');
+  }
+  keybind_recurse_count += 1;
+  if (debug_keybinding) {
+    printf("keybind_recurse_count: %zu\n", keybind_recurse_count);
+  }
+
 }
 
 void handle_modifier_dn(GUIModifierKey mod) {
@@ -505,6 +518,35 @@ int enter_lite_gui() {
   int open = 1;
   while (open) {
     open = gui_loop();
+
+    // This is the one and only place that USER/QUIT should ever be set
+    // to nil when LITE_GFX is defined. Every other place should simply
+    // return if 'USER/QUIT' is non-nil, and hopefully we eventually
+    // end up back at the top of the call stack, right here :^).
+
+    // TODO: Make part of gui context instead of LISP environment
+    // variable, possibly?
+    if (env_non_nil(*genv(), make_sym("USER/QUIT"))) {
+      // Reset 'USER/QUIT' to nil.
+      Error err = env_set(*genv(), make_sym("USER/QUIT"), nil);
+      if (err.type) {
+        print_error(err);
+        update_gui_string(&gctx->footline, error_string(err));
+
+      }
+      // Reset current keymap to root keymap.
+      Atom keymap;
+      err = env_get(*genv(), make_sym("KEYMAP"), &keymap);
+      if (err.type) {
+        print_error(err);
+        return 0;
+      }
+      err = env_set(*genv(), make_sym("CURRENT-KEYMAP"), keymap);
+      if (err.type) {
+        print_error(err);
+        return 0;
+      }
+    }
   }
   destroy_gui();
   return 0;

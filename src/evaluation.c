@@ -323,6 +323,13 @@ Error evaluate_expression(Atom expr, Atom environment, Atom *result) {
 # define gcol_evaluation_iteration_threshold_default 100000
   static size_t evaluation_iterations_until_gcol = gcol_evaluation_iteration_threshold_default;
   do {
+
+    // Handle Quit
+    if (env_non_nil(environment, make_sym("USER/QUIT"))) {
+      break;
+    }
+
+    // Garbage Collection
     char should_gcol = 0;
     if (!--evaluation_iterations_until_gcol) { should_gcol = 1; }
     // Check pair allocations count every 100 evaluation iterations.
@@ -392,6 +399,9 @@ Error evaluate_expression(Atom expr, Atom environment, Atom *result) {
         printf("=====\n");
       }
     }
+
+    // Expression Evaluation
+
     if (symbolp(expr)) {
       err = env_get(environment, expr, result);
     } else if (expr.type != ATOM_TYPE_PAIR) {
@@ -624,7 +634,7 @@ Error evaluate_expression(Atom expr, Atom environment, Atom *result) {
                        , usage_error);
             return err;
           }
-          printf("LISP ERROR: %s\n", message.value.symbol);
+          fprintf(stderr, "LISP ERROR: %s\n", message.value.symbol);
           *result = make_string(message.value.symbol);
           break;
         } else {

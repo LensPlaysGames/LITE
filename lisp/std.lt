@@ -7,6 +7,11 @@
 
 ;; UTILITY
 
+(defun keyboard-quit ()
+  "Set user/quit to a non-nil value."
+  (finish-read)
+  (set user/quit t))
+
 (defun list-functions ()
   "List all of the functions currently defined in the environment."
   (dolist (item (car (env)) t)
@@ -239,15 +244,12 @@ where it is."
      (buffer-set-point           ,buffer original-point)
      (buffer-set-mark            ,buffer original-mark)
      (buffer-set-mark-activation ,buffer original-mark-activation)))
+
 (defun copy-current-line ()
   "Copy the current line to the clipboard."
-  (let ((original-point (buffer-point current-buffer))
-        (original-mark (buffer-mark current-buffer)))
-    (select-current-line)
-    (clipboard-copy current-buffer)
-    (buffer-toggle-mark current-buffer)
-    (buffer-set-point current-buffer original-point)
-    (buffer-set-mark current-buffer original-mark)))
+  (save-point-and-mark current-buffer
+   (select-current-line)
+   (clipboard-copy current-buffer)))
 
 
 (evaluate-file "lisp/std/binds.lt")

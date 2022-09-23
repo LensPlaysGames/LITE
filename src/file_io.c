@@ -160,6 +160,11 @@ Error evaluate_file(Atom environment, const char *path, Atom *result) {
     }
     err = evaluate_expression(expr, environment, result);
     if (err.type) { return err; }
+
+    if (env_non_nil(*genv(), make_sym("USER/QUIT"))) {
+      break;
+    }
+
     if (!nilp(debug_eval_file)) {
       print_atom(*result);
       putchar('\n');

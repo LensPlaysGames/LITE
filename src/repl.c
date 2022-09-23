@@ -68,20 +68,22 @@ void enter_repl(Atom environment) {
     //==== EVAL ====
     Atom result;
     err = evaluate_expression(expr, environment, &result);
-    //==== PRINT ====
-    switch (err.type) {
-    case ERROR_NONE:
-      print_atom(result);
-      putchar('\n');
+    if (env_non_nil(*genv(), make_sym("USER/QUIT"))) {
+      printf("\nUSER/QUIT non-nil, exiting REPL.");
       break;
-    default:
+    }
+    //==== PRINT ====
+    if (err.type) {
       printf("\nEVALUATION ");
       print_error(err);
       printf("Faulting Expression: ");
       print_atom(expr);
       putchar('\n');
-      break;
+    } else {
+      print_atom(result);
+      putchar('\n');
     }
+
     //==== LOOP ====
     // Free heap-allocated memory.
     free(input);

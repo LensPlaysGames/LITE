@@ -6,6 +6,7 @@
 #include <environment.h>
 #include <evaluation.h>
 #include <file_io.h>
+#include <keystrings.h>
 #include <parser.h>
 #include <repl.h>
 #include <rope.h>
@@ -1140,6 +1141,9 @@ int builtin_apply(Atom arguments, Atom *result) {
   while (!nilp(body)) {
     Error err = evaluate_expression(car(body), environment, result);
     if (err.type) { return err.type; }
+    if (env_non_nil(*genv(), make_sym("USER/QUIT"))) {
+      break;
+    }
     body = cdr(body);
   }
   return ERROR_NONE;
@@ -1216,14 +1220,14 @@ int builtin_read_prompted(Atom arguments, Atom *result) {
 
 #ifdef LITE_GFX
 
-  // Bind return to 'finish-read'.
+  // Bind return to 'finish-read', but save old binding of return so it can be restored.
+  // TODO: Just make a named keymap and add it to keymaps list in the global position.
   Atom keymap = nil;
   env_get(*genv(), make_sym("KEYMAP"), &keymap);
-  // TODO+FIXME: We really need to switch to string-based input...
-  char *return_keystring = "<return>";
-  Atom original_return_binding = alist_get(keymap, make_string(return_keystring));
-  alist_set(&keymap, make_string(return_keystring), cons(make_sym("FINISH-READ"), nil));
+  Atom original_return_binding = alist_get(keymap, make_string(LITE_KEYSTRING_RETURN));
+  alist_set(&keymap, make_string(LITE_KEYSTRING_RETURN), cons(make_sym("FINISH-READ"), nil));
   env_set(*genv(), make_sym("KEYMAP"), keymap);
+  env_set(*genv(), make_sym("CURRENT-KEYMAP"), keymap);
 
   Atom popup_buffer = make_buffer(env_create(nil), ".popup");
   if (!bufferp(popup_buffer) || !popup_buffer.value.buffer) {
@@ -1235,7 +1239,7 @@ int builtin_read_prompted(Atom arguments, Atom *result) {
   buffer_remove_bytes_forward(popup_buffer.value.buffer, SIZE_MAX);
 
   // Insert prompt.
-  // TODO+FIXME: Make prompt not editable.
+  // TODO+FIXME: Make prompt not editable, somehow :p.
   buffer_insert(popup_buffer.value.buffer, (char *)prompt.value.symbol);
 
   // Re-enter main loop until input is complete.
@@ -1260,7 +1264,7 @@ int builtin_read_prompted(Atom arguments, Atom *result) {
 
   // Restore keymap.
   env_get(*genv(), make_sym("KEYMAP"), &keymap);
-  alist_set(&keymap, make_string(return_keystring), original_return_binding);
+  alist_set(&keymap, make_string(LITE_KEYSTRING_RETURN), original_return_binding);
   env_set(*genv(), make_sym("KEYMAP"), keymap);
 
 #else /* #ifdef LITE_GFX */
@@ -1270,11 +1274,14 @@ int builtin_read_prompted(Atom arguments, Atom *result) {
     return ERROR_MEMORY;
   }
   size_t input_length = strlen(input);
-  if (input[input_length - 1] == '\n'
-      || input[input_length - 1] == '\r')
-    {
-      input[input_length - 1] = '\0';
-    }
+  // Trim newline byte(s) from end of input, if present.
+  if (input[input_length - 1] == '\n') {
+    input_length -= 1;
+  }
+  if (input[input_length - 1] == '\r') {
+    input_length -= 1;
+  }
+  input[input_length] = '\0';
   *result = make_string(input);
   print_atom(*result);
   free(input);

@@ -148,6 +148,8 @@
      ctrl-keymap "d"
      '(buffer-remove-forward current-buffer 1))
 
+    (keymap-push ctrl-keymap "g" '(keyboard-quit))
+
     ;; ctrl keybinds: Simple buffer navigation
     (keymap-push ctrl-keymap " " '(set-or-toggle-mark))
     (keymap-push ctrl-keymap "f" '(forward-byte))
