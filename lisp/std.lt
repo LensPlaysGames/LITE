@@ -189,6 +189,18 @@ Useful for ensuring the user would like to do something before doing it."
   "Evaluate the first line of the current buffer as a LITE LISP expression."
   (evaluate-string (read-prompted "Eval: ")))
 
+(defun activate-mark ()
+  "Activate mark in current buffer."
+  (buffer-set-mark-activation current-buffer t))
+
+(defun deactivate-mark ()
+  "Activate mark in current buffer."
+  (buffer-set-mark-activation current-buffer nil))
+
+(defun set-mark-to-point ()
+  "Set mark in current buffer to current point."
+  (buffer-set-mark current-buffer (buffer-point current-buffer)))
+
 (defun set-or-toggle-mark ()
   "If mark is disabled, activate it. If point is over mark, de-activate mark.
 Otherwise, set mark to current point."
@@ -198,7 +210,7 @@ Otherwise, set mark to current point."
         (buffer-toggle-mark current-buffer))
       (if (= (buffer-point current-buffer) (buffer-mark current-buffer))
           (buffer-toggle-mark current-buffer)
-          (buffer-set-mark current-buffer (buffer-point current-buffer)))))
+          (set-mark-to-point))))
 
 (defun insert-lf ()
   "Insert a newline character, but keep point where it is."
@@ -214,10 +226,19 @@ where it is."
 (defun select-current-line ()
   "Mark region of the line the point resides within in the current buffer."
   (beginning-of-line)
-  (set-or-toggle-mark)
+  (activate-mark)
   (end-of-line)
   )
 
+(defmacro save-point-and-mark (buffer . body)
+  "Evaluate body, then restore point and mark state of given buffer."
+  `(let ((original-point           (buffer-point ,buffer))
+         (original-mark            (buffer-mark  ,buffer))
+         (original-mark-activation (buffer-mark-active ,buffer)))
+     ,@body
+     (buffer-set-point           ,buffer original-point)
+     (buffer-set-mark            ,buffer original-mark)
+     (buffer-set-mark-activation ,buffer original-mark-activation)))
 (defun copy-current-line ()
   "Copy the current line to the clipboard."
   (let ((original-point (buffer-point current-buffer))

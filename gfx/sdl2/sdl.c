@@ -1,6 +1,7 @@
 #include <api.h>
 #include <gui.h>
 #include <utility.h>
+#include <keystrings.h>
 
 #include <assert.h>
 #include <stdint.h>
@@ -590,280 +591,280 @@ int handle_event(SDL_Event *event) {
         break;
       case SDLK_RETURN:
       case SDLK_RETURN2:
-        strncpy(string, "<return>"                       , max_size);
+        strncpy(string, LITE_KEYSTRING_RETURN, max_size);
         break;
       case SDLK_BACKSPACE:
-        strncpy(string, "<backspace>"                    , max_size);
+        strncpy(string, LITE_KEYSTRING_BACKSPACE, max_size);
         break;
       case SDLK_TAB:
-        strncpy(string, "<tab>"                          , max_size);
+        strncpy(string, LITE_KEYSTRING_TAB, max_size);
         break;
       case SDLK_CAPSLOCK:
-        strncpy(string, "<capslock>"                     , max_size);
+        strncpy(string, LITE_KEYSTRING_CAPSLOCK, max_size);
         break;
       case SDLK_ESCAPE:
-        strncpy(string, "<escape>"                       , max_size);
+        strncpy(string, LITE_KEYSTRING_ESCAPE, max_size);
         break;
       case SDLK_INSERT:
-        strncpy(string, "<insert>"                       , max_size);
+        strncpy(string, LITE_KEYSTRING_INSERT, max_size);
         break;
       case SDLK_DELETE:
-        strncpy(string, "<delete>"                       , max_size);
+        strncpy(string, LITE_KEYSTRING_DELETE, max_size);
         break;
       case SDLK_HOME:
-        strncpy(string, "<home>"                         , max_size);
+        strncpy(string, LITE_KEYSTRING_HOME, max_size);
         break;
       case SDLK_END:
-        strncpy(string, "<end>"                          , max_size);
+        strncpy(string, LITE_KEYSTRING_END, max_size);
         break;
       case SDLK_PAGEUP:
-        strncpy(string, "<page-up>"                      , max_size);
+        strncpy(string, LITE_KEYSTRING_PAGE_UP, max_size);
         break;
       case SDLK_PAGEDOWN:
-        strncpy(string, "<page-down>"                    , max_size);
+        strncpy(string, LITE_KEYSTRING_PAGE_DOWN, max_size);
         break;
       case SDLK_LEFT:
-        strncpy(string, "<left-arrow>"                   , max_size);
+        strncpy(string, LITE_KEYSTRING_LEFT_ARROW, max_size);
         break;
       case SDLK_RIGHT:
-        strncpy(string, "<right-arrow>"                  , max_size);
+        strncpy(string, LITE_KEYSTRING_RIGHT_ARROW, max_size);
         break;
       case SDLK_UP:
-        strncpy(string, "<up-arrow>"                     , max_size);
+        strncpy(string, LITE_KEYSTRING_UP_ARROW, max_size);
         break;
       case SDLK_DOWN:
-        strncpy(string, "<down-arrow>"                   , max_size);
+        strncpy(string, LITE_KEYSTRING_DOWN_ARROW, max_size);
         break;
       case SDLK_SCROLLLOCK:
-        strncpy(string, "<scroll-lock>"                  , max_size);
+        strncpy(string, LITE_KEYSTRING_SCROLL_LOCK, max_size);
         break;
       case SDLK_PAUSE:
-        strncpy(string, "<pause>"                        , max_size);
+        strncpy(string, LITE_KEYSTRING_PAUSE, max_size);
         break;
       case SDLK_PRINTSCREEN:
-        strncpy(string, "<print-screen>"                 , max_size);
+        strncpy(string, LITE_KEYSTRING_PRINT_SCREEN, max_size);
         break;
       case SDLK_NUMLOCKCLEAR:
-        strncpy(string, "<numpad:lock>"                  , max_size);
+        strncpy(string, LITE_KEYSTRING_NUMPAD_LOCK, max_size);
         break;
       case SDLK_F1:
-        strncpy(string, "<f1>"                           , max_size);
+        strncpy(string, LITE_KEYSTRING_F1, max_size);
         break;
       case SDLK_F2:
-        strncpy(string, "<f2>"                           , max_size);
+        strncpy(string, LITE_KEYSTRING_F2, max_size);
         break;
       case SDLK_F3:
-        strncpy(string, "<f3>"                           , max_size);
+        strncpy(string, LITE_KEYSTRING_F3, max_size);
         break;
       case SDLK_F4:
-        strncpy(string, "<f4>"                           , max_size);
+        strncpy(string, LITE_KEYSTRING_F4, max_size);
         break;
       case SDLK_F5:
-        strncpy(string, "<f5>"                           , max_size);
+        strncpy(string, LITE_KEYSTRING_F5, max_size);
         break;
       case SDLK_F6:
-        strncpy(string, "<f6>"                           , max_size);
+        strncpy(string, LITE_KEYSTRING_F6, max_size);
         break;
       case SDLK_F7:
-        strncpy(string, "<f7>"                           , max_size);
+        strncpy(string, LITE_KEYSTRING_F7, max_size);
         break;
       case SDLK_F8:
-        strncpy(string, "<f8>"                           , max_size);
+        strncpy(string, LITE_KEYSTRING_F8, max_size);
         break;
       case SDLK_F9:
-        strncpy(string, "<f9>"                           , max_size);
+        strncpy(string, LITE_KEYSTRING_F9, max_size);
         break;
       case SDLK_F10:
-        strncpy(string, "<f10>"                          , max_size);
+        strncpy(string, LITE_KEYSTRING_F10, max_size);
         break;
       case SDLK_F11:
-        strncpy(string, "<f11>"                          , max_size);
+        strncpy(string, LITE_KEYSTRING_F11, max_size);
         break;
       case SDLK_F12:
-        strncpy(string, "<f12>"                          , max_size);
+        strncpy(string, LITE_KEYSTRING_F12, max_size);
         break;
       case SDLK_F13:
-        strncpy(string, "<f13>"                          , max_size);
+        strncpy(string, LITE_KEYSTRING_F13, max_size);
         break;
       case SDLK_F14:
-        strncpy(string, "<f14>"                          , max_size);
+        strncpy(string, LITE_KEYSTRING_F14, max_size);
         break;
       case SDLK_F15:
-        strncpy(string, "<f15>"                          , max_size);
+        strncpy(string, LITE_KEYSTRING_F15, max_size);
         break;
       case SDLK_F16:
-        strncpy(string, "<f16>"                          , max_size);
+        strncpy(string, LITE_KEYSTRING_F16, max_size);
         break;
       case SDLK_F17:
-        strncpy(string, "<f17>"                          , max_size);
+        strncpy(string, LITE_KEYSTRING_F17, max_size);
         break;
       case SDLK_F18:
-        strncpy(string, "<f18>"                          , max_size);
+        strncpy(string, LITE_KEYSTRING_F18, max_size);
         break;
       case SDLK_F19:
-        strncpy(string, "<f19>"                          , max_size);
+        strncpy(string, LITE_KEYSTRING_F19, max_size);
         break;
       case SDLK_F20:
-        strncpy(string, "<f20>"                          , max_size);
+        strncpy(string, LITE_KEYSTRING_F20, max_size);
         break;
       case SDLK_F21:
-        strncpy(string, "<f21>"                          , max_size);
+        strncpy(string, LITE_KEYSTRING_F21, max_size);
         break;
       case SDLK_F22:
-        strncpy(string, "<f22>"                          , max_size);
+        strncpy(string, LITE_KEYSTRING_F22, max_size);
         break;
       case SDLK_F23:
-        strncpy(string, "<f23>"                          , max_size);
+        strncpy(string, LITE_KEYSTRING_F23, max_size);
         break;
       case SDLK_F24:
-        strncpy(string, "<f24>"                          , max_size);
+        strncpy(string, LITE_KEYSTRING_F24, max_size);
         break;
       case SDLK_KP_0:
-        strncpy(string, "<numpad:0>"                     , max_size);
+        strncpy(string, LITE_KEYSTRING_NUMPAD_0, max_size);
         break;
       case SDLK_KP_1:
-        strncpy(string, "<numpad:1>"                     , max_size);
+        strncpy(string, LITE_KEYSTRING_NUMPAD_1, max_size);
         break;
       case SDLK_KP_2:
-        strncpy(string, "<numpad:2>"                     , max_size);
+        strncpy(string, LITE_KEYSTRING_NUMPAD_2, max_size);
         break;
       case SDLK_KP_3:
-        strncpy(string, "<numpad:3>"                     , max_size);
+        strncpy(string, LITE_KEYSTRING_NUMPAD_3, max_size);
         break;
       case SDLK_KP_4:
-        strncpy(string, "<numpad:4>"                     , max_size);
+        strncpy(string, LITE_KEYSTRING_NUMPAD_4, max_size);
         break;
       case SDLK_KP_5:
-        strncpy(string, "<numpad:5>"                     , max_size);
+        strncpy(string, LITE_KEYSTRING_NUMPAD_5, max_size);
         break;
       case SDLK_KP_6:
-        strncpy(string, "<numpad:6>"                     , max_size);
+        strncpy(string, LITE_KEYSTRING_NUMPAD_6, max_size);
         break;
       case SDLK_KP_7:
-        strncpy(string, "<numpad:7>"                     , max_size);
+        strncpy(string, LITE_KEYSTRING_NUMPAD_7, max_size);
         break;
       case SDLK_KP_8:
-        strncpy(string, "<numpad:8>"                     , max_size);
+        strncpy(string, LITE_KEYSTRING_NUMPAD_8, max_size);
         break;
       case SDLK_KP_9:
-        strncpy(string, "<numpad:9>"                     , max_size);
+        strncpy(string, LITE_KEYSTRING_NUMPAD_0, max_size);
         break;
       case SDLK_KP_00:
-        strncpy(string, "<numpad:00>"                    , max_size);
+        strncpy(string, LITE_KEYSTRING_NUMPAD_00, max_size);
         break;
       case SDLK_KP_000:
-        strncpy(string, "<numpad:000>"                   , max_size);
+        strncpy(string, LITE_KEYSTRING_NUMPAD_000, max_size);
         break;
       case SDLK_KP_PERIOD:
-        strncpy(string, "<numpad:.>"                     , max_size);
+        strncpy(string, LITE_KEYSTRING_NUMPAD_DOT, max_size);
         break;
       case SDLK_KP_ENTER:
-        strncpy(string, "<numpad:return>"                , max_size);
+        strncpy(string, LITE_KEYSTRING_NUMPAD_RETURN, max_size);
         break;
       case SDLK_KP_PLUS:
-        strncpy(string, "<numpad:plus>"                  , max_size);
+        strncpy(string, LITE_KEYSTRING_NUMPAD_PLUS, max_size);
         break;
       case SDLK_KP_MINUS:
-        strncpy(string, "<numpad:minus>"                 , max_size);
+        strncpy(string, LITE_KEYSTRING_NUMPAD_MINUS, max_size);
         break;
       case SDLK_KP_MULTIPLY:
-        strncpy(string, "<numpad:multiply>"              , max_size);
+        strncpy(string, LITE_KEYSTRING_NUMPAD_MULTIPLY, max_size);
         break;
       case SDLK_KP_DIVIDE:
-        strncpy(string, "<numpad:divide>"                , max_size);
+        strncpy(string, LITE_KEYSTRING_NUMPAD_DIVIDE, max_size);
         break;
       case SDLK_KP_EQUALS:
-        strncpy(string, "<numpad:equals>"                , max_size);
+        strncpy(string, LITE_KEYSTRING_NUMPAD_EQUALS, max_size);
         break;
       case SDLK_KP_GREATER:
-        strncpy(string, "<numpad:greater>"               , max_size);
+        strncpy(string, LITE_KEYSTRING_NUMPAD_GREATER, max_size);
         break;
       case SDLK_KP_LESS:
-        strncpy(string, "<numpad:less>"                  , max_size);
+        strncpy(string, LITE_KEYSTRING_NUMPAD_LESS, max_size);
         break;
       case SDLK_KP_AMPERSAND:
-        strncpy(string, "<numpad:&>"                     , max_size);
+        strncpy(string, LITE_KEYSTRING_NUMPAD_AMPERSAND, max_size);
         break;
       case SDLK_KP_DBLAMPERSAND:
-        strncpy(string, "<numpad:&&>"                    , max_size);
+        strncpy(string, LITE_KEYSTRING_NUMPAD_DOUBLE_AMPERSAND, max_size);
         break;
       case SDLK_KP_VERTICALBAR:
-        strncpy(string, "<numpad:|>"                     , max_size);
+        strncpy(string, LITE_KEYSTRING_NUMPAD_PIPE, max_size);
         break;
       case SDLK_KP_DBLVERTICALBAR:
-        strncpy(string, "<numpad:||>"                    , max_size);
+        strncpy(string, LITE_KEYSTRING_NUMPAD_DOUBLE_PIPE, max_size);
         break;
       case SDLK_KP_XOR:
-        strncpy(string, "<numpad:xor>"                   , max_size);
+        strncpy(string, LITE_KEYSTRING_NUMPAD_XOR, max_size);
         break;
       case SDLK_KP_LEFTPAREN:
-        strncpy(string, "<numpad:(>"                     , max_size);
+        strncpy(string, LITE_KEYSTRING_NUMPAD_LEFT_PARENTHESIS, max_size);
         break;
       case SDLK_KP_RIGHTPAREN:
-        strncpy(string, "<numpad:)>"                     , max_size);
+        strncpy(string, LITE_KEYSTRING_NUMPAD_RIGHT_PARENTHESIS, max_size);
         break;
       case SDLK_KP_LEFTBRACE:
-        strncpy(string, "<numpad:{>"                     , max_size);
+        strncpy(string, LITE_KEYSTRING_NUMPAD_LEFT_BRACE, max_size);
         break;
       case SDLK_KP_RIGHTBRACE:
-        strncpy(string, "<numpad:}>"                     , max_size);
+        strncpy(string, LITE_KEYSTRING_NUMPAD_RIGHT_BRACE, max_size);
         break;
       case SDLK_KP_PERCENT:
-        strncpy(string, "<numpad:%>"                     , max_size);
+        strncpy(string, LITE_KEYSTRING_NUMPAD_PERCENT, max_size);
         break;
       case SDLK_KP_POWER:
-        strncpy(string, "<numpad:power>"                 , max_size);
+        strncpy(string, LITE_KEYSTRING_NUMPAD_POWER, max_size);
         break;
       case SDLK_KP_SPACE:
-        strncpy(string, "<numpad: >"                     , max_size);
+        strncpy(string, LITE_KEYSTRING_NUMPAD_SPACE, max_size);
         break;
       case SDLK_KP_BACKSPACE:
-        strncpy(string, "<numpad:backspace>"             , max_size);
+        strncpy(string, LITE_KEYSTRING_NUMPAD_BACKSPACE, max_size);
         break;
       case SDLK_KP_TAB:
-        strncpy(string, "<numpad:tab>"                   , max_size);
+        strncpy(string, LITE_KEYSTRING_NUMPAD_TAB, max_size);
         break;
       case SDLK_KP_PLUSMINUS:
-        strncpy(string, "<numpad:plusminus>"             , max_size);
+        strncpy(string, LITE_KEYSTRING_NUMPAD_PLUS_MINUS, max_size);
         break;
       case SDLK_KP_EXCLAM:
-        strncpy(string, "<numpad:!>"                     , max_size);
+        strncpy(string, LITE_KEYSTRING_NUMPAD_EXCLAMATION, max_size);
         break;
       case SDLK_KP_COLON:
-        strncpy(string, "<numpad::>"                     , max_size);
+        strncpy(string, LITE_KEYSTRING_NUMPAD_COLON, max_size);
         break;
       case SDLK_KP_COMMA:
-        strncpy(string, "<numpad:,>"                     , max_size);
+        strncpy(string, LITE_KEYSTRING_NUMPAD_COMMA, max_size);
         break;
       case SDLK_KP_AT:
-        strncpy(string, "<numpad:@>"                     , max_size);
+        strncpy(string, LITE_KEYSTRING_NUMPAD_AT, max_size);
         break;
       case SDLK_KP_OCTAL:
-        strncpy(string, "<numpad:octal>"                 , max_size);
+        strncpy(string, LITE_KEYSTRING_NUMPAD_OCTAL, max_size);
         break;
       case SDLK_KP_DECIMAL:
-        strncpy(string, "<numpad:decimal>"               , max_size);
+        strncpy(string, LITE_KEYSTRING_NUMPAD_DECIMAL, max_size);
         break;
       case SDLK_KP_HEXADECIMAL:
-        strncpy(string, "<numpad:hexadecimal>"           , max_size);
+        strncpy(string, LITE_KEYSTRING_NUMPAD_HEXADECIMAL, max_size);
         break;
       case SDLK_KP_A:
-        strncpy(string, "<numpad:A>"                     , max_size);
+        strncpy(string, LITE_KEYSTRING_NUMPAD_A, max_size);
         break;
       case SDLK_KP_B:
-        strncpy(string, "<numpad:B>"                     , max_size);
+        strncpy(string, LITE_KEYSTRING_NUMPAD_B, max_size);
         break;
       case SDLK_KP_C:
-        strncpy(string, "<numpad:C>"                     , max_size);
+        strncpy(string, LITE_KEYSTRING_NUMPAD_C, max_size);
         break;
       case SDLK_KP_D:
-        strncpy(string, "<numpad:D>"                     , max_size);
+        strncpy(string, LITE_KEYSTRING_NUMPAD_D, max_size);
         break;
       case SDLK_KP_E:
-        strncpy(string, "<numpad:E>"                     , max_size);
+        strncpy(string, LITE_KEYSTRING_NUMPAD_E, max_size);
         break;
       case SDLK_KP_F:
-        strncpy(string, "<numpad:F>"                     , max_size);
+        strncpy(string, LITE_KEYSTRING_NUMPAD_F, max_size);
         break;
       }
       string[max_size - 1] = '\0';
@@ -895,7 +896,7 @@ int handle_events() {
 // Returns a boolean-like integer value (0 is false).
 int do_gui(GUIContext *ctx) {
   if (!ctx) {
-    printf("GFX::SDL:ERROR: Can not render NULL graphical context.\n");
+    fprintf(stderr, "GFX::SDL:ERROR: Can not render NULL graphical context.\n");
     return 0;
   }
   int status = handle_events();
@@ -904,6 +905,8 @@ int do_gui(GUIContext *ctx) {
     return 0;
   }
   draw_gui(ctx);
+  // Wait for next user input before returning. This cuts down CPU
+  // usage dramatically.
   SDL_Event event;
   SDL_WaitEvent(&event);
   return handle_event(&event);

@@ -459,15 +459,18 @@ int gui_loop() {
     new_contents = buffer_string(*current_buffer.value.buffer);
   }
 
+  // Figure out which GUIString to update. This is effectively window
+  // selection.
   GUIString *to_update =
     gctx->reading ? &gctx->popup : &gctx->contents;
   update_gui_string(to_update, new_contents);
+
   if (bufferp(current_buffer) && current_buffer.value.buffer) {
     GUIStringProperty *cursor_property = string_property
-      (current_buffer.value.buffer->point_byte, 1
-       , cursor_fg, cursor_bg);
+      (current_buffer.value.buffer->point_byte, 1,
+       cursor_fg, cursor_bg);
     add_property(to_update, cursor_property);
-    // If mark is activated, draw gui string property.
+    // If mark is activated, create GUIStringProperty for selection.
     if (buffer_mark_active(*current_buffer.value.buffer)) {
       size_t mark_byte = buffer_mark(*current_buffer.value.buffer);
       size_t offset = 0;

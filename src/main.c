@@ -120,12 +120,13 @@ int main(int argc, char **argv) {
 
   int status = 0;
   printf("|> LITE will guide the way through the darkness.\n");
+
 # ifdef LITE_GFX
   status = enter_lite_gui();
 # else
   enter_repl(*genv());
 # endif
-  exit_safe(status);
 
+  exit_safe(status);
   return status;
 }
