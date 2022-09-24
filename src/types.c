@@ -225,7 +225,7 @@ typedef struct SymbolTable {
   char **data;
 } SymbolTable;
 
-void symbol_table_print(SymbolTable table) {
+static void symbol_table_print(SymbolTable table) {
   printf("Symbol table:\n");
   char *str = NULL;
   for (size_t i = 0; i < table.data_capacity; ++i) {
@@ -237,7 +237,7 @@ void symbol_table_print(SymbolTable table) {
   }
 }
 
-SymbolTable symbol_table_create(size_t initial_capacity) {
+static SymbolTable symbol_table_create(size_t initial_capacity) {
   SymbolTable out;
   out.data_count = 0;
   out.data_capacity = initial_capacity;
@@ -245,9 +245,9 @@ SymbolTable symbol_table_create(size_t initial_capacity) {
   return out;
 }
 
-void symbol_table_expand(SymbolTable *table);
+static void symbol_table_expand(SymbolTable *table);
 
-size_t sdbm(unsigned char *str) {
+static size_t sdbm(unsigned char *str) {
   size_t hash = 0;
   int c;
 
@@ -257,7 +257,7 @@ size_t sdbm(unsigned char *str) {
   return hash;
 }
 
-size_t djb2(unsigned char *str) {
+static size_t djb2(unsigned char *str) {
   size_t hash = 5381;
   int c;
   while ((c = *str++)) {
@@ -266,12 +266,12 @@ size_t djb2(unsigned char *str) {
   return hash;
 }
 
-size_t symbol_table_hash(SymbolTable table, char *key) {
+static size_t symbol_table_hash(SymbolTable table, char *key) {
   return sdbm((unsigned char *)key) & (table.data_capacity - 1);
 }
 
 /// Return the entry for the given key string.
-char **symbol_table_entry(SymbolTable table, char *key) {
+static char **symbol_table_entry(SymbolTable table, char *key) {
   if (!key) {
     fprintf(stderr, "Can not get symbol table entry for NULL key!\n");
     return NULL;
@@ -309,7 +309,7 @@ char **symbol_table_entry(SymbolTable table, char *key) {
 }
 
 /// Attempt to get symbol at KEY, inserting KEY if not found.
-char *symbol_table_get_or_insert(SymbolTable *table, char *key) {
+static char *symbol_table_get_or_insert(SymbolTable *table, char *key) {
   // If data_count is too close to data_capacity, expand.
   if (table->data_count > (table->data_capacity >> 1)) {
     symbol_table_expand(table);
@@ -327,7 +327,7 @@ char *symbol_table_get_or_insert(SymbolTable *table, char *key) {
 }
 
 /// Attempt to get symbol at KEY, inserting a duplicate of KEY if not found.
-char *symbol_table_get_or_insert_duplicate(SymbolTable *table, char *key) {
+static char *symbol_table_get_or_insert_duplicate(SymbolTable *table, char *key) {
   // If data_count is too close to data_capacity, expand.
   if (table->data_count > (table->data_capacity >> 1)) {
     symbol_table_expand(table);
@@ -344,11 +344,11 @@ char *symbol_table_get_or_insert_duplicate(SymbolTable *table, char *key) {
   return *entry;
 }
 
-void symbol_table_free(SymbolTable table) {
+static void symbol_table_free(SymbolTable table) {
   free(table.data);
 }
 
-void symbol_table_expand(SymbolTable *table) {
+static void symbol_table_expand(SymbolTable *table) {
   // Create a new, larger hash table.
   size_t old_capacity = table->data_capacity;
   size_t new_capacity = table->data_capacity << 1;
