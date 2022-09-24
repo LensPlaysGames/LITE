@@ -29,3 +29,9 @@
 # Build artifacts/files
 **/*.exe
 **/*.o
+
+
+# LaTeX
+**/*.aux
+**/*.log
+**/*.out

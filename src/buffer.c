@@ -497,9 +497,10 @@ char *buffer_current_line(Buffer buffer) {
   }
   char *current_line = NULL;
   size_t line_length = 0;
-  if (*beg == '\n') {
-    beg += 1;
-  }
+  //if (*beg == '\n') {
+  //  beg += 1;
+  //}
+  // Search forward for end of string, newline, or end of rope.
   char *end = contents + buffer.point_byte;
   while (*end != '\0' && *end != '\n' && point < buffer.rope->weight) {
     end += 1;

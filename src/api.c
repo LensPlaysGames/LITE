@@ -532,7 +532,7 @@ int enter_lite_gui() {
       if (err.type) {
         print_error(err);
         update_gui_string(&gctx->footline, error_string(err));
-
+        return 0;
       }
       // Reset current keymap to root keymap.
       Atom keymap;

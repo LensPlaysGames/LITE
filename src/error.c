@@ -112,16 +112,19 @@ char *error_string(Error e) {
     if (refer_string) {
       append_error_string("> ");
       append_error_string(refer_string);
+      append_error_string("\n");
       free(refer_string);
     }
   }
   if (e.message) {
     append_error_string(": ");
     append_error_string((char *)e.message);
+    append_error_string("\n");
   }
   if (e.suggestion) {
     append_error_string(":: ");
     append_error_string((char *)e.suggestion);
+    append_error_string("\n");
   }
   return strdup(error_string_buffer);
 }

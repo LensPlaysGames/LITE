@@ -8,7 +8,10 @@
 ;; UTILITY
 
 (defun keyboard-quit ()
-  "Set user/quit to a non-nil value."
+  "Stop all current LISP evaluation.
+If you don't know what's happening, messed up, etc. then call this.
+
+Finishes any prompts/reads and sets 'USER/QUIT' to a non-nil value."
   (finish-read)
   (set user/quit t))
 
@@ -30,6 +33,18 @@ and print out their respective docstrings."
           ))
       )))
 
+(defmacro save-point-and-mark (buffer . body)
+  "Evaluate body, then restore point and mark state of BUFFER.
+Return the result of BODY."
+  `(let ((original-point           (buffer-point ,buffer))
+         (original-mark            (buffer-mark  ,buffer))
+         (original-mark-activation (buffer-mark-active ,buffer)))
+     (let ((result (progn ,@body)))
+       (buffer-set-point           ,buffer original-point)
+       (buffer-set-mark            ,buffer original-mark)
+       (buffer-set-mark-activation ,buffer original-mark-activation)
+       result)))
+
 ;; BUFFERS
 
 (defun buffer-prev-line (buffer)
@@ -49,6 +64,18 @@ and print out their respective docstrings."
     (let ((output (buffer-current-line current-buffer)))
       (buffer-set-point current-buffer original-point)
       output)))
+
+(defun byte-at-point (buffer)
+  "Get the byte under the point in BUFFER."
+  (buffer-index buffer (buffer-point buffer)))
+
+(defun byte-before-point (buffer)
+  "Get the byte just before the point in BUFFER.
+If point is zero, get byte at point."
+  (let ((point (buffer-point buffer)))
+    (if (= point 0)
+        (buffer-index buffer 0)
+        (buffer-index buffer (- point 1)))))
 
 ;; Navigation
 
@@ -82,22 +109,66 @@ and print out their respective docstrings."
           (forward-bytes 999999999999) ;; get to end of last line.
           "End of line.")))
 
+;; "input\nstring\nexample\n" ^ = point
+;;           ^
+;;       |---|                  = column-offset
+;; |-----|                      = previous-line-length
 (defun backward-line ()
   "Move backward one line, if possible.
 
 Attempts to keep point column the same."
   ;; Calculate column offset and move to end of previous line.
   (let ((column-offset (buffer-seek-byte current-buffer "\\n" -1)))
-    (when (eq (buffer-index current-buffer (buffer-point current-buffer)) "\\r")
-      (forward-byte))
-    ;; If on the first line, do nothing.
+    ;; 'buffer-seek-byte' returns zero when the given byte was not found.
+    ;; The following 'unless' means nothing will happen on the first line.
     (unless (= column-offset 0)
-      (let ((distance-from-end-to-column (+ (- (string-length (buffer-current-line current-buffer)) column-offset) 1)))
-        (if (> distance-from-end-to-column 0)
-            (backward-bytes distance-from-end-to-column)
-            current-buffer)))))
+      (let ((previous-line-length-impl (buffer-seek-byte current-buffer "\\n" -1)))
+        (let ((previous-line-length
+               (if (= 0 previous-line-length-impl)
+                   (buffer-point current-buffer)
+                   previous-line-length-impl))
+              (beginning-of-previous-line
+               (if (= previous-line-length-impl 0)
+                   0
+                   (+ 1 (buffer-point current-buffer)))))
+          (buffer-set-point current-buffer beginning-of-previous-line)
+          (if (> previous-line-length column-offset)
+              (forward-bytes (- column-offset 1))
+              (end-of-line)))))))
 
+
+(defun current-point-column-offset ()
+  "Get the byte offset of the point into the current line."
+  (save-point-and-mark
+   current-buffer
+   (let ((column-offset (buffer-seek-byte current-buffer "\\n" -1)))
+     (if (= column-offset 0)
+         (+ 1 (buffer-point current-buffer))
+         column-offset))))
+
+;; "input\nstring\nexample\n" ^ = point
+;;           ^
+;;       |---|                  = column-offset
+;;               |--------|     = next-line-length
 (defun forward-line ()
+  "Move forward one line, if possible.
+
+Attempts to keep point column the same."
+  (let ((column-offset (current-point-column-offset)))
+    ;; Seek forward for next newline, unless already over a newline.
+    (unless (eq "\\n" (byte-at-point current-buffer))
+      (buffer-seek-byte current-buffer "\\n" 1))
+    (let ((next-line-length (buffer-seek-byte current-buffer "\\n" 1)))
+      (when (> next-line-length column-offset)
+        (backward-bytes (- next-line-length column-offset))))
+    ;; Return current-buffer, just to stay consistent between different
+    ;; control flows.
+    current-buffer
+    )
+  )
+
+;; TODO: forward-line currently skips TWO lines when trying to skip past newline at beginning of buffer...
+(defun forward-line-old ()
   "Move forward one line, if possible.
 
 Attempts to keep point column the same."
@@ -116,7 +187,7 @@ Attempts to keep point column the same."
                  column-offset-impl))))
       ;; Seek forward to next newline.
       (buffer-seek-byte current-buffer "\\n" 1)
-      ;; if next line has space to navigate to originating column,
+      ;; If next line has space to navigate to originating column,
       (if (<= column-offset (string-length (buffer-next-line current-buffer)))
           ;; then navigate to the originating column.
           (forward-bytes column-offset)
@@ -124,7 +195,8 @@ Attempts to keep point column the same."
           (if (= (buffer-seek-byte current-buffer "\\n" 1) 0)
               ;; If no newline is found, move to end of buffer.
               (forward-bytes 999999999999)
-              current-buffer)))))
+              current-buffer))))
+  )
 
 (defun search-forward ()
   "Set the point to the beginning of the prompted-for string if it is found in current buffer."
@@ -234,16 +306,6 @@ where it is."
   (activate-mark)
   (end-of-line)
   )
-
-(defmacro save-point-and-mark (buffer . body)
-  "Evaluate body, then restore point and mark state of given buffer."
-  `(let ((original-point           (buffer-point ,buffer))
-         (original-mark            (buffer-mark  ,buffer))
-         (original-mark-activation (buffer-mark-active ,buffer)))
-     ,@body
-     (buffer-set-point           ,buffer original-point)
-     (buffer-set-mark            ,buffer original-mark)
-     (buffer-set-mark-activation ,buffer original-mark-activation)))
 
 (defun copy-current-line ()
   "Copy the current line to the clipboard."

@@ -301,7 +301,7 @@ static inline void draw_gui_string_into_surface_within_rect
     // Byte offset of `string_contents` iterator into string.
     size_t offset = 0;
     // Byte offset of newline previous to `offset` in string.
-    size_t last_newline_offset = 0;
+    size_t last_newline_offset = -1;
     // Destination within text_surface to render text into.
     // SDL_BlitSurface overrides the destination rect w and h,
     // so we must use a copy to prevent clobbering our data.
@@ -310,13 +310,13 @@ static inline void draw_gui_string_into_surface_within_rect
     while (1) {
       if (*string_contents == '\n' || *string_contents == '\0') {
         // Byte offset of start of line we are currently at the end of.
-        size_t start_of_line_offset =
-          last_newline_offset == 0 ? 0 : last_newline_offset + 1;
+        size_t start_of_line_offset = last_newline_offset + 1;
+        size_t line_height = font_height;
+
         // Iterator for GUIString properties linked list.
         GUIStringProperty *it = string.properties;
         uint8_t prop_count = 0;
         uint8_t props_in_line = 0;
-        size_t line_height = font_height;
         // Ensure that `line_height` is equal to the max size of any
         // property within the current line.
         while (it) {
@@ -346,7 +346,7 @@ static inline void draw_gui_string_into_surface_within_rect
         char *line_text = allocate_string_span
           (string.string, start_of_line_offset, bytes_to_render);
         if (line_text) {
-          if (!bytes_to_render || line_text[0] != '\0') {
+          if (bytes_to_render && line_text[0] != '\0') {
             // Use FreeType subpixel LCD rendering, if possible.
 #           if SDL_TTF_VERSION_ATLEAST(2,20,0) && !_WIN32
             SDL_Surface *line_text_surface =
@@ -370,7 +370,7 @@ static inline void draw_gui_string_into_surface_within_rect
                   && it->offset + it->length > start_of_line_offset) {
                 // How far the text property starts within the current line (index).
                 size_t offset_within_line = 0;
-                if (it->offset > start_of_line_offset) {
+                if (it->offset >= start_of_line_offset) {
                   offset_within_line = it->offset - start_of_line_offset;
                 }
                 // Get draw position.
@@ -407,13 +407,13 @@ static inline void draw_gui_string_into_surface_within_rect
                   (line_text, offset_within_line, propertized_text_length);
                 if (propertized_text) {
                   // Handle empty lines propertized (insert space).
-                  if (propertized_text[0] ==  '\0') {
+                  if (propertized_text[0] == '\0') {
                     free(propertized_text);
                     propertized_text = malloc(2);
                     assert(propertized_text && "Could not display empty string");
                     propertized_text[0] = ' ';
                     propertized_text[1] = '\0';
-                  } else if (propertized_text[0] ==  '\n') {
+                  } else if (propertized_text[0] == '\n') {
                     propertized_text[0] = ' ';
                   }
                   // Get colors for propertized text from text property.
@@ -447,6 +447,7 @@ static inline void draw_gui_string_into_surface_within_rect
         destination.h -= line_height;
         destination.x = 0;
         last_newline_offset = offset;
+
         // No more room to draw text in output rectangle, stop now.
         if (destination.h <= 0) {
           break;
