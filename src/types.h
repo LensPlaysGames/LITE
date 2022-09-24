@@ -206,8 +206,11 @@ Atom make_builtin(BuiltInFunction function, char *name, char *docstring);
 Error make_closure(Atom environment, Atom arguments, Atom body, Atom *result);
 Atom make_buffer(Atom environment, char *path);
 
-/// Return a pointer to the global symbol table (never NULL).
-Atom *sym_table();
+/// Print the global symbol table to stdout.
+void print_symbol_table();
+/// Build a LISP atom from the current global symbol table.
+Atom symbol_table();
+
 /// Return a pointer to the global buffer table (never NULL).
 Atom *buf_table();
 

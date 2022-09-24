@@ -373,7 +373,6 @@ Error evaluate_expression(Atom expr, Atom environment, Atom *result) {
       gcol_mark(genv());
       gcol_mark(&environment);
       gcol_mark(&stack);
-      gcol_mark(sym_table());
       gcol_mark(buf_table());
       gcol();
       if (!nilp(debug_memory)) {

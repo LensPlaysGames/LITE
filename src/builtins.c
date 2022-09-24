@@ -1165,10 +1165,10 @@ const char *const builtin_symbol_table_name = "SYM";
 const char *const builtin_symbol_table_docstring =
   "(sym)\n"
   "\n"
-  "Return the LISP symbol table.";
+  "Return a copy of the global symbol table at the time of calling.";
 int builtin_symbol_table(Atom arguments, Atom *result) {
   BUILTIN_ENSURE_NO_ARGUMENTS(arguments);
-  *result = *sym_table();
+  *result = symbol_table();
   return ERROR_NONE;
 }
 

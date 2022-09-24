@@ -34,7 +34,7 @@ void enter_repl(Atom environment) {
       pretty_print_atom(environment);
       putchar('\n');
       printf("Symbol Table:\n");
-      print_atom(*sym_table());
+      print_symbol_table();
       putchar('\n');
     }
     //==== READ ====

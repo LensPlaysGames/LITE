@@ -10,9 +10,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-static Atom symbol_table = { ATOM_TYPE_NIL, { 0 }, NULL, NULL };
-Atom *sym_table() { return &symbol_table; }
-
 static Atom buffer_table = { ATOM_TYPE_NIL, { 0 }, NULL, NULL };
 Atom *buf_table() { return &buffer_table; }
 
@@ -220,29 +217,202 @@ Atom make_int_with_docstring(integer_t value, char *docstring) {
   return a;
 }
 
-Atom make_sym(char *value) {
-  Atom a = nil;
-  // TODO: uppercase value symbol in search.
-  // Attempt to find existing symbol in symbol table.
-  Atom symbol_table_it = symbol_table;
-  while (!nilp(symbol_table_it)) {
-    a = car(symbol_table_it);
-    if (strcmp(a.value.symbol, value) == 0) {
-      return a;
+//================================================================ BEG SYMBOL_TABLE
+
+typedef struct SymbolTable {
+  size_t data_count;
+  size_t data_capacity;
+  char **data;
+} SymbolTable;
+
+void symbol_table_print(SymbolTable table) {
+  printf("Symbol table:\n");
+  char *str = NULL;
+  for (size_t i = 0; i < table.data_capacity; ++i) {
+    printf("  %zu:", i);
+    if ((str = table.data[i])) {
+      printf(" '%s'", str);
     }
-    symbol_table_it = cdr(symbol_table_it);
+    putchar('\n');
   }
+}
+
+SymbolTable symbol_table_create(size_t initial_capacity) {
+  SymbolTable out;
+  out.data_count = 0;
+  out.data_capacity = initial_capacity;
+  out.data = calloc(1, initial_capacity * sizeof(*out.data));
+  return out;
+}
+
+void symbol_table_expand(SymbolTable *table);
+
+size_t sdbm(unsigned char *str) {
+  size_t hash = 0;
+  int c;
+
+  while ((c = *str++)) {
+    hash = c + (hash << 6) + (hash << 16) - hash;
+  }
+  return hash;
+}
+
+size_t djb2(unsigned char *str) {
+  size_t hash = 5381;
+  int c;
+  while ((c = *str++)) {
+    hash = ((hash << 5) + hash) + c;
+  }
+  return hash;
+}
+
+size_t symbol_table_hash(SymbolTable table, char *key) {
+  return sdbm((unsigned char *)key) & (table.data_capacity - 1);
+}
+
+/// Return the entry for the given key string.
+char **symbol_table_entry(SymbolTable table, char *key) {
+  if (!key) {
+    fprintf(stderr, "Can not get symbol table entry for NULL key!\n");
+    return NULL;
+  }
+  size_t index = symbol_table_hash(table, key);
+  char **entry = table.data + index;
+
+  size_t index_it = index;
+  while (*entry && index_it < table.data_capacity) {
+    // Return entry if it matches value.
+    if (strcmp(*entry, key) == 0) {
+      return entry;
+    }
+    index_it++;
+    entry++;
+  }
+  if (index_it < table.data_capacity) {
+    return entry;
+  }
+  entry = table.data;
+  index_it = 0;
+  while (*entry && index_it < index) {
+    // Return entry if it matches value.
+    if (strcmp(*entry, key) == 0) {
+      return entry;
+    }
+    index_it++;
+    entry++;
+  }
+  if (index_it >= index) {
+    fprintf(stderr, "Could not find matching entry of key \"%s\" in symbol table...\n", key);
+    assert(index < table.data_capacity && "Could not find matching entry in symbol table.");
+  }
+  return entry;
+}
+
+/// Attempt to get symbol at KEY, inserting KEY if not found.
+char *symbol_table_get_or_insert(SymbolTable *table, char *key) {
+  // If data_count is too close to data_capacity, expand.
+  if (table->data_count > (table->data_capacity >> 1)) {
+    symbol_table_expand(table);
+  }
+
+  // Get entry at key in table.
+  char **entry = symbol_table_entry(*table, key);
+  // If entry contains NULL string, insert duplicate.
+  if (!(*entry)) {
+    //printf("Inserting \"%s\"\n", key);
+    *entry = key;
+    table->data_count += 1;
+  }
+  return *entry;
+}
+
+/// Attempt to get symbol at KEY, inserting a duplicate of KEY if not found.
+char *symbol_table_get_or_insert_duplicate(SymbolTable *table, char *key) {
+  // If data_count is too close to data_capacity, expand.
+  if (table->data_count > (table->data_capacity >> 1)) {
+    symbol_table_expand(table);
+  }
+
+  // Get entry at key in table.
+  char **entry = symbol_table_entry(*table, key);
+  // If entry contains NULL string, insert duplicate.
+  if (!(*entry)) {
+    //printf("Inserting \"%s\"\n", key);
+    *entry = strdup(key);
+    table->data_count += 1;
+  }
+  return *entry;
+}
+
+void symbol_table_free(SymbolTable table) {
+  free(table.data);
+}
+
+void symbol_table_expand(SymbolTable *table) {
+  // Create a new, larger hash table.
+  size_t old_capacity = table->data_capacity;
+  size_t new_capacity = table->data_capacity << 1;
+  SymbolTable new_table = symbol_table_create(new_capacity);
+
+  // Rehash all values from old table into new table. This is needed
+  // because the index where the symbol is stored is a function of the
+  // capacity of the table: when the capacity changes, so does the
+  // mapping of hashes to indices. There aren't really many ways to
+  // avoid this. One would be to not actually get rid of the old table,
+  // and have it implemented as a linked list of tables, but this very
+  // quickly slows down lookup and insertion by quite a bit. This
+  // rehashing method, while expensive, only occurs during expansion,
+  // which very rarely occurs in the first place.
+  char **entry = table->data;
+  for (size_t i = 0; i < old_capacity; ++i, ++entry) {
+    if (*entry) {
+      symbol_table_get_or_insert(&new_table, *entry);
+    }
+  }
+
+  // Update table data.
+  symbol_table_free(*table);
+  *table = new_table;
+
+  // Debug output.
+  size_t old_size = old_capacity * sizeof(*table->data);
+  size_t new_size = old_size << 1;
+  printf("Symbol table size expanded from %zu to %zu entries (%zu to %zu bytes)\n",
+         old_capacity, new_capacity, old_size, new_size);
+}
+
+//================================================================ END SYMBOL_TABLE
+
+
+static SymbolTable table = {0};
+
+void print_symbol_table() { symbol_table_print(table); }
+
+Atom symbol_table() {
+  Atom out = nil;
+  char **entry = table.data;
+  for (size_t i = 0; i < table.data_capacity; ++i, ++entry) {
+    if (*entry) {
+      out = cons(make_sym(*entry), out);
+    }
+  }
+  return out;
+}
+
+// TODO: uppercase value symbol in search.
+Atom make_sym(char *value) {
+  if (table.data_capacity == 0) {
+    table = symbol_table_create(256);
+  }
+
+  // Try to get existing entry in symbol table.
+  char *symbol = NULL;
+  symbol = symbol_table_get_or_insert_duplicate(&table, value);
+
   // Create a new symbol.
+  Atom a = nil;
   a.type = ATOM_TYPE_SYMBOL;
-  a.value.symbol = strdup(value);
-  if (!a.value.symbol) {
-    printf("Could not allocate memory for new symbol.\n");
-    return nil;
-  }
-  // Register allocated symbol in garbage collector.
-  gcol_generic_allocation(&a, (void *)a.value.symbol);
-  // Add new symbol to symbol table.
-  symbol_table = cons(a, symbol_table);
+  a.value.symbol = symbol;
   return a;
 }
 
