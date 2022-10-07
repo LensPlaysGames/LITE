@@ -150,6 +150,7 @@ Attempts to keep point column the same."
 ;;           ^
 ;;       |---|                  = column-offset
 ;;               |--------|     = next-line-length
+;; TODO: Fix shenanigans at end of buffer.
 (defun forward-line ()
   "Move forward one line, if possible.
 
@@ -164,47 +165,17 @@ Attempts to keep point column the same."
     ;; Return current-buffer, just to stay consistent between different
     ;; control flows.
     current-buffer
-    )
-  )
-
-;; TODO: forward-line currently skips TWO lines when trying to skip past newline at beginning of buffer...
-(defun forward-line-old ()
-  "Move forward one line, if possible.
-
-Attempts to keep point column the same."
-  (let ((original-point (buffer-point current-buffer)))
-    ;; Seek backwards to newline and keep track of originating column.
-    (let ((column-offset
-           (let ((column-offset-impl (buffer-seek-byte current-buffer "\\n" -1)))
-             ;; If cursor is on the first line of the buffer,
-             (if (= column-offset-impl 0)
-                 ;; then column offset is one above cursor byte offset.
-                 (progn
-                   (when (eq (buffer-index current-buffer (buffer-point current-buffer)) "\\n")
-                     (backward-byte))
-                   (+ 1 original-point))
-                 ;; otherwise, return bytes moved.
-                 column-offset-impl))))
-      ;; Seek forward to next newline.
-      (buffer-seek-byte current-buffer "\\n" 1)
-      ;; If next line has space to navigate to originating column,
-      (if (<= column-offset (string-length (buffer-next-line current-buffer)))
-          ;; then navigate to the originating column.
-          (forward-bytes column-offset)
-          ;; Otherwise, seek to the next newline.
-          (if (= (buffer-seek-byte current-buffer "\\n" 1) 0)
-              ;; If no newline is found, move to end of buffer.
-              (forward-bytes 999999999999)
-              current-buffer))))
-  )
+    ))
 
 (defun search-forward ()
-  "Set the point to the beginning of the prompted-for string if it is found in current buffer."
+  "Set the point to the beginning of the prompted-for string if it is
+found after point in the current buffer."
   (buffer-seek-substring current-buffer (read-prompted "search forward: ") 1))
 
 (defun search-backward ()
-  "Set the point to the beginning of the prompted-for string if it is found in current buffer."
-  (buffer-seek-substring current-buffer (read-prompted "search forward: ") -1))
+  "Set the point to the beginning of the prompted-for string if it is
+found behind point in the current buffer."
+  (buffer-seek-substring current-buffer (read-prompted "search backward: ") -1))
 
 (set word-delimiters "., \\n(){}[]<>"
      "Each of the bytes within this string is a word delimiter.")
@@ -232,8 +203,9 @@ Attempts to keep point column the same."
   `(define ,x ,x ,string))
 
 (defun user-says-yes (prompt)
-  "Return T iff the user response to PROMPT matches the string 'yes', otherwise return nil.
-Useful for ensuring the user would like to do something before doing it."
+  "Return T iff the user response to PROMPT matches the string 'yes',
+otherwise return nil. Useful for ensuring the user would like to do
+something before doing it."
   ;; TODO: Join "yes" hint on to given prompt.
   ;; TODO: Think about handling capitilization.
   (eq "yes" (read-prompted prompt)))
