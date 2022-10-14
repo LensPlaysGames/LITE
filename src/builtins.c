@@ -72,6 +72,7 @@ const char *const builtin_quit_lisp_docstring =
 int builtin_quit_lisp(Atom arguments, Atom *result) {
   BUILTIN_ENSURE_NO_ARGUMENTS(arguments);
   user_quit = 1;
+  *result = nil;
   return ERROR_NONE;
 }
 
@@ -462,6 +463,7 @@ int builtin_buffer_set_mark_activation(Atom arguments, Atom *result) {
     print_error(err);
     return err.type;
   }
+  *result = state;
   return ERROR_NONE;
 }
 

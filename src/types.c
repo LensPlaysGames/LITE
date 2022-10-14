@@ -267,6 +267,7 @@ static size_t djb2(unsigned char *str) {
 }
 
 static size_t symbol_table_hash(SymbolTable table, char *key) {
+  // NOTE: I've gotten less collisions using SDBM than with DJB2.
   return sdbm((unsigned char *)key) & (table.data_capacity - 1);
 }
 
@@ -657,10 +658,10 @@ void print_atom(Atom atom) {
     printf("#<BUILTIN>:%s", atom.value.builtin.name);
     break;
   case ATOM_TYPE_CLOSURE:
-    printf("#<CLOSURE>:%p", &atom);
+    printf("#<CLOSURE>:%p", (void *)&atom);
     break;
   case ATOM_TYPE_MACRO:
-    printf("#<MACRO>:%p", &atom);
+    printf("#<MACRO>:%p", (void *)&atom);
     break;
   case ATOM_TYPE_STRING:
     printf("\"%s\"", atom.value.symbol);
