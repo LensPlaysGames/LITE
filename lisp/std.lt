@@ -13,7 +13,7 @@ If you don't know what's happening, messed up, etc. then call this.
 
 Finishes any prompts/reads and sets 'USER/QUIT' to a non-nil value."
   (finish-read)
-  (set user/quit t))
+  (quit-lisp))
 
 (defun list-functions ()
   "List all of the functions currently defined in the environment."

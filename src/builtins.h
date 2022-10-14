@@ -4,6 +4,10 @@
 struct Atom;
 typedef struct Atom Atom;
 
+extern const char *const builtin_quit_lisp_name;
+extern const char *const builtin_quit_lisp_docstring;
+int builtin_quit_lisp(Atom arguments, Atom *result);
+
 extern const char *const builtin_docstring_name;
 extern const char *const builtin_docstring_docstring;
 int builtin_docstring(Atom arguments, Atom *result);

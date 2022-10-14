@@ -63,6 +63,18 @@
       }                                                     \
   } while (0);
 
+const char *const builtin_quit_lisp_name = "QUIT-LISP";
+const char *const builtin_quit_lisp_docstring =
+  "(quit-lisp)\n"
+  "\n"
+  "Stop all evaluation of LISP, and exit all prompts.\n"
+  "If you did something on accident, call this.";
+int builtin_quit_lisp(Atom arguments, Atom *result) {
+  BUILTIN_ENSURE_NO_ARGUMENTS(arguments);
+  user_quit = 1;
+  return ERROR_NONE;
+}
+
 const char *const builtin_docstring_name = "DOCSTRING";
 const char *const builtin_docstring_docstring =
   "(docstring SYMBOL ENVIRONMENT)\n"
@@ -88,6 +100,7 @@ int builtin_docstring(Atom arguments, Atom *result) {
   // If atom is of type closure, show closure signature (arguments).
   // FIXME: The docstring could be set to this value instead of
   // creating this new string each time the docstring is fetched.
+  // This is absolutely horrid code... OML.
   char *docstring = NULL;
   if (closurep(atom) || macrop(atom)) {
     // Prepend docstring with closure signature.
@@ -126,7 +139,6 @@ int builtin_docstring(Atom arguments, Atom *result) {
       *result = nil;
     }
   }
-
   return ERROR_NONE;
 }
 
@@ -1141,7 +1153,7 @@ int builtin_apply(Atom arguments, Atom *result) {
   while (!nilp(body)) {
     Error err = evaluate_expression(car(body), environment, result);
     if (err.type) { return err.type; }
-    if (env_non_nil(*genv(), make_sym("USER/QUIT"))) {
+    if (user_quit) {
       break;
     }
     body = cdr(body);

@@ -9,6 +9,8 @@
 #include <error.h>
 #include <types.h>
 
+char user_quit = 0;
+
 Atom env_create(Atom parent) {
   return cons(parent, nil);
 }
@@ -78,6 +80,10 @@ int boundp(Atom environment, Atom symbol) {
 Atom default_environment() {
   Atom environment = env_create(nil);
   env_set(environment, make_sym("T"), make_sym("T"));
+  env_set(environment, make_sym((char *)builtin_quit_lisp_name),
+          make_builtin(builtin_quit_lisp,
+                       (char *)builtin_quit_lisp_name,
+                       (char *)builtin_quit_lisp_docstring));
   env_set(environment, make_sym((char *)builtin_docstring_name),
           make_builtin(builtin_docstring,
                        (char *)builtin_docstring_name,

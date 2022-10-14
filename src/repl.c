@@ -68,10 +68,15 @@ void enter_repl(Atom environment) {
     //==== EVAL ====
     Atom result;
     err = evaluate_expression(expr, environment, &result);
-    if (env_non_nil(*genv(), make_sym("USER/QUIT"))) {
-      printf("\nUSER/QUIT non-nil, exiting REPL.");
+
+    // TODO: Should user/quit actually close REPL? Or just stop all
+    // evaluation up until the REPL is re-entered?
+
+    if (user_quit) {
+      fprintf(stderr, "\nUSER/QUIT::exiting REPL.");
       break;
     }
+
     //==== PRINT ====
     if (err.type) {
       printf("\nEVALUATION ");

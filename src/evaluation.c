@@ -325,7 +325,7 @@ Error evaluate_expression(Atom expr, Atom environment, Atom *result) {
   do {
 
     // Handle Quit
-    if (env_non_nil(environment, make_sym("USER/QUIT"))) {
+    if (user_quit) {
       break;
     }
 

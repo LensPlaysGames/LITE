@@ -317,7 +317,7 @@ void handle_keydown(char *keystring) {
       return;
     }
 
-    if (env_non_nil(*genv(), make_sym("USER/QUIT"))) {
+    if (user_quit) {
       return;
     }
 
@@ -515,6 +515,7 @@ int enter_lite_gui() {
 
   change_window_visibility(GFX_WINDOW_VISIBLE);
 
+  Error err = ok;
   int open = 1;
   while (open) {
     open = gui_loop();
@@ -526,16 +527,13 @@ int enter_lite_gui() {
 
     // TODO: Make part of gui context instead of LISP environment
     // variable, possibly?
-    if (env_non_nil(*genv(), make_sym("USER/QUIT"))) {
-      // Reset 'USER/QUIT' to nil.
-      Error err = env_set(*genv(), make_sym("USER/QUIT"), nil);
-      if (err.type) {
-        print_error(err);
-        update_gui_string(&gctx->footline, error_string(err));
-        return 0;
-      }
+    if (user_quit) {
+      // Reset 'USER/QUIT'.
+      user_quit = 0;
+
       // Reset current keymap to root keymap.
-      Atom keymap;
+      // FIXME/TODO: If error occurs, should we still return zero?
+      Atom keymap = nil;
       err = env_get(*genv(), make_sym("KEYMAP"), &keymap);
       if (err.type) {
         print_error(err);

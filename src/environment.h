@@ -21,4 +21,6 @@ Atom default_environment();
 /// Return the global environment, creating it if it doesn't exist.
 Atom *genv();
 
+extern char user_quit;
+
 #endif /* LITE_ENVIRONMENT_H */
