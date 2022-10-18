@@ -10,6 +10,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+bool strict_output = false;
+
 static Atom buffer_table = { ATOM_TYPE_NIL, { 0 }, NULL, NULL };
 Atom *buf_table() { return &buffer_table; }
 
@@ -378,8 +380,10 @@ static void symbol_table_expand(SymbolTable *table) {
   // Debug output.
   size_t old_size = old_capacity * sizeof(*table->data);
   size_t new_size = old_size << 1;
-  printf("Symbol table size expanded from %zu to %zu entries (%zu to %zu bytes)\n",
-         old_capacity, new_capacity, old_size, new_size);
+  if (!strict_output) {
+    printf("Symbol table size expanded from %zu to %zu entries (%zu to %zu bytes)\n",
+           old_capacity, new_capacity, old_size, new_size);
+  }
 }
 
 //================================================================ END SYMBOL_TABLE

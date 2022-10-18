@@ -1,7 +1,14 @@
 #ifndef LITE_TYPES_H
 #define LITE_TYPES_H
 
+#include <stdbool.h>
 #include <stddef.h>
+
+/// If this is non-zero, NOTHING should be output except LITE LISP
+/// evaluated output and errors (for testing).
+/// This mostly is here to disable small but helpful messages in the
+/// output log (i.e. symbol table expansion, garbage collection, etc).
+extern bool strict_output;
 
 struct Atom;
 /// All C functions that are to be called from LISP will have this prototype.
@@ -62,6 +69,19 @@ static const Atom nil = { ATOM_TYPE_NIL, { 0 }, NULL, NULL };
 
 //================================================================ BEG garbage_collection
 
+/* The garbage collector in LITE LISP is mark-and-sweep. That means
+ * that, on each garbage collection, each piece of allocated memory
+ * (that is to be garbage collected) must be marked, otherwise it will
+ * be freed in the subsequent sweep. The sweep is simply freeing all
+ * unmarked memory.
+ * There are two types of memory that may be garbage collected:
+ * - ConsAllocation :: A pair Atom. Contains space for two child Atoms.
+ * - GenericAllocation :: Data attached to any Atom that must be freed
+ *   along with it. This includes strings for String Atoms, and is
+ *   generic enough to allow any amount of data to be allocated and
+ *   de-allocated along with any Atom.
+ */
+
 typedef struct ConsAllocation {
   struct ConsAllocation *next;
   Pair pair;
@@ -74,9 +94,9 @@ extern size_t pair_allocations_freed;
 
 typedef struct GenericAllocation {
   struct GenericAllocation *next;
+  struct GenericAllocation *more;
   void *payload;
   char mark;
-  struct GenericAllocation *more;
 } GenericAllocation;
 
 extern GenericAllocation *generic_allocations;
@@ -124,7 +144,7 @@ void print_gcol_data();
 /// Returns a heap-allocated pair atom with car and cdr set.
 Atom cons(Atom car_atom, Atom cdr_atom);
 
-/// If given atom is a given list, return 1. Otherwise, return 0.
+/// If given atom is a valid list, return 1. Otherwise, return 0.
 int listp(Atom expr);
 
 /** Get a single element in a list from a given index.
@@ -180,7 +200,8 @@ void list_reverse(Atom *list);
 
 /** Create a new Atom that is a copy of an existing list.
  *
- * @param list The list to copy.
+ * @param list
+ *   The list to copy.
  *
  * @return A list that is the exact copy of the given list.
  */

@@ -33,6 +33,7 @@ int main(int argc, char **argv) {
         exit(1);
       }
       arg_script_index = i;
+      strict_output = true;
       break;
     }
   }

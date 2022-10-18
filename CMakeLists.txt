@@ -66,6 +66,16 @@ if (LITE_GFX)
   )
 endif()
 
+if (NOT MSVC)
+  target_compile_options(
+    LITE
+    PRIVATE
+    -Wall
+    -Wextra
+    -pedantic
+  )
+endif()
+
 # Doxygen Documentation Target
 find_program(DOXYGEN_PROGRAM doxygen)
 if(DOXYGEN_PROGRAM)
