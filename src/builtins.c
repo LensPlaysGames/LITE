@@ -18,6 +18,7 @@
 
 #ifdef LITE_GFX
 #  include <api.h>
+#  include <gfx.h>
 #  include <gui.h>
 #endif
 
@@ -1426,11 +1427,90 @@ int builtin_change_window_mode(Atom arguments, Atom *result) {
   return ERROR_NONE;
 }
 
+const char *const builtin_set_gui_property_position_name = "SET-GUI-PROPERTY-POSITION";
+const char *const builtin_set_gui_property_position_docstring =
+  "(set-gui-property-position ID OFFSET LENGTH)\n"
+  "\n"
+  "Set the GUI property position data at ID.";
+int builtin_set_gui_property_position(Atom arguments, Atom *result) {
+  (void)result;
+#ifdef LITE_GFX
+  BUILTIN_ENSURE_THREE_ARGUMENTS(arguments);
+  Atom id = car(arguments);
+  Atom offset = car(cdr(arguments));
+  Atom length = car(cdr(cdr(arguments)));
+  if (!integerp(id) || !integerp(offset) || !integerp(length)) {
+    return ERROR_TYPE;
+  }
+  GUIProperty *property = gui_property_by_id(id.value.integer);
+  if (!property) {
+    return ERROR_ARGUMENTS;
+  }
+  property->property.offset = offset.value.integer;
+  property->property.length = length.value.integer;
+#endif
+  return ERROR_NONE;
+}
+
+const char *const builtin_set_gui_property_color_name = "SET-GUI-PROPERTY-COLOR";
+const char *const builtin_set_gui_property_color_docstring =
+  "(set-gui-property-color ID (FG.R FG.G FG.B FG.A) (BG.R BG.G BG.B BG.A))\n"
+  "\n"
+  "Set the GUI property color data at ID.";
+int builtin_set_gui_property_color(Atom arguments, Atom *result) {
+  (void)result;
+#ifdef LITE_GFX
+  BUILTIN_ENSURE_THREE_ARGUMENTS(arguments);
+  Atom id = car(arguments);
+  Atom fg_atom = car(cdr(arguments));
+  Atom bg_atom = car(cdr(cdr(arguments)));
+  if (!integerp(id)) {
+    return ERROR_TYPE;
+  }
+  GUIProperty *property = gui_property_by_id(id.value.integer);
+  if (!property) {
+    return ERROR_ARGUMENTS;
+  }
+  // TODO: Allow for specific pre-determined colors to be used by name
+  // instead of numeric RGBA value (i.e. "red", "black", "white", etc.).
+
+  /* Color atom layout: R, G, B, and A must be integers!
+   *
+   *    FG            BG
+   *   /  \          /  \
+   *  R    .        R    .
+   *      / \           / \
+   *     G   .         G   .
+   *        / \           / \
+   *       B   .         B   .
+   *          / \           / \
+   *         A  NIL        A  NIL
+   */
+  if (!pairp(fg_atom) || !pairp(cdr(fg_atom)) || !pairp(cdr(cdr(fg_atom))) || !pairp(cdr(cdr(cdr(fg_atom))))
+      || !integerp(car(fg_atom)) || !integerp(car(cdr(fg_atom))) || !integerp(car(cdr(cdr(fg_atom)))) || !integerp(car(cdr(cdr(cdr(fg_atom)))))
+      || !pairp(bg_atom) || !pairp(cdr(bg_atom)) || !pairp(cdr(cdr(bg_atom))) || !pairp(cdr(cdr(cdr(bg_atom))))
+      || !integerp(car(bg_atom)) || !integerp(car(cdr(bg_atom))) || !integerp(car(cdr(cdr(bg_atom)))) || !integerp(car(cdr(cdr(cdr(bg_atom))))))
+    {
+      return ERROR_TYPE;
+    }
+
+  property->property.fg.r = car(fg_atom).value.integer;
+  property->property.fg.g = car(cdr(fg_atom)).value.integer;
+  property->property.fg.b = car(cdr(cdr(fg_atom))).value.integer;
+  property->property.fg.a = car(cdr(cdr(cdr(fg_atom)))).value.integer;
+
+  property->property.bg.r = car(bg_atom).value.integer;
+  property->property.bg.g = car(cdr(bg_atom)).value.integer;
+  property->property.bg.b = car(cdr(cdr(bg_atom))).value.integer;
+  property->property.bg.a = car(cdr(cdr(cdr(bg_atom)))).value.integer;
+#endif
+  return ERROR_NONE;
+}
 
 
-Atom terrible_copy_paste_implementation = { .type = ATOM_TYPE_STRING,
-                                            .value = { .symbol = "Paste and ye shall recieve." },
-                                            .galloc = NULL,
+Atom terrible_copy_paste_implementation = { .type      = ATOM_TYPE_STRING,
+                                            .value     = { .symbol = "Paste and ye shall recieve." },
+                                            .galloc    = NULL,
                                             .docstring = NULL };
 
 const char *const builtin_clipboard_cut_name = "CLIPBOARD-CUT";

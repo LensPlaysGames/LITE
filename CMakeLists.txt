@@ -36,6 +36,7 @@ add_executable(
   src/environment.c
   src/evaluation.c
   src/file_io.c
+  $<$<BOOL:${LITE_GFX}>:src/gfx.c>
   src/main.c
   src/repl.c
   src/rope.c

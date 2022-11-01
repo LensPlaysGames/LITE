@@ -4,6 +4,7 @@
 #include <buffer.h>
 #include <environment.h>
 #include <evaluation.h>
+#include <gfx.h>
 #include <gui.h>
 #include <stdlib.h>
 #include <string.h>
@@ -444,54 +445,6 @@ void handle_modifier_up(GUIModifierKey mod) {
     gmodkeys.bitfield &= ~((uint64_t)1 << GUI_MODKEY_RSHIFT);
     break;
   }
-}
-
-
-typedef enum GUIPropertyID {
-  GUI_PROP_ID_DEFAULT,
-  GUI_PROP_ID_CURSOR,
-  GUI_PROP_ID_REGION,
-  /// When user creates new GUI properties, the ID should start here,
-  /// so as to not stomp on built-in and required properties.
-  GUI_PROP_ID_BEGIN_USER
-} GUIPropertyID;
-
-typedef struct GUIProperty {
-  int id;
-  GUIStringProperty property;
-  struct GUIProperty *next;
-} GUIProperty;
-
-static GUIProperty *gui_properties = NULL;
-
-GUIProperty *gui_property_by_id(int id) {
-  // First attempt to update property with matching ID.
-  GUIProperty *it = gui_properties;
-  while (it) {
-    if (id == it->id) {
-      return it;
-    }
-    it = it->next;
-  }
-  return NULL;
-}
-
-void create_gui_property(int id, GUIStringProperty *property) {
-  // First attempt to update property with matching ID.
-  GUIProperty *it = gui_properties;
-  while (it) {
-    if (id == it->id) {
-      it->property = *property;
-      return;
-    }
-    it = it->next;
-  }
-  // If no property with this ID exists, create a new one.
-  GUIProperty *properties = gui_properties;
-  gui_properties = malloc(sizeof(GUIProperty));
-  gui_properties->id = id;
-  gui_properties->property = *property;
-  gui_properties->next = properties;
 }
 
 GUIContext *initialize_lite_gui_ctx() {

@@ -382,6 +382,15 @@ Atom default_environment() {
                        (char *)builtin_change_window_mode_name,
                        (char *)builtin_change_window_mode_docstring));
 
+  env_set(environment, make_sym((char *)builtin_set_gui_property_position_name),
+          make_builtin(builtin_set_gui_property_position,
+                       (char *)builtin_set_gui_property_position_name,
+                       (char *)builtin_set_gui_property_position_docstring));
+  env_set(environment, make_sym((char *)builtin_set_gui_property_color_name),
+          make_builtin(builtin_set_gui_property_color,
+                       (char *)builtin_set_gui_property_color_name,
+                       (char *)builtin_set_gui_property_color_docstring));
+
   env_set(environment, make_sym((char *)"WHILE-RECURSE-LIMIT"), make_int_with_docstring
           (10000,
            "This is the maximum amount of times a while loop may loop.\n"
