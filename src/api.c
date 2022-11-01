@@ -80,6 +80,18 @@ GUIStringProperty *string_property
   return prop;
 }
 
+GUIStringProperty *string_property_copy_shallow(GUIStringProperty *original) {
+  if (!original) { return NULL; }
+  GUIStringProperty *prop = malloc(sizeof(GUIStringProperty));
+  if (!prop) { return NULL; }
+  prop->next = NULL;
+  prop->offset = original->offset;
+  prop->length = original->length;
+  prop->fg = original->fg;
+  prop->bg = original->bg;
+  return prop;
+}
+
 typedef struct GUIModifierKeyState {
   uint64_t bitfield; // Indexed by GUIModifierKey enum
 } GUIModifierKeyState;
@@ -350,7 +362,12 @@ void handle_keydown(char *keystring) {
 
 void handle_modifier_dn(GUIModifierKey mod) {
   assert(GUI_MODKEY_MAX == 8);
-  if (mod >= GUI_MODKEY_MAX) {
+  if (mod > GUI_MODKEY_MAX) {
+    return;
+  } else if (mod == GUI_MODKEY_MAX) {
+    for (size_t i = 0; i < GUI_MODKEY_MAX; ++i) {
+      gmodkeys.bitfield |= ((uint64_t)1 << i);
+    }
     return;
   }
   switch (mod) {
@@ -388,7 +405,12 @@ void handle_modifier_dn(GUIModifierKey mod) {
 
 void handle_modifier_up(GUIModifierKey mod) {
   assert(GUI_MODKEY_MAX == 8);
-  if (mod >= GUI_MODKEY_MAX) {
+  if (mod > GUI_MODKEY_MAX) {
+    return;
+  } else if (mod == GUI_MODKEY_MAX) {
+    for (size_t i = 0; i < GUI_MODKEY_MAX; ++i) {
+      gmodkeys.bitfield &= ~((uint64_t)1 << i);
+    }
     return;
   }
   switch (mod) {
@@ -424,6 +446,54 @@ void handle_modifier_up(GUIModifierKey mod) {
   }
 }
 
+
+typedef enum GUIPropertyID {
+  GUI_PROP_ID_DEFAULT,
+  GUI_PROP_ID_CURSOR,
+  GUI_PROP_ID_REGION,
+  /// When user creates new GUI properties, the ID should start here,
+  /// so as to not stomp on built-in and required properties.
+  GUI_PROP_ID_BEGIN_USER
+} GUIPropertyID;
+
+typedef struct GUIProperty {
+  int id;
+  GUIStringProperty property;
+  struct GUIProperty *next;
+} GUIProperty;
+
+static GUIProperty *gui_properties = NULL;
+
+GUIProperty *gui_property_by_id(int id) {
+  // First attempt to update property with matching ID.
+  GUIProperty *it = gui_properties;
+  while (it) {
+    if (id == it->id) {
+      return it;
+    }
+    it = it->next;
+  }
+  return NULL;
+}
+
+void create_gui_property(int id, GUIStringProperty *property) {
+  // First attempt to update property with matching ID.
+  GUIProperty *it = gui_properties;
+  while (it) {
+    if (id == it->id) {
+      it->property = *property;
+      return;
+    }
+    it = it->next;
+  }
+  // If no property with this ID exists, create a new one.
+  GUIProperty *properties = gui_properties;
+  gui_properties = malloc(sizeof(GUIProperty));
+  gui_properties->id = id;
+  gui_properties->property = *property;
+  gui_properties->next = properties;
+}
+
 GUIContext *initialize_lite_gui_ctx() {
   GUIContext *ctx = malloc(sizeof(GUIContext));
   if (!ctx) { return NULL; }
@@ -437,31 +507,62 @@ GUIContext *initialize_lite_gui_ctx() {
     return NULL;
   }
 
-  ctx->default_property.fg.r = UINT8_MAX;
-  ctx->default_property.fg.g = UINT8_MAX;
-  ctx->default_property.fg.b = UINT8_MAX;
-  ctx->default_property.fg.a = UINT8_MAX;
+  GUIStringProperty default_default;
+  default_default.fg.r = UINT8_MAX;
+  default_default.fg.g = UINT8_MAX;
+  default_default.fg.b = UINT8_MAX;
+  default_default.fg.a = UINT8_MAX;
 
-  ctx->default_property.bg.r = 22;
-  ctx->default_property.bg.g = 23;
-  ctx->default_property.bg.b = 24;
-  ctx->default_property.bg.a = UINT8_MAX;
+  default_default.bg.r = 22;
+  default_default.bg.g = 23;
+  default_default.bg.b = 24;
+  default_default.bg.a = UINT8_MAX;
+
+  default_default.offset = 0;
+  default_default.length = 0;
+
+  create_gui_property(GUI_PROP_ID_DEFAULT, &default_default);
+
+  GUIStringProperty default_region;
+  default_region.fg.r = UINT8_MAX;
+  default_region.fg.g = UINT8_MAX;
+  default_region.fg.b = UINT8_MAX;
+  default_region.fg.a = UINT8_MAX;
+
+  default_region.bg.r = 53;
+  default_region.bg.g = 53;
+  default_region.bg.b = 53;
+  default_region.bg.a = UINT8_MAX;
+
+  default_region.offset = 0;
+  default_region.length = 0;
+
+  create_gui_property(GUI_PROP_ID_REGION, &default_region);
+
+  GUIStringProperty default_cursor;
+  default_cursor.fg.r = 0;
+  default_cursor.fg.g = 0;
+  default_cursor.fg.b = 0;
+  default_cursor.fg.a = UINT8_MAX;
+
+  default_cursor.bg.r = UINT8_MAX;
+  default_cursor.bg.g = UINT8_MAX;
+  default_cursor.bg.b = UINT8_MAX;
+  default_cursor.bg.a = UINT8_MAX;
+
+  default_cursor.offset = 0;
+  default_cursor.length = 1;
+
+  create_gui_property(GUI_PROP_ID_CURSOR, &default_cursor);
+
+
+  ctx->default_property.fg = default_default.fg;
+  ctx->default_property.bg = default_default.bg;
 
   ctx->reading = 0;
 
   return ctx;
 }
-
-// TODO: Make this LISP extensible.
-// Maybe think about an equivalent to Emacs' faces?
-
-static GUIColor cursor_fg = { 0,0,0,UINT8_MAX };
-static GUIColor cursor_bg = { UINT8_MAX,UINT8_MAX,
-                              UINT8_MAX,UINT8_MAX };
-
-static GUIColor region_fg = { UINT8_MAX,UINT8_MAX,
-                              UINT8_MAX,UINT8_MAX };
-static GUIColor region_bg = { 53,53,53,UINT8_MAX };
 
 HOTFUNCTION
 int gui_loop() {
@@ -476,31 +577,50 @@ int gui_loop() {
   // selection.
   GUIString *to_update =
     gctx->reading ? &gctx->popup : &gctx->contents;
+
+  // This yeets all the properties, so now we have to re-add all of
+  // them.
   update_gui_string(to_update, new_contents);
 
   if (bufferp(current_buffer) && current_buffer.value.buffer) {
-    GUIStringProperty *cursor_property = string_property
-      (current_buffer.value.buffer->point_byte, 1,
-       cursor_fg, cursor_bg);
-    add_property(to_update, cursor_property);
-    // If mark is activated, create GUIStringProperty for selection.
-    if (buffer_mark_active(*current_buffer.value.buffer)) {
-      size_t mark_byte = buffer_mark(*current_buffer.value.buffer);
-      size_t offset = 0;
-      size_t length = 0;
-      if (current_buffer.value.buffer->point_byte > mark_byte) {
-        offset = mark_byte;
-        length = current_buffer.value.buffer->point_byte - offset;
-      } else {
-        offset = current_buffer.value.buffer->point_byte;
-        length = mark_byte - offset;
+    GUIProperty *it = gui_properties;
+    while (it) {
+      GUIStringProperty *new_property =
+        string_property_copy_shallow(&it->property);
+      // Handle non-standard GUI property.
+      switch (it->id) {
+      default:
+        break;
+      case GUI_PROP_ID_DEFAULT:
+        gctx->default_property.fg = it->property.fg;
+        gctx->default_property.bg = it->property.bg;
+        break;
+      case GUI_PROP_ID_CURSOR:
+        new_property->offset = current_buffer.value.buffer->point_byte;
+        break;
+      case GUI_PROP_ID_REGION:
+        // If mark is activated, create GUIStringProperty for
+        // selection.
+        if (buffer_mark_active(*current_buffer.value.buffer)) {
+          size_t mark_byte = buffer_mark(*current_buffer.value.buffer);
+          size_t offset = 0;
+          size_t length = 0;
+          if (current_buffer.value.buffer->point_byte > mark_byte) {
+            offset = mark_byte;
+            length = current_buffer.value.buffer->point_byte - offset;
+          } else {
+            offset = current_buffer.value.buffer->point_byte;
+            length = mark_byte - offset;
+          }
+          new_property->offset = offset;
+          new_property->length = length;
+        }
+        break;
       }
-      GUIStringProperty *region_property = string_property
-        (offset, length , region_fg, region_bg);
-      add_property(to_update, region_property);
+      add_property(to_update, new_property);
+      it = it->next;
     }
   }
-
   return do_gui(gctx);
 }
 
@@ -525,14 +645,12 @@ int enter_lite_gui() {
     // return if 'USER/QUIT' is non-nil, and hopefully we eventually
     // end up back at the top of the call stack, right here :^).
 
-    // TODO: Make part of gui context instead of LISP environment
-    // variable, possibly?
     if (user_quit) {
       // Reset 'USER/QUIT'.
       user_quit = 0;
 
       // Reset current keymap to root keymap.
-      // FIXME/TODO: If error occurs, should we still return zero?
+      // TODO/FIXME: Should probably return error code here.
       Atom keymap = nil;
       err = env_get(*genv(), make_sym("KEYMAP"), &keymap);
       if (err.type) {

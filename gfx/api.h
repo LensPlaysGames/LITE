@@ -36,7 +36,11 @@ typedef enum GUIModifierKey {
 } GUIModifierKey;
 
 // Handlers for modifier keys.
+
+/// When called with GUI_MODKEY_MAX, all modifier keys are pressed down.
 void handle_modifier_dn(GUIModifierKey);
+
+/// When called with GUI_MODKEY_MAX, all modifier keys are released.
 void handle_modifier_up(GUIModifierKey);
 
 /// Enter LITE GFX, creating a window and entering appropriate loop.

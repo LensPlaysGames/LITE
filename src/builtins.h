@@ -249,8 +249,6 @@ extern const char *const builtin_clipboard_paste_name;
 extern const char *const builtin_clipboard_paste_docstring;
 int builtin_clipboard_paste(Atom arguments, Atom *result);
 
-#ifdef LITE_GFX
-
 extern const char *const builtin_change_font_name;
 extern const char *const builtin_change_font_docstring;
 int builtin_change_font(Atom arguments, Atom *result);
@@ -267,7 +265,5 @@ int builtin_change_window_size(Atom arguments, Atom *result);
 extern const char *const builtin_change_window_mode_name;
 extern const char *const builtin_change_window_mode_docstring;
 int builtin_change_window_mode(Atom arguments, Atom *result);
-
-#endif /* #ifdef LITE_GFX */
 
 #endif /* LITE_BUILTINS_H */

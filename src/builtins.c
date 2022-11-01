@@ -1234,6 +1234,9 @@ int builtin_read_prompted(Atom arguments, Atom *result) {
 
 #ifdef LITE_GFX
 
+  // Release all modifiers.
+  handle_modifier_up(GUI_MODKEY_MAX);
+
   // Bind return to 'finish-read', but save old binding of return so it can be restored.
   // TODO: Just make a named keymap and add it to keymaps list in the global position.
   Atom keymap = nil;
@@ -1319,14 +1322,13 @@ int builtin_finish_read(Atom arguments, Atom *result) {
   return ERROR_NONE;
 }
 
-#ifdef LITE_GFX
-
 const char *const builtin_change_font_name = "CHANGE-FONT";
 const char *const builtin_change_font_docstring =
   "(change-font FONT-FILENAME POINT-SIZE)\n"
   "\n"
   "Attempt to change font to FONT-FILENAME with POINT-SIZE.";
 int builtin_change_font(Atom arguments, Atom *result) {
+#ifdef LITE_GFX
   BUILTIN_ENSURE_TWO_ARGUMENTS(arguments);
   Atom font_path = car(arguments);
   if (!stringp(font_path)) {
@@ -1340,6 +1342,7 @@ int builtin_change_font(Atom arguments, Atom *result) {
   if (change_font(font_path.value.symbol, font_size.value.integer) == 0) {
     *result = make_sym("T");
   }
+#endif
   return ERROR_NONE;
 }
 
@@ -1349,6 +1352,7 @@ const char *const builtin_change_font_size_docstring =
   "\n"
   "Attempt to change the current font's size to POINT-SIZE.";
 int builtin_change_font_size(Atom arguments, Atom *result) {
+#ifdef LITE_GFX
   BUILTIN_ENSURE_ONE_ARGUMENT(arguments);
   Atom font_size = car(arguments);
   if (!integerp(font_size)) {
@@ -1358,6 +1362,7 @@ int builtin_change_font_size(Atom arguments, Atom *result) {
   if (change_font_size(font_size.value.integer) == 0) {
     *result = make_sym("T");
   }
+#endif
   return ERROR_NONE;
 }
 
@@ -1367,11 +1372,13 @@ const char *const builtin_window_size_docstring =
   "\n"
   "Return a pair containing the graphical window's size.";
 int builtin_window_size(Atom arguments, Atom *result) {
+#ifdef LITE_GFX
   BUILTIN_ENSURE_NO_ARGUMENTS(arguments);
   size_t width = 0;
   size_t height = 0;
   window_size(&width, &height);
   *result = cons(make_int(width), make_int(height));
+#endif
   return ERROR_NONE;
 }
 
@@ -1381,6 +1388,7 @@ const char *const builtin_change_window_size_docstring =
   "\n"
   "Attempt to change size of window to WIDTH by HEIGHT.";
 int builtin_change_window_size(Atom arguments, Atom *result) {
+#ifdef LITE_GFX
   BUILTIN_ENSURE_TWO_ARGUMENTS(arguments);
   Atom width = car(arguments);
   Atom height = car(cdr(arguments));
@@ -1389,6 +1397,7 @@ int builtin_change_window_size(Atom arguments, Atom *result) {
   }
   *result = make_sym("T");
   change_window_size(width.value.integer, height.value.integer);
+#endif
   return ERROR_NONE;
 }
 
@@ -1399,6 +1408,7 @@ const char *const builtin_change_window_mode_docstring =
   "\n"
   "If N is 1, set window mode to fullscreen. Otherwise, set it to windowed.";
 int builtin_change_window_mode(Atom arguments, Atom *result) {
+#ifdef LITE_GFX
   BUILTIN_ENSURE_ONE_ARGUMENT(arguments);
   Atom n = car(arguments);
   if (!integerp(n)) {
@@ -1412,10 +1422,9 @@ int builtin_change_window_mode(Atom arguments, Atom *result) {
   if (change_window_mode(mode) == 0) {
     *result = make_sym("T");
   }
+#endif
   return ERROR_NONE;
 }
-
-#endif /* #ifdef LITE_GFX */
 
 
 

@@ -360,11 +360,6 @@ Atom default_environment() {
                        (char *)builtin_clipboard_paste_name,
                        (char *)builtin_clipboard_paste_docstring));
 
-  // TODO: Define these even when LITE_GFX isn't defined, but implement
-  // them in such a way that simply discards their use. This may allow
-  // graphical configurations to also work on the REPL version, easier.
-# ifdef LITE_GFX
-
   env_set(environment, make_sym((char *)builtin_change_font_name),
           make_builtin(builtin_change_font,
                        (char *)builtin_change_font_name,
@@ -387,15 +382,12 @@ Atom default_environment() {
                        (char *)builtin_change_window_mode_name,
                        (char *)builtin_change_window_mode_docstring));
 
-# endif /* #ifdef LITE_GFX */
-
   env_set(environment, make_sym((char *)"WHILE-RECURSE-LIMIT"), make_int_with_docstring
           (10000,
            "This is the maximum amount of times a while loop may loop.\n"
            "\n"
            "Used to prevent infinite loops."));
 
-  // FIXME: It's always best to keep docstrings out of here and where they belong.
   env_set(environment, make_sym("GARBAGE-COLLECTOR-EVALUATION-ITERATIONS-THRESHOLD"),
           make_int_with_docstring
           (100000, "This number corresponds to the amount of evaluation operations before \
