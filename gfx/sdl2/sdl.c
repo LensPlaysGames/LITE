@@ -272,49 +272,70 @@ static inline SDL_Rect *rect_copy_size(SDL_Rect *dst, SDL_Rect *src) {
 }
 
 static inline void draw_gui_string_into_surface_within_rect
-(GUIString string, SDL_Surface *surface, SDL_Rect *rect) {
-  if (!string.string || string.string[0] == '\0' || !surface || !rect) {
+(GUIString gui_string, SDL_Surface *surface, SDL_Rect *rect) {
+  if (!gui_string.string || gui_string.string[0] == '\0' || !surface || !rect) {
     return;
   }
   SDL_Surface *text_surface = NULL;
   // srcrect is the rectangle within text_surface that will be copied from.
   SDL_RECT_EMPTY(srcrect);
   rect_copy_size(&srcrect, rect);
-  if (!string.properties) {
+
+  // Iterator into contents of GUIString.
+  char *string = gui_string.string;
+  // Byte offset of `string` iterator into GUIString.
+  size_t offset = 0;
+  // Byte offset of newline previous to `offset` in GUIString.
+  size_t last_newline_offset = -1;
+
+  // Handle vertical line offset by skipping by newlines.
+  size_t vertical_skip_count = gui_string.vertical_offset;
+  while (vertical_skip_count) {
+    if (*string == '\n') {
+      last_newline_offset = offset;
+      vertical_skip_count -= 1;
+    }
+    if (*string == '\0') {
+      // TODO: What happens if vertical scrolling skips entire string?
+      return;
+    }
+    string += 1;
+    offset += 1;
+  }
+
+  // If there is a horizontal offset, it is handled properly in the
+  // line-by-line drawing code.
+  if (!gui_string.properties && gui_string.horizontal_offset == 0) {
 #   if SDL_TTF_VERSION_ATLEAST(2,20,0) && !_WIN32
     text_surface = TTF_RenderUTF8_LCD_Wrapped
-      (font, string.string, fg, bg, rect->w);
+      (font, string, fg, bg, rect->w);
 #   elif SDL_TTF_VERSION_ATLEAST(2,0,18)
     text_surface = TTF_RenderUTF8_Shaded_Wrapped
-      (font, string.string, fg, bg, rect->w);
+      (font, string, fg, bg, rect->w);
 #   else
     text_surface = TTF_RenderUTF8_Blended_Wrapped
-      (font, string.string, fg, rect->w);
+      (font, string, fg, rect->w);
 #   endif
     if (!text_surface) { return; }
   } else {
     text_surface = SDL_CreateRGBSurfaceWithFormat
       (0, rect->w, rect->h, 32, SDL_PIXELFORMAT_RGBA32);
     if (!text_surface) { return; }
-    // Iterator for string.
-    char *string_contents = string.string;
-    // Byte offset of `string_contents` iterator into string.
-    size_t offset = 0;
-    // Byte offset of newline previous to `offset` in string.
-    size_t last_newline_offset = -1;
     // Destination within text_surface to render text into.
-    // SDL_BlitSurface overrides the destination rect w and h,
-    // so we must use a copy to prevent clobbering our data.
+    // SDL_BlitSurface overrides the destination rect w and h, so we
+    // must use a copy to prevent clobbering our data.
     SDL_Rect destination = srcrect;
     SDL_Rect destination_copy = destination;
     while (1) {
-      if (*string_contents == '\n' || *string_contents == '\0') {
+      if (*string == '\n' || *string == '\0') {
         // Byte offset of start of line we are currently at the end of.
+        // TODO: Add horizontal offset here. If that makes start past
+        // or equal to end, skip line but increment destination height.
         size_t start_of_line_offset = last_newline_offset + 1;
         size_t line_height = font_height;
 
         // Iterator for GUIString properties linked list.
-        GUIStringProperty *it = string.properties;
+        GUIStringProperty *it = gui_string.properties;
         uint8_t prop_count = 0;
         uint8_t props_in_line = 0;
         // Ensure that `line_height` is equal to the max size of any
@@ -344,7 +365,7 @@ static inline void draw_gui_string_into_surface_within_rect
         // Calculate amount of bytes within the current line.
         size_t bytes_to_render = offset - start_of_line_offset;
         char *line_text = allocate_string_span
-          (string.string, start_of_line_offset, bytes_to_render);
+          (gui_string.string, start_of_line_offset, bytes_to_render);
         if (line_text) {
           if (bytes_to_render && line_text[0] != '\0') {
             // Use FreeType subpixel LCD rendering, if possible.
@@ -364,7 +385,7 @@ static inline void draw_gui_string_into_surface_within_rect
           }
           if (props_in_line) {
             // Render text properties over current line.
-            it = string.properties;
+            it = gui_string.properties;
             while (it) {
               if (it->offset <= offset
                   && it->offset + it->length > start_of_line_offset) {
@@ -453,10 +474,10 @@ static inline void draw_gui_string_into_surface_within_rect
           break;
         }
       }
-      if (*string_contents == '\0') {
+      if (*string == '\0') {
         break;
       }
-      string_contents += 1;
+      string += 1;
       offset += 1;
     }
   }

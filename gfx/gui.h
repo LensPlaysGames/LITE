@@ -33,6 +33,12 @@ typedef struct GUIStringProperty {
 
 typedef struct GUIString {
   char *string;
+  /// This is the amount of rows that should be skipped, from the
+  /// beginning of the data string. Allows for vertical scrolling.
+  size_t vertical_offset;
+  /// This is the amount of columns that should be skipped at the start
+  /// of each and every row. Allows for horizontal scrolling.
+  size_t horizontal_offset;
   GUIStringProperty *properties;
 } GUIString;
 

@@ -391,6 +391,15 @@ Atom default_environment() {
                        (char *)builtin_set_gui_property_color_name,
                        (char *)builtin_set_gui_property_color_docstring));
 
+  env_set(environment, make_sym((char *)builtin_scroll_up_name),
+          make_builtin(builtin_scroll_up,
+                       (char *)builtin_scroll_up_name,
+                       (char *)builtin_scroll_up_docstring));
+  env_set(environment, make_sym((char *)builtin_scroll_down_name),
+          make_builtin(builtin_scroll_down,
+                       (char *)builtin_scroll_down_name,
+                       (char *)builtin_scroll_down_docstring));
+
   env_set(environment, make_sym((char *)"WHILE-RECURSE-LIMIT"), make_int_with_docstring
           (10000,
            "This is the maximum amount of times a while loop may loop.\n"

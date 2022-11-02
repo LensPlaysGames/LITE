@@ -448,9 +448,8 @@ void handle_modifier_up(GUIModifierKey mod) {
 }
 
 GUIContext *initialize_lite_gui_ctx() {
-  GUIContext *ctx = malloc(sizeof(GUIContext));
+  GUIContext *ctx = calloc(1, sizeof(GUIContext));
   if (!ctx) { return NULL; }
-  memset(ctx, 0, sizeof(GUIContext));
   ctx->title = "LITE GFX";
   update_gui_string(&ctx->headline, allocate_string("LITE Headline"));
   update_gui_string(&ctx->contents, allocate_string("LITE Contents"));

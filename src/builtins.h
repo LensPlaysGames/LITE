@@ -266,6 +266,13 @@ extern const char *const builtin_change_window_mode_name;
 extern const char *const builtin_change_window_mode_docstring;
 int builtin_change_window_mode(Atom arguments, Atom *result);
 
+extern const char *const builtin_scroll_down_name;
+extern const char *const builtin_scroll_down_docstring;
+int builtin_scroll_down(Atom arguments, Atom *result);
+extern const char *const builtin_scroll_up_name;
+extern const char *const builtin_scroll_up_docstring;
+int builtin_scroll_up(Atom arguments, Atom *result);
+
 extern const char *const builtin_set_gui_property_position_name;
 extern const char *const builtin_set_gui_property_position_docstring;
 int builtin_set_gui_property_position(Atom arguments, Atom *result);
