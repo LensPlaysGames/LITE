@@ -74,7 +74,7 @@ Replace ~<build system>~ with one of the available build systems
 
 Optionally, build LITE with graphical user interface capabilities by
 adding the flag ~-DLITE_GFX=ON~ when generating the build tree.
-Ensure to read the README in the ~gfx~ subdirectory, if doing so.
+*Ensure to read the README in the ~gfx~ subdirectory, if doing so.*
 
 Once the build tree is generated, invoke it to generate an executable.
 #+begin_src sh

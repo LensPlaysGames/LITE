@@ -964,7 +964,7 @@ void change_window_size(size_t width, size_t height) {
 
 // TODO: Add window_mode() query to get current window mode using
 //       SDL_GetWindowFlags().
-int change_window_mode(enum GFXWindowMode mode) {
+void change_window_mode(enum GFXWindowMode mode) {
   uint32_t flags = 0;
   switch (mode) {
   default:

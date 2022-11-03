@@ -1419,10 +1419,7 @@ int builtin_change_window_mode(Atom arguments, Atom *result) {
   if (n.value.integer == 1) {
     mode = GFX_WINDOW_MODE_FULLSCREEN;
   }
-  *result = nil;
-  if (change_window_mode(mode) == 0) {
-    *result = make_sym("T");
-  }
+  change_window_mode(mode);
 #endif
   return ERROR_NONE;
 }

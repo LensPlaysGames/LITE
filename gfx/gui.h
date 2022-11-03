@@ -97,8 +97,7 @@ enum GFXWindowMode {
   GFX_WINDOW_MODE_FULLSCREEN,
 };
 
-/// @return Zero upon success.
-int change_window_mode(enum GFXWindowMode mode);
+void change_window_mode(enum GFXWindowMode mode);
 
 enum GFXWindowVisible {
   GFX_WINDOW_VISIBLE = 0,
