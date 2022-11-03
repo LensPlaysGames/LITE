@@ -38,7 +38,7 @@
 ;;(keymap-push keymap "<return>" "\\r\\n")
 
 ;; keybinds: Backspace
-(keymap-push keymap "<backspace>" '(buffer-remove current-buffer 1))
+(keymap-push keymap "<backspace>" '(backspace))
 
 ;; keybinds: Tab is four spaces (by default)
 (keymap-push keymap "<tab>" "    ")
@@ -48,7 +48,7 @@
 
 ;; keybinds: Miscellaneous keys
 (keymap-push keymap "<insert>"       'ignore)
-(keymap-push keymap "<delete>"       "<backspace>")
+(keymap-push keymap "<delete>"       '(buffer-remove-forward current-buffer 1))
 (keymap-push keymap "<home>"         '(beginning-of-line))
 (keymap-push keymap "<end>"          '(end-of-line))
 (keymap-push keymap "<page-up>"      'ignore)

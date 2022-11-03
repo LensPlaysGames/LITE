@@ -29,9 +29,7 @@ and print out their respective docstrings."
       (prins (car item))
       (let ((docstr (docstring (car item) (env))))
         (when docstr
-          (prins (string-concat docstr "\\n\\n"))
-          ))
-      )))
+          (prins (string-concat docstr "\\n\\n")))))))
 
 (defmacro save-point-and-mark (buffer . body)
   "Evaluate body, then restore point and mark state of BUFFER.
@@ -284,6 +282,27 @@ where it is."
   (save-point-and-mark current-buffer
    (select-current-line)
    (clipboard-copy current-buffer)))
+
+
+(defun backspace ()
+  "Remove the character behind the cursor in the current buffer,
+or, if mark is active and a region is selected, remove the entire region."
+  (if (buffer-mark-active current-buffer)
+      ;; Mark is active, a region is selected.
+      (let ((mark (buffer-mark current-buffer))
+            (p (buffer-point current-buffer))
+            (length (buffer-region-length current-buffer)))
+        ;; Don't remove anything if region is of zero-length
+        (unless (= length 0)
+          ;; Determine if we need to remove forward or backward from point.
+          (if (> mark p)
+              ;; Mark is past point, remove forward.
+              (buffer-remove-forward current-buffer length)
+              ;; Point is past mark, remove backward.
+              (buffer-remove current-buffer length))))
+      ;; Mark isn't active, no region selected---remove a single byte backwards.
+      (buffer-remove current-buffer 1))
+  )
 
 
 (evaluate-file "lisp/std/binds.lt")
