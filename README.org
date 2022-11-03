@@ -22,34 +22,39 @@ for text editing and general scripting that is *easy to port*.
 Initially, development followed [[https://www.lwh.jp/lisp/][this LISP interpreter tutorial]] ([[https://web.archive.org/web/20220617192957/https://www.lwh.jp/lisp][archive]]).
 
 One glaring difference between Emacs and LITE is that LITE does not use
-a [[https://en.wikipedia.org/wiki/Gap_buffer][=gap buffer=]] data structure to edit text; rather, it uses a [[https://en.wikipedia.org/wiki/Rope_(data_structure)][=Rope=]].
+a [[https://en.wikipedia.org/wiki/Gap_buffer][Gap Buffer]] data structure to edit text; rather, it uses a [[https://en.wikipedia.org/wiki/Rope_(data_structure)][Rope]].
 
-NOTE: Any and all shell commands assume a working directory of the base of this repository.
+NOTE: Any and all shell commands assume a working directory of the base
+of this repository.
 
 *** Usage
 
 **** LITE REPL
 
-By default, LITE builds a terminal-only "read, evaluate, print, loop" program (a /REPL/). \\
+By default, LITE builds a terminal-only "read, evaluate, print, loop"
+program (a /REPL/).
+
 To enter the REPL, run the following:
 #+begin_src shell
-  bin/LITE lisp/std.lt
+  ./bin/LITE
 #+end_src
 
 On Windows:
 #+begin_src powershell
-  .\bin\LITE .\lisp\std.lt
+  .\bin\LITE
 #+end_src
 
-Any and all arguments are treated as file paths and are attempted to be loaded as LITE LISP source files.
-It is recommended to include the standard library, as shown.
+Any and all arguments are treated as file paths and are attempted to be
+loaded as LITE LISP source files.
 
 **** LITE GFX
 
-LITE may be compiled with GFX, resulting in an executable GUI application.
+LITE may be compiled with GFX, resulting in an executable GUI
+application.
 
-Run it the way that you would normally run a graphical application on your OS.
-Most of the time this means double-clicking the executable from a file explorer.
+Run it the way that you would normally run a graphical application on
+your OS. Most of the time this means double-clicking the executable
+from a file explorer, or launching the executable from a shell.
 
 The executable may be obtained by building from local source.
 # or [[https://github.com/LensPlaysGames/LITE/releases/latest][downloading]] the latest pre-built release.
