@@ -453,8 +453,6 @@ Here is a list of all of the special forms currently in LITE LISP.
 
   This is mostly used in macros to evaluate certain arguments.
 
-  NOTE: Currently, nested calls to ~EVALUATE~ do not behave as expected.
-
 - ENV :: Return the current environment.
 
 - ERROR :: Print the given message to standard out after an error indicator.

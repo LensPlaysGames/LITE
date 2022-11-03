@@ -1,0 +1,815 @@
+\title{Programming :: LITE LISP}
+\author{Rylan Lens Kellogg}
+\documentclass[
+% 12pt,
+letterpaper,
+% a4paper,
+% ebook,
+oneside,
+% twoside,
+]{memoir}
+
+% Requires XeTeX to use system installed font
+\usepackage{fontspec}
+\setmainfont{FiraCode NF}
+
+\usepackage{xcolor}
+% Uncomment for dark-mode PDF (don't try to print this).
+\definecolor{darkBG}{RGB}{19,20,21} \pagecolor{darkBG} \color{white}
+
+% Fix stupid bug where TOC section numbers overlap titles.
+\usepackage{tocloft}
+\setlength{\cftsectionnumwidth}{4em}
+
+% cross references, links, etc
+\usepackage[colorlinks]{hyperref}
+
+% formatting
+\usepackage{titlesec}
+\titleformat{\chapter}{\normalfont\Huge\bfseries}{\thechapter.\hspace{1ex}}{0pt}{}
+\titlespacing*{\chapter}{0pt}{-8em}{2em}
+
+% Better tables
+% table cells spanning multiple rows/columns
+\usepackage{multirow}
+\usepackage{multicol}
+% remove labelformat from table caption i.e. "Table 1: ".
+\usepackage[labelformat=empty]{caption}
+% resize table to page
+\usepackage{adjustbox}
+
+\usepackage{microtype}
+
+
+\newcommand{\typedefinition}[2]{\section{#1}%\vspace{1em}\noindent\textbf{\emph{#1}}
+
+#2
+}
+
+
+\begin{document}
+\maketitle
+\clearpage
+\tableofcontents
+
+\chapter{Basic Syntax}
+
+Every LISP program is made up of \emph{atoms}. An atom is nearly any sequence of bytes, except for whitespace, commas, or backslashes. \textbf{Atoms are NOT case sensitive.}
+
+\vspace{1em}
+
+\noindent
+Here are some LITE LISP atoms.
+
+\vspace{1em}
+\begin{tabular}{l}
+  \texttt{foo-bar} \\
+  \texttt{foo/bar} \\
+  \texttt{*foobar*} \\
+  \texttt{<*-/im-an-atom/-*>} \\
+  \texttt{-420} \\
+  \texttt{69} \\
+  \texttt{interrupt80} \\
+\end{tabular}
+\vspace{1em}
+
+\filbreak
+\noindent
+A \emph{list} is a sequence of atoms and/or other lists surrounded by parentheses.
+
+\vspace{1em}
+\begin{tabular}{l}
+  \texttt{(foo-bar foo/bar *foobar*)} \\
+  \texttt{(   im a    list (in a list ))} \\
+  \texttt{(sun mon tue wed thu fri sat)} \\
+\end{tabular}
+\vspace{1em}
+
+\filbreak
+\noindent
+Strings are any sequence of bytes surrounded by ASCII double quotes.
+
+\vspace{1em}
+\begin{tabular}{l}
+  \texttt{"I am a string."} \\
+  \verb|" al;sdn  (!*^(*%)#!^)  \033  \n  lasnk  \ a     \a   \t \f "| \\
+  \texttt{"Information is easy to fake but hard to smell."} \\
+\end{tabular}
+\vspace{1em}
+
+\filbreak
+\noindent
+Comments begin with a semicolon and stop at the first newline.
+
+\vspace{1em}
+\begin{tabular}{l}
+  \texttt{; I'm a comment} \\
+  \texttt{;;;; And I as well!} \\
+  \\
+  \verb|(print "hello, friends") ; print to stdout| \\
+\end{tabular}
+\vspace{1em}
+
+\filbreak
+\noindent
+Function calls are represented as a list with a symbol as the first element, and any arguments passed are subsequent elements.
+
+\vspace{1em}
+\begin{tabular}{l}
+\verb|(print "hello friends!")| \\
+\texttt{(abs -69420)} \\
+\texttt{(define foo 42)} \\
+\end{tabular}
+\vspace{1em}
+
+The first element in a list that is to be evaluated is referred to as the \emph{operator}.
+
+\filbreak
+
+\chapter{Atoms}
+
+Every object in LISP is called an atom. Every atom has a type, a value, a docstring, and a generic allocation pointer associated with it.
+
+\vspace{1em}
+\noindent
+The value is a union with multiple value types, and the type field designates which value within the union to use, and how to treat it.
+
+\vspace{1em}
+\noindent
+The docstring is a string containing information about the atom, i.e. documenting it. This could range from a function’s usage to a variables meaning. Access docstrings using the docstring builtin: \texttt{(docstring <atom> <environment>)}.
+
+\vspace{1em}
+\noindent
+The generic allocation pointer is a linked list of allocated memory that will be freed when the atom is garbage collected. This allows the LITE interpreter to allocate memory as needed and ensure it is freed only after it is done being used.
+
+\chapter{Types}
+
+Here are the different types an atom may have in LITE LISP.
+
+\typedefinition{Nil}{This is the definition of false, or nothing.}
+
+\typedefinition{Pair}{%
+  A recursive pair, containing a left-hand Atom and a right-hand Atom.
+  A pair has special terminology for the two sides; the left is referred to as car, while the right is referred to as cdr.
+  A list is a pair with a value on the left, and another pair, or nil, on the right.
+}
+
+\typedefinition{Symbol}{%
+  A sequence of bytes that may be bound in the environment.
+  All symbols are located in the symbol table with no duplicates.
+}
+
+\typedefinition{String}{A sequence of bytes, usually denoting human readable text.}
+
+\typedefinition{Integer}{An integer number, like \texttt{1}, \texttt{-420}, or \texttt{69}.}
+
+\typedefinition{Builtin}{%
+  A function implemented in LITE source code that is able to be called from LITE LISP.
+}
+
+\typedefinition{Closure}{A function implemented in LITE LISP; a lambda.}
+
+\typedefinition{Macro}{%
+  A closure with unevaluated arguments that creates an expression that is then evaluated.
+}
+
+\typedefinition{Buffer}{An opened file that may be edited in LITE.}
+
+\chapter{Environment, Variables, QUOTE}
+
+Variables are stored in an environment. An environment is a key/value dictionary, where the keys are a symbol, and the values are atomic LISP objects.
+
+\vspace{1em}
+\noindent
+To bind a symbol to a value in the local scope, use the DEFINE special form.
+
+\vspace{1em}
+\begin{tabular}{l}
+  \texttt{(define new-variable 42)} \\
+\end{tabular}
+\vspace{1em}
+
+\filbreak
+
+\noindent
+To bind a symbol to a value in the global scope, use the SET special form.
+
+\vspace{1em}
+\begin{tabular}{l}
+  \texttt{(set new-variable 42)} \\
+\end{tabular}
+\vspace{1em}
+
+\noindent
+\texttt{new-variable} is now a symbol bound in the environment. Following occurences of the bound symbol will be evaluated to the defined value: 42.
+
+\filbreak
+
+\vspace{1em}
+\noindent
+Sometimes, it is useful to not evaluate a variable. This can be done using the QUOTE operator.
+
+\vspace{1em}
+\begin{tabular}{l}
+  \verb|(quote new-variable) ; returns the symbol "new-variable"| \\
+\end{tabular}
+\vspace{1em}
+
+\filbreak
+
+\noindent
+As quoting is a very common necessity in LISP, there is a special short-hand for it: a preceding single-quote. This short-hand means the following to be equivalent to the QUOTE just above.
+
+\vspace{1em}
+\begin{tabular}{l}
+\verb|'new-variable ; returns the symbol "new-variable"| \\
+\end{tabular}
+\vspace{1em}
+
+\filbreak
+
+\noindent
+When defining any variable, it is possible to define a docstring for it by specifying it as a third argument:
+
+\vspace{1em}
+\begin{tabular}{l}
+  \verb|(define new-variable 42 | \\
+  \qquad\verb|"The meaning of life, the universe, and everything.")| \\
+\end{tabular}
+\vspace{1em}
+
+\filbreak
+
+\noindent
+The docstring may be accessed like so:
+
+\vspace{1em}
+\begin{tabular}{l}
+  \texttt{(docstring new-variable (env))} \\
+\end{tabular}
+\vspace{1em}
+
+\filbreak
+
+\noindent
+The standard library includes a macro to help re-define a docstring:
+
+\vspace{1em}
+\begin{tabular}{l}
+  \verb|(set-docstring new-variable "The meaning of your mom.")| \\
+\end{tabular}
+\vspace{1em}
+
+\noindent
+This allows for everything in LITE LISP to self-document it’s use.
+
+\filbreak
+
+\chapter{Functions}
+
+The standard library includes the DEFUN macro to help define named functions.
+
+\vspace{1em}
+\begin{tabular}{l}
+  \texttt{(defun NAME ARGUMENT DOCSTRING BODY-EXPRESSION(S))} \\
+\end{tabular}
+\vspace{1em}
+
+\noindent
+Here is a simple factorial implementation that works for small, positive numbers.
+
+\vspace{1em}
+\begin{tabular}{l}
+  \verb|(defun fact (x) "Get the factorial of integer X."| \\
+  \qquad\verb|(if (= x 0) 1 (* x (fact (- x 1)))))| \\
+\end{tabular}
+\vspace{1em}
+
+\noindent
+To call a named function, put the name of the function in the operator position, and any arguments following. Arguments are evaluated before being bound and the body being executed.
+
+\vspace{1em}
+\begin{tabular}{l}
+  \texttt{(fact 6)} \\
+\end{tabular}
+\vspace{1em}
+
+\noindent
+Assuming FACT refers to the function defined just above, this would result in the integer 720, as 6 was bound to the symbol X during the execution of the functions body.
+
+\vspace{1em}
+\noindent
+As arguments are evaluated before being bound, we can also pass expressions. The result of the expression will be bound to the argument symbol.
+
+\vspace{1em}
+\begin{tabular}{l}
+  \texttt{(fact (fact 3))} \\
+\end{tabular}
+\vspace{1em}
+
+\noindent
+In this case, (fact 3) will be evaluated before the outer FACT call, so that we can bind the result of it to X. Once evaluating, we will get the integer result 6, which will then be bound to X in the outer (left-most) FACT call, resulting in 720.
+
+\section{Lambda/Closure}
+
+A \emph{lambda} is a function with no name.
+
+Currently, lambdas may be defined with the following special form:
+
+\vspace{1em}
+\begin{tabular}{l}
+  \texttt{(lambda ARGUMENT BODY-EXPRESSION(S))} \\
+\end{tabular}
+\vspace{1em}
+
+\noindent
+ARGUMENT is a symbol or a list of symbols denoting arguments to be bound when the function is called.
+
+
+\vspace{1em}
+\noindent
+BODY-EXPRESSION(S) is a sequence of expressions that will be executed with arguments bound when the lambda is called. The result of the last expression in the body is the return value of the lambda.
+
+\vspace{1em}
+\noindent
+This means the identity lambda may be written like so:
+
+\vspace{1em}
+\begin{tabular}{l}
+  \texttt{(lambda (x) x)} \\
+\end{tabular}
+\vspace{1em}
+
+\filbreak
+
+\noindent
+As a real world example, here is the factorial implementation from above written as a lambda:
+
+\vspace{1em}
+\begin{tabular}{l}
+  \texttt{(lambda (x) (if (= x 0) 1 (* x (fact (- x 1)))))} \\
+\end{tabular}
+\vspace{1em}
+
+\filbreak
+
+\noindent
+To call a lambda, put it in the operator position just like the name of a named function. Pass any arguments as subsequent values in the list, just as you would a named function.
+
+\vspace{1em}
+\begin{tabular}{l}
+  \texttt{((lambda (x) (if (= x 0) 1 (* x (fact - x 1)))) 6)} \\
+\end{tabular}
+\vspace{1em}
+
+\noindent
+Evaluating the above would result in the integer value \texttt{720}, as \texttt{6} was bound to \texttt{X} and the lambda body was executed.
+
+\filbreak
+
+\section{Variadic Arguments}
+
+There is also support for variadic arguments using an improper list. The syntax for an improper list is as follows.
+
+\vspace{1em}
+\begin{tabular}{l}
+  \texttt{(1 2 3 . 4)} \\
+\end{tabular}
+\vspace{1em}
+
+\filbreak
+
+\noindent
+In the context of a lambda, here is how to define a function with two positional arguments followed by a varying number of arguments.
+
+\vspace{1em}
+\begin{tabular}{l}
+  \texttt{(lambda (argument1 argument2 . the-rest) BODY-EXPRESSION(S))} \\
+\end{tabular}
+\vspace{0em} % This is acting up for some reason, so it needs to be zero to actually be one...
+
+\noindent
+After all fixed arguments are given, the rest are passed as a list to the function. If no variadic arguments are given, nil is passed.
+
+\vspace{1em}
+\noindent
+To create a function that may take any amount of arguments, put a symbol in the ARGUMENT position, as seen in this redefinition of the \emph{+} operator in the standard library:
+
+\vspace{1em}
+\begin{tabular}{l}
+  \texttt{(let ((old+ +))} \\
+  \qquad\texttt{(lambda ints (foldl old+ 0 ints)))} \\
+\end{tabular}
+\vspace{1em}
+
+\chapter{Macros}
+
+A macro may be created with the MACRO operator. A macro is like a lambda, except it will return the result of evaluating it’s return value, rather than it’s return value being the result. This allows for commands and arguments to be built programatically in LISP.
+
+\vspace{1em}
+\noindent
+In order to ease the making of macros, there is quasiquotation. It is similar to regular quotation, but it is possible to unquote specific atoms so as to evaluate them before calling the returned expression.
+
+\vspace{1em}
+\noindent
+While it is possible to call the quasiquotation operators manually, there are short-hand special forms built in to the parser.
+
+\begin{center}
+  \begin{tabular}{rl}
+    \verb|`|  & QUASIQUOTE \\
+    \verb|,|  & UNQUOTE \\
+    \verb|,@| & UNQUOTE-SPLICING \\
+  \end{tabular}
+\end{center}
+
+\noindent
+These special forms allow macro definitions to look more like the expressions they produce.
+
+\filbreak
+
+\vspace{1em}
+\noindent
+Here is a simple example that mimics the QUOTE operator.
+
+\vspace{1em}
+\begin{tabular}{l}
+  \verb|(macro my-quote (x) "Mimics the 'QUOTE' operator."| \\
+  \qquad\verb|`(quote ,x))| \\
+\end{tabular}
+\vspace{1em}
+
+\noindent
+The QUASIQUOTE special-form at the beginning will cause the QUOTE symbol to pass through without being evaluated. The UNQUOTE special-form before the X symbol will cause it to be evaluated, replacing \texttt{,x} with the passed argument.
+
+\filbreak
+
+\vspace{1em}
+\noindent
+For example, calling \texttt{(my-quote a)} will eventually expand to \texttt{(QUOTE A)}, which will result in the symbol A being returned upon evaluation.
+
+\filbreak
+
+\vspace{1em}
+\noindent
+For a more real-world example that is actually useful, let’s take a look at DEFUN from the standard library.
+
+\vspace{1em}
+\begin{tabular}{l}
+  \verb|(macro defun (name args docstring . body)| \\
+  \qquad\verb|"Define a named lambda function with a given docstring."| \\
+  \qquad\verb|`(define ,name (lambda ,args ,@body) ,docstring))| \\
+\end{tabular}
+\vspace{1em}
+
+\noindent
+As you can see, this macro takes three fixed arguments followed by any number of arguments following passed as a list bound to BODY. The first argument, NAME, is within a quasiquoted expression, but contains an unquote special-form operator. This causes it to be evaluated during macro expansion, resulting in the passed argument. The same thing happens with ARGS and DOCSTRING. When it comes to BODY, though, things change. As BODY is a list, and a function body is not a list, but a sequence, we must transform it somehow. This is where the UNQUOTE-SPLICING operator comes into play, as it will take each element of a given list and splice it into a sequence.
+
+\begin{center}
+  \begin{tabular}{rcl}
+    \texttt{,BODY}  & $=$ & \texttt{((print a) (print b) (print c))} \\
+    \texttt{,@BODY} & $=$ & \texttt{(print a) (print b) (print c)} \\
+  \end{tabular}
+
+  \vspace{1ex}
+  {\footnotesize Note the lack of outer parentheses when UNQUOTE-SPLICING is used.}
+\end{center}
+
+\filbreak
+
+\noindent
+This allows the LAMBDA body argument to be a valid sequence of expressions that can be evaluated properly.
+
+\vspace{1em}
+\noindent
+When including the standard library, DEFMACRO operates exactly the same as MACRO.
+
+\vspace{1em}
+\noindent
+When the environment variable DEBUG/MACRO is non-nil, extra output concerning macros is produced.
+
+\chapter{Special Forms}
+
+Special forms are hard-coded symbols that go in the operator position. They are the most fundamental building blocks of how LITE LISP operates.
+
+\vspace{1em}
+\noindent
+Here is a list of all of the special forms currently in LITE LISP.
+
+\section{QUOTE}
+%\vspace{1em}\noindent\hspace{-1em}\textbf{\emph{QUOTE}}
+
+\noindent
+Pass one and only one argument through without evaluating it. There is also a short-form built in to the parser: \verb|'| (single quote). This allows code to be written much faster, as quoting is something that happens quite often in the land of LISP.
+
+\begin{center}
+  \begin{tabular}{rcl}
+    \verb|'X| & $=$ & \texttt{(QUOTE X)} \\
+  \end{tabular}
+\end{center}
+
+\vspace{1em}
+
+\section{DEFINE, SET}
+%\filbreak\vspace{1em}\noindent\hspace{-1em}\textbf{\emph{DEFINE, SET}}
+
+\noindent
+Bind a symbol to a given atomic value within the LISP environment.
+
+\begin{center}
+  \begin{tabular}{c}
+    \texttt{(DEFINE SYMBOL VALUE [DOCSTRING])}
+  \end{tabular}
+\end{center}
+
+\noindent
+DEFINE binds within the local environment, while SET binds within the global environment.
+
+\vspace{1em}
+
+\section{LAMBDA}
+%\filbreak\vspace{1em}\noindent\hspace{-1em}\textbf{\emph{LAMBDA}}
+
+\noindent
+Create a closure from the given expected arguments and body.
+
+\begin{center}
+  \begin{tabular}{c}
+    \texttt{(LAMBDA ARGS BODY)}
+  \end{tabular}
+\end{center}
+
+\noindent
+This closure can then be placed in the operator position, and any further elements in the list will be bound to the argument symbols given in the lambda definition while the body is evaluated.
+
+\vspace{1em}
+
+\section{IF}
+%\filbreak\vspace{1em}\noindent\hspace{-1em}\textbf{\emph{IF}}
+
+\noindent
+A conditional expression.
+
+\begin{center}
+  \begin{tabular}{c}
+    \texttt{(IF CONDITION THEN OTHERWISE)}
+  \end{tabular}
+\end{center}
+
+\noindent
+Evaluate the given condition. If result is non-nil, evaluate the second argument given. Otherwise, evaluate the third argument.
+
+\vspace{1em}
+
+\section{WHILE}
+%\filbreak\vspace{1em}\noindent\hspace{-1em}\textbf{\emph{WHILE}}
+
+\noindent
+A conditional loop.
+
+\begin{center}
+  \begin{tabular}{c}
+    \texttt{(WHILE CONDITION BODY)}
+  \end{tabular}
+\end{center}
+
+\noindent
+Evaluate condition. If result is non-nil, evaluate BODY one time. Repeat each time body is evaluated.
+
+\vspace{1em}
+\noindent
+Extra information regarding WHILE loops is output when the DEBUG/WHILE debug flag is set to a non-nil value.
+
+\vspace{1em}
+
+\section{PROGN}
+%\filbreak\vspace{1em}\noindent\hspace{-1em}\textbf{\emph{PROGN}}
+
+\noindent
+Evaluate a sequence of expressions, returning the result of the last expression. This is often used within IF to be able to evaluate multiple expressions within the THEN or OTHERWISE singular expression argument.
+
+\vspace{1em}
+
+\section{MACRO}
+%\filbreak\vspace{1em}\noindent\hspace{-1em}\textbf{\emph{MACRO}}
+
+\noindent
+Create a closure, except the passed arguments are not evaluated---the value returned is evaluated, then that return value is the result.
+
+\vspace{1em}
+
+\section{DOCSTRING}
+%\filbreak\vspace{1em}\noindent\hspace{-1em}\textbf{\emph{DOCSTRING}}
+
+\noindent
+Return the docstring of any given atom, if it exists within the given environment.
+
+\vspace{1em}
+
+\section{EVALUATE}
+%\filbreak\vspace{1em}\noindent\hspace{-1em}\textbf{\emph{EVALUATE}}
+
+\noindent
+Return the result of the given argument after evaluating it. This is often used in macros to evaluate certain arguments within an UNQUOTE, but not others.
+
+\vspace{1em}
+
+\section{ENV}
+%\filbreak\vspace{1em}\noindent\hspace{-1em}\textbf{\emph{ENV}}
+
+\noindent
+Return the current environment.
+
+\vspace{1em}
+
+\section{ERROR}
+%\filbreak\vspace{1em}\noindent\hspace{-1em}\textbf{\emph{ERROR}}
+
+\noindent
+Print the given message to standard out after an error indicator. Returns the given message. Halts evaluation.
+
+\vspace{1em}
+
+\chapter{Structures}
+
+Structures are defined in the standard library, and can not be used unless it is included.
+
+\vspace{1em}
+\noindent
+In LITE LISP, structures are basically an associative list with stricter rules.
+
+\vspace{1em}
+\noindent
+Each association within the structure is referred to as a member.
+
+\vspace{1em}
+\noindent
+Each member must be a pair with a symbol on the left side. This symbol is the member’s identifier, or ID.
+
+\vspace{1em}
+\noindent
+Let’s look at how to define a new structure.
+
+\vspace{1em}
+\begin{tabular}{l}
+  \verb|(defstruct my-struct| \\
+  \qquad\verb|"my docstring"| \\
+  \qquad\verb|((my-member)))| \\
+\end{tabular}
+\vspace{1em}
+
+\noindent
+Here, we have a structure, \texttt{my-struct}, with a single member, \texttt{my-member}.
+
+\vspace{1em}
+\noindent
+One important thing to note is that initial values given to members are not evaluated, and so must be a self-evaluating value (a literal). For example, attempting to put the name of a function as an initial value does not work (at least not as expected). The member will be bound to the symbol that matches the name of the function, not the function itself.
+
+\vspace{1em}
+\noindent
+It should also be noted that the syntax for defining members matches let exactly, apart from the just-described phenomena.
+
+\filbreak
+
+\vspace{1em}
+\noindent
+To access the value of any given member within a structure, use \texttt{get-member}.
+
+\vspace{1em}
+\begin{tabular}{l}
+  \texttt{(get-member my-struct my-member)} \\
+\end{tabular}
+\vspace{1em}
+
+\noindent
+This will return the value of the member with an ID of \texttt{my-member} within \texttt{my-struct}. If one does not exist, it will return nil. Because we gave the member an initial value of zero, that is what is returned.
+
+\filbreak
+
+\vspace{1em}
+\noindent
+\texttt{set-member} can be used to update a member’s value.
+
+\vspace{1em}
+\begin{tabular}{l}
+  \texttt{(set-member my-struct 'my-member 42)} \\
+\end{tabular}
+\vspace{1em}
+
+\filbreak
+
+\noindent
+To define a member to a function, you must first define the structure. Afterwards, use \texttt{set-member}, which evaluates the value argument.
+
+\vspace{1em}
+\begin{tabular}{l}
+  \texttt{(set-member my-struct 'my-member +)} \\
+\end{tabular}
+\vspace{1em}
+
+\noindent
+At this point, \texttt{my-member} of \texttt{my-struct} has a value of the closure which was bound to the symbol \texttt{+}.
+
+\filbreak
+
+\vspace{1em}
+\noindent
+We can now call this member function using the \texttt{call-member} macro.
+
+\vspace{1em}
+\begin{tabular}{l}
+  \texttt{(call-member my-struct my-member 34 35)} \\
+\end{tabular}
+\vspace{1em}
+
+\noindent
+Any arguments after the structure symbol and member ID are passed through to the called function.
+
+\clearpage
+
+As you may already be thinking, you don’t always want to use structures in the way shown above, where the actual structure definition is the mutable data. In most cases, it is preferable to define a structure once, and have multiple instances of the defined. This is possible with the make macro.
+
+\vspace{1em}
+\begin{tabular}{l}
+\verb|(defstruct vector3| \\
+\verb|  "A vector of three integers, X, Y, and Z."| \\
+\verb|  ((x 0) (y 0) (z 0)))| \\
+\\
+\verb|;; Create an instance of a defined structure.| \\
+\verb|(set my-coordinates (make vector3))| \\
+\\
+\verb|;; Setting member values.| \\
+\verb|(set-member my-coordinates 'x 24)| \\
+\verb|(set-member my-coordinates 'y 34)| \\
+\verb|(set-member my-coordinates 'z 11)| \\
+\\
+\verb|;; Print the instance of the structure to standard out.| \\
+\verb|(print my-coordinates)| \\
+\\
+\verb|;; Access all the members of a struct using the `ACCESS` macro.| \\
+\verb|;; It is like `LET`, except it binds all of a structure's arguments| \\
+\verb|;; to their values, then evaluates the given body.| \\
+\verb|(access my-coordinates| \\
+\verb|        (print x)| \\
+\verb|        (print y)| \\
+\verb|        (print z))| \\
+\\
+\verb|;; Accessing member IDs and values as separate lists.| \\
+\verb|(let ((coordinate-members (map car my-coordinates))| \\
+\verb|      (coordinate-values (map cadr my-coordinates)))| \\
+\verb|  (print coordinate-members)| \\
+\verb|  (print coordinate-values))| \\
+\\
+\verb|;; Print the sum of all of the values in the structure.| \\
+\verb|(print (foldl + 0 (map cadr my-coordinates)))| \\
+\end{tabular}
+\vspace{1em}
+
+\chapter{Miscellaneous}
+
+\section{Buffer Table}
+
+Get the current buffer talbe with the \texttt{BUF} operator.
+
+\section{Symbol Table}
+
+Get the current symbol table with the \texttt{SYM} operator.
+
+\vspace{1em}
+\noindent
+Alternatively, print the environment by setting \texttt{DEBUG/ENVIRONMENT} to any non-nil value.
+
+\section{Closure Environment Syntax}
+
+Currently, closures are stored in the environment with the following syntax:
+
+\vspace{1em}
+\begin{tabular}{l}
+  \texttt{(ENVIRONMENT (ARGUMENT ...) BODY-EXPRESSION)} \\
+\end{tabular}
+
+\section{Escape Sequences within Strings}
+
+Currently, strings have a double-backslash escape sequence.
+
+\vspace{1em}
+\noindent
+The following escape sequences are recognized within strings.
+
+\begin{center}
+  \begin{tabular}{rcl}
+    \verb|\\_| & $\rightarrow$ & nothing \\
+    \verb|\\r| & $\rightarrow$ & \verb|\r (0xD)| \\
+    \verb|\\n| & $\rightarrow$ & \verb|\n (0xA)| \\
+    \verb|\\"| & $\rightarrow$ & \verb|"| \\
+  \end{tabular}
+\end{center}
+
+\section{Debug Environment Variables}
+
+There are environment variables that cause LITE to report output extra information regarding the topic the variable pertains to when non-nil.
+
+\vspace{1em}
+\noindent
+For a list of all debug variables that LITE internally responds to, see the file that enables all of them at once, lisp/dbg.lt.
+
+\end{document}
