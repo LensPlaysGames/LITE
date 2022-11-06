@@ -1,0 +1,9 @@
+; 69
+; 420
+; NIL
+; 69
+
+(print (or nil 69))
+(print (or 420 69))
+(print (and nil 69))
+(print (and "anything" 69))

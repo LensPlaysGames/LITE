@@ -241,7 +241,7 @@ something before doing it."
   (buffer-set-mark-activation current-buffer t))
 
 (defun deactivate-mark ()
-  "Activate mark in current buffer."
+  "Deactivate mark in current buffer."
   (buffer-set-mark-activation current-buffer nil))
 
 (defun set-mark-to-point ()

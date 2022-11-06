@@ -283,6 +283,32 @@ Error evaluate_return_value(Atom *stack, Atom *expr, Atom *environment, Atom *re
       // Re-evaluate condition before continuing.
       *expr = car(list_get(*stack, 3));
       return ok;
+    } else if (strcmp(operator.value.symbol, "OR") == 0) {
+      arguments = list_get(*stack, 3);
+      if (!nilp(*result)) {
+        *stack = car(*stack);
+        return ok;
+      }
+      if (nilp(cdr(arguments))) {
+        *stack = car(*stack);
+        return ok;
+      }
+      *expr = car(cdr(arguments));
+      list_set(*stack, 3, cdr(arguments));
+      return ok;
+    } else if (strcmp(operator.value.symbol, "AND") == 0) {
+      arguments = list_get(*stack, 3);
+      if (nilp(*result)) {
+        *stack = car(*stack);
+        return ok;
+      }
+      if (nilp(cdr(arguments))) {
+        *stack = car(*stack);
+        return ok;
+      }
+      *expr = car(cdr(arguments));
+      list_set(*stack, 3, cdr(arguments));
+      return ok;
     } else {
       // Store arguments.
       arguments = list_get(*stack, 4);
@@ -636,6 +662,16 @@ Error evaluate_expression(Atom expr, Atom environment, Atom *result) {
           fprintf(stderr, "LISP ERROR: %s\n", message.value.symbol);
           *result = make_string(message.value.symbol);
           break;
+        } else if (strcmp(operator.value.symbol, "OR") == 0) {
+          stack = make_frame(stack, environment, arguments);
+          list_set(stack, 2, operator);
+          expr = car(arguments);
+          continue;
+        } else if (strcmp(operator.value.symbol, "AND") == 0) {
+          stack = make_frame(stack, environment, arguments);
+          list_set(stack, 2, operator);
+          expr = car(arguments);
+          continue;
         } else {
           // Evaluate operator before application.
           stack = make_frame(stack, environment, arguments);
