@@ -130,3 +130,95 @@ as well as places INITIAL-VALUE at the end of SOME-LIST.")
   "Evaluate BODY iff CONDITION evaluates to nil."
   `(if (! ,condition) ((lambda () ,@body)) nil))
 
+
+;; CURRENT BUFFER HELPER FUNCTIONS
+(define toggle-mark
+    (lambda () (buffer-toggle-mark current-buffer))
+    "Toggle the mark in the current buffer.")
+
+(define set-mark-activation
+    (lambda (state) (buffer-set-mark-activation current-buffer state))
+  "Set activation state of mark in BUFFER based on STATE being non-nil or not.")
+
+(define set-mark
+    (lambda (mark) (buffer-set-mark current-buffer mark))
+  "Set marked byte in BUFFER to MARK.")
+
+(define mark
+    (lambda () (buffer-mark current-buffer))
+  "Return the byte offset of mark into the current buffer.")
+
+(define mark-active
+    (lambda () (buffer-mark-active current-buffer))
+  "Return T iff mark is active in current buffer---otherwise, return nil.")
+
+(define region
+    (lambda () (buffer-region current-buffer))
+  "Return the region between mark and point in current buffer.")
+
+(define region-length
+    (lambda () (buffer-region-length current-buffer))
+  "Get byte difference between mark and point within current buffer;
+the byte length of the selected region")
+
+(define path
+    (lambda () (buffer-path current-buffer))
+  "Return buffer's path as a string.")
+
+(define insert
+    (lambda (contents) (buffer-insert current-buffer contents))
+  "Insert CONTENTS into current buffer at point.")
+
+(define remove
+    (lambda (count) (buffer-remove current-buffer count))
+  "Backspace COUNT bytes from current buffer at point.")
+
+(define remove-forward
+    (lambda (count) (buffer-remove-forward current-buffer count))
+  "Remove COUNT bytes from current buffer following point.")
+
+(define set-point
+    (lambda (point) (buffer-set-point current-buffer point))
+  "Set byte offset of cursor within current buffer to POINT.")
+
+(define point
+    (lambda () (buffer-point current-buffer))
+  "Get byte offset of cursor within current buffer.")
+
+(define index
+    (lambda (idx) (buffer-index current-buffer idx))
+  "Get byte from current buffer at INDEX.")
+
+(define lines
+    (lambda (start count) (buffer-lines current-buffer start count))
+  "Get COUNT lines starting at START line within current buffer.")
+
+(define line
+    (lambda (number) (buffer-line current-buffer number))
+  "Get line NUMBER within current buffer.")
+
+(define current-line
+    (lambda () (buffer-current-line current-buffer))
+  "Get line surrounding point in current buffer as string.")
+
+(define seek-byte
+    (lambda (bytestring direction)
+      (buffer-seek-byte current-buffer bytestring direction))
+  "Move buffer point to the next byte that is within BYTESTRING.
+If no matching bytes are found, don't move point.
+Returns the amount of bytes buffer's point was moved.
+When DIRECTION is negative, seek backwards.")
+
+(define seek-past-byte
+    (lambda (bytestring direction)
+      (buffer-seek-past-byte current-buffer bytestring direction))
+  "Move buffer point to the next byte that is *not* within BYTESTRING.
+Returns the amount of bytes buffer's point was moved.
+When DIRECTION is negative, seek backwards.")
+
+(define seek-substring
+ (lambda (substring direction)
+   (buffer-seek-substring current-buffer substring direction))
+  "Move current buffer point to the beginning of the given substring, if it exists.
+If no matching substring is found, don't move point.
+When direction is negative, search backwards.")

@@ -734,7 +734,7 @@ const char *const builtin_buffer_lines_name = "BUFFER-LINES";
 const char *const builtin_buffer_lines_docstring =
   "(buffer-lines BUFFER START-LINE LINE-COUNT)\n"
   "\n"
-  "Get LINE-COUNT lines";
+  "Get LINE-COUNT lines starting at START-LINE within BUFFER.";
 int builtin_buffer_lines (Atom arguments, Atom *result) {
   BUILTIN_ENSURE_THREE_ARGUMENTS(arguments);
   Atom buffer = car(arguments);

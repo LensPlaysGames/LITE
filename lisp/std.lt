@@ -79,11 +79,11 @@ If point is zero, get byte at point."
 
 (defun backward-bytes (n)
   "Decrement point of `CURRENT-BUFFER` by N bytes."
-  (buffer-set-point current-buffer (- (buffer-point current-buffer) n)))
+  (set-point (- (point) n)))
 
 (defun forward-bytes (n)
   "Increment point of `CURRENT-BUFFER` by N bytes."
-  (buffer-set-point current-buffer (+ (buffer-point current-buffer) n)))
+  (set-point (+ (point) n)))
 
 (defun backward-byte ()
   "Decrement point of `CURRENT-BUFFER` by one byte."
@@ -95,15 +95,15 @@ If point is zero, get byte at point."
 
 (defun beginning-of-line ()
   "Move to the beginning of the current line"
-  (if (= (buffer-seek-byte current-buffer "\\n" -1) 0)
-      (buffer-set-point current-buffer 0)
+  (if (= (seek-byte "\\n" -1) 0)
+      (set-point 0)
       (forward-byte)))
 
 (defun end-of-line ()
   "Move to the end of the current line."
-  (if (eq (buffer-index current-buffer (buffer-point current-buffer)) "\\n")
+  (if (eq (index (point)) "\\n")
       "\n"
-      (if (= (buffer-seek-byte current-buffer "\\n" 1) 0)
+      (if (= (seek-byte "\\n" 1) 0)
           (forward-bytes 999999999999) ;; get to end of last line.
           "End of line.")))
 
@@ -116,20 +116,20 @@ If point is zero, get byte at point."
 
 Attempts to keep point column the same."
   ;; Calculate column offset and move to end of previous line.
-  (let ((column-offset (buffer-seek-byte current-buffer "\\n" -1)))
+  (let ((column-offset (seek-byte "\\n" -1)))
     ;; 'buffer-seek-byte' returns zero when the given byte was not found.
     ;; The following 'unless' means nothing will happen on the first line.
     (unless (= column-offset 0)
-      (let ((previous-line-length-impl (buffer-seek-byte current-buffer "\\n" -1)))
+      (let ((previous-line-length-impl (seek-byte "\\n" -1)))
         (let ((previous-line-length
                (if (= 0 previous-line-length-impl)
-                   (buffer-point current-buffer)
+                   (point)
                    previous-line-length-impl))
               (beginning-of-previous-line
                (if (= previous-line-length-impl 0)
                    0
-                   (+ 1 (buffer-point current-buffer)))))
-          (buffer-set-point current-buffer beginning-of-previous-line)
+                   (+ 1 (point)))))
+          (set-point beginning-of-previous-line)
           (if (> previous-line-length column-offset)
               (forward-bytes (- column-offset 1))
               (end-of-line)))))))
@@ -139,9 +139,9 @@ Attempts to keep point column the same."
   "Get the byte offset of the point into the current line."
   (save-point-and-mark
    current-buffer
-   (let ((column-offset (buffer-seek-byte current-buffer "\\n" -1)))
+   (let ((column-offset (seek-byte "\\n" -1)))
      (if (= column-offset 0)
-         (+ 1 (buffer-point current-buffer))
+         (+ 1 (point))
          column-offset))))
 
 ;; "input\nstring\nexample\n" ^ = point
@@ -156,8 +156,8 @@ Attempts to keep point column the same."
   (let ((column-offset (current-point-column-offset)))
     ;; Seek forward for next newline, unless already over a newline.
     (unless (eq "\\n" (byte-at-point current-buffer))
-      (buffer-seek-byte current-buffer "\\n" 1))
-    (let ((next-line-length (buffer-seek-byte current-buffer "\\n" 1)))
+      (seek-byte "\\n" 1))
+    (let ((next-line-length (seek-byte "\\n" 1)))
       (when (> next-line-length column-offset)
         (backward-bytes (- next-line-length column-offset))))
     ;; Return current-buffer, just to stay consistent between different
@@ -168,28 +168,28 @@ Attempts to keep point column the same."
 (defun search-forward ()
   "Set the point to the beginning of the prompted-for string if it is
 found after point in the current buffer."
-  (buffer-seek-substring current-buffer (read-prompted "search forward: ") 1))
+  (seek-substring (read-prompted "search forward: ") 1))
 
 (defun search-backward ()
   "Set the point to the beginning of the prompted-for string if it is
 found behind point in the current buffer."
-  (buffer-seek-substring current-buffer (read-prompted "search backward: ") -1))
+  (seek-substring (read-prompted "search backward: ") -1))
 
 (set word-delimiters "., \\n(){}[]<>"
      "Each of the bytes within this string is a word delimiter.")
 
 (defun forward-word ()
   "Move forward by one word (separated by 'WORD-DELIMITERS')."
-  (buffer-seek-past-byte current-buffer word-delimiters 1)
-  (when (= (buffer-seek-byte current-buffer word-delimiters 1) 0)
+  (seek-past-byte word-delimiters 1)
+  (when (= (seek-byte word-delimiters 1) 0)
       (forward-bytes 999999999999)))
 
 (defun backward-word ()
   "Move backward by one word (separated by 'WORD-DELIMITERS')."
   ;; Skip backwards past word delimiters
-  (buffer-seek-past-byte current-buffer word-delimiters -1)
+  (seek-past-byte word-delimiters -1)
   ;; Skip backwards to word delimiter
-  (if (= (buffer-seek-byte current-buffer word-delimiters -1) 0)
+  (if (= (seek-byte word-delimiters -1) 0)
       (backward-bytes 999999999999)
       ;; If a word was skipped, move forward one byte.
       (forward-byte)))
@@ -226,11 +226,11 @@ something before doing it."
 
 (defun evaluate-line ()
   "Evaluate the current line in the current buffer as a LITE LISP expression."
-  (evaluate-string (buffer-current-line current-buffer)))
+  (evaluate-string (current-line)))
 
 (defun evaluate-first-line ()
   "Evaluate the first line of the current buffer as a LITE LISP expression."
-  (evaluate-string (buffer-line current-buffer 0)))
+  (evaluate-string (line 0)))
 
 (defun evaluate-prompted ()
   "Evaluate the first line of the current buffer as a LITE LISP expression."
@@ -238,37 +238,37 @@ something before doing it."
 
 (defun activate-mark ()
   "Activate mark in current buffer."
-  (buffer-set-mark-activation current-buffer t))
+  (set-mark-activation t))
 
 (defun deactivate-mark ()
   "Deactivate mark in current buffer."
-  (buffer-set-mark-activation current-buffer nil))
+  (set-mark-activation nil))
 
 (defun set-mark-to-point ()
   "Set mark in current buffer to current point."
-  (buffer-set-mark current-buffer (buffer-point current-buffer)))
+  (set-mark (point)))
 
 (defun set-or-toggle-mark ()
   "If mark is disabled, activate it. If point is over mark, de-activate mark.
 Otherwise, set mark to current point."
-  (if (! (buffer-mark-active current-buffer))
+  (if (! (mark-active))
       (progn
-        (buffer-set-mark current-buffer (buffer-point current-buffer))
-        (buffer-toggle-mark current-buffer))
-      (if (= (buffer-point current-buffer) (buffer-mark current-buffer))
-          (buffer-toggle-mark current-buffer)
+        (set-mark-to-point)
+        (toggle-mark))
+      (if (= (point) (mark))
+          (toggle-mark)
           (set-mark-to-point))))
 
 (defun insert-lf ()
   "Insert a newline character, but keep point where it is."
-  (buffer-insert current-buffer "\\n")
-  (buffer-set-point current-buffer (- (buffer-point current-buffer) 1)))
+  (insert "\\n")
+  (set-point (- (point) 1)))
 
 (defun insert-crlf ()
   "Insert a carriage return and a newline character, but keep point
 where it is."
-  (buffer-insert current-buffer "\\r\\n")
-  (buffer-set-point current-buffer (- (buffer-point current-buffer) 2)))
+  (insert "\\r\\n")
+  (set-point (- (point) 2)))
 
 (defun select-current-line ()
   "Mark region of the line the point resides within in the current buffer."
@@ -289,20 +289,19 @@ where it is."
 or, if mark is active and a region is selected, remove the entire region."
   (if (buffer-mark-active current-buffer)
       ;; Mark is active, a region is selected.
-      (let ((mark (buffer-mark current-buffer))
-            (p (buffer-point current-buffer))
-            (length (buffer-region-length current-buffer)))
+      (let ((mark (mark))
+            (p (point))
+            (length (region-length)))
         ;; Don't remove anything if region is of zero-length
         (unless (= length 0)
           ;; Determine if we need to remove forward or backward from point.
           (if (> mark p)
               ;; Mark is past point, remove forward.
-              (buffer-remove-forward current-buffer length)
+              (remove-forward length)
               ;; Point is past mark, remove backward.
-              (buffer-remove current-buffer length))))
+              (remove length))))
       ;; Mark isn't active, no region selected---remove a single byte backwards.
-      (buffer-remove current-buffer 1))
-  )
+      (remove 1)))
 
 
 (evaluate-file "lisp/std/binds.lt")
