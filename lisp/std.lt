@@ -11,8 +11,15 @@
   "Stop all current LISP evaluation.
 If you don't know what's happening, messed up, etc. then call this.
 
-Finishes any prompts/reads and sets 'USER/QUIT' to a non-nil value."
+Deactivates the mark in the current buffer.
+Finishes any prompts/reads.
+Quits evaluating all LISP up until the very top level (minimum needed)."
+  ;; disable the selection in the current buffer
+  (set-mark-activation nil)
+  ;; quit any ongoing prompts
   (finish-read)
+  ;; stop executing lisp all LITE LISP---this also stops this function,
+  ;; so make sure it's at the end.
   (quit-lisp))
 
 (defun list-functions ()
@@ -97,15 +104,17 @@ If point is zero, get byte at point."
   "Move to the beginning of the current line"
   (if (= (seek-byte "\\n" -1) 0)
       (set-point 0)
-      (forward-byte)))
+      (forward-byte))
+  current-buffer)
 
 (defun end-of-line ()
   "Move to the end of the current line."
   (if (eq (index (point)) "\\n")
       "\n"
-      (if (= (seek-byte "\\n" 1) 0)
-          (forward-bytes 999999999999) ;; get to end of last line.
-          "End of line.")))
+      (when (= (seek-byte "\\n" 1) 0)
+        ;; get to end of last line.
+        (forward-bytes 999999999999)))
+  current-buffer)
 
 ;; "input\nstring\nexample\n" ^ = point
 ;;           ^
@@ -132,7 +141,8 @@ Attempts to keep point column the same."
           (set-point beginning-of-previous-line)
           (if (> previous-line-length column-offset)
               (forward-bytes (- column-offset 1))
-              (end-of-line)))))))
+              (end-of-line))))))
+  current-buffer)
 
 
 (defun current-point-column-offset ()
@@ -148,7 +158,6 @@ Attempts to keep point column the same."
 ;;           ^
 ;;       |---|                  = column-offset
 ;;               |--------|     = next-line-length
-;; TODO: Fix shenanigans at end of buffer.
 (defun forward-line ()
   "Move forward one line, if possible.
 
@@ -158,12 +167,13 @@ Attempts to keep point column the same."
     (unless (eq "\\n" (byte-at-point current-buffer))
       (seek-byte "\\n" 1))
     (let ((next-line-length (seek-byte "\\n" 1)))
-      (when (> next-line-length column-offset)
-        (backward-bytes (- next-line-length column-offset))))
-    ;; Return current-buffer, just to stay consistent between different
-    ;; control flows.
-    current-buffer
-    ))
+      (if (= 0 next-line-length)
+          (forward-byte)
+          (when (> next-line-length column-offset)
+            (backward-bytes (- next-line-length column-offset))))))
+  ;; Return current-buffer, just to stay consistent between different
+  ;; control flows.
+  current-buffer)
 
 (defun search-forward ()
   "Set the point to the beginning of the prompted-for string if it is
