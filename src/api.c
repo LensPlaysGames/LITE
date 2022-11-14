@@ -69,6 +69,21 @@ int add_property(GUIString *string, GUIStringProperty *property) {
   return 1;
 }
 
+/// Add PROPERTY to the end of STRING properties linked list.
+/// Returns boolean-like value (0 == failure).
+int add_property_end(GUIString *string, GUIStringProperty *property) {
+  if (!string || !property) { return 0; }
+  if (!string->properties) {
+    return add_property(string, property);
+  }
+  GUIStringProperty *last_valid = string->properties;
+  for (; last_valid->next; last_valid = last_valid->next);
+  last_valid->next = property;
+  property->next = NULL;
+  return 1;
+}
+
+
 GUIStringProperty *string_property
 (size_t offset, size_t length, GUIColor fg, GUIColor bg) {
   GUIStringProperty *prop = malloc(sizeof(GUIStringProperty));
@@ -85,11 +100,8 @@ GUIStringProperty *string_property_copy_shallow(GUIStringProperty *original) {
   if (!original) { return NULL; }
   GUIStringProperty *prop = malloc(sizeof(GUIStringProperty));
   if (!prop) { return NULL; }
+  *prop = *original;
   prop->next = NULL;
-  prop->offset = original->offset;
-  prop->length = original->length;
-  prop->fg = original->fg;
-  prop->bg = original->bg;
   return prop;
 }
 
@@ -459,21 +471,21 @@ GUIContext *initialize_lite_gui_ctx() {
     return NULL;
   }
 
-  GUIStringProperty default_default;
-  default_default.fg.r = UINT8_MAX;
-  default_default.fg.g = UINT8_MAX;
-  default_default.fg.b = UINT8_MAX;
-  default_default.fg.a = UINT8_MAX;
+  GUIStringProperty default_cursor;
+  default_cursor.fg.r = 0;
+  default_cursor.fg.g = 0;
+  default_cursor.fg.b = 0;
+  default_cursor.fg.a = UINT8_MAX;
 
-  default_default.bg.r = 22;
-  default_default.bg.g = 23;
-  default_default.bg.b = 24;
-  default_default.bg.a = UINT8_MAX;
+  default_cursor.bg.r = UINT8_MAX;
+  default_cursor.bg.g = UINT8_MAX;
+  default_cursor.bg.b = UINT8_MAX;
+  default_cursor.bg.a = UINT8_MAX;
 
-  default_default.offset = 0;
-  default_default.length = 0;
+  default_cursor.offset = 0;
+  default_cursor.length = 1;
 
-  create_gui_property(GUI_PROP_ID_DEFAULT, &default_default);
+  create_gui_property(GUI_PROP_ID_CURSOR, &default_cursor);
 
   GUIStringProperty default_region;
   default_region.fg.r = UINT8_MAX;
@@ -491,22 +503,21 @@ GUIContext *initialize_lite_gui_ctx() {
 
   create_gui_property(GUI_PROP_ID_REGION, &default_region);
 
-  GUIStringProperty default_cursor;
-  default_cursor.fg.r = 0;
-  default_cursor.fg.g = 0;
-  default_cursor.fg.b = 0;
-  default_cursor.fg.a = UINT8_MAX;
+  GUIStringProperty default_default;
+  default_default.fg.r = UINT8_MAX;
+  default_default.fg.g = UINT8_MAX;
+  default_default.fg.b = UINT8_MAX;
+  default_default.fg.a = UINT8_MAX;
 
-  default_cursor.bg.r = UINT8_MAX;
-  default_cursor.bg.g = UINT8_MAX;
-  default_cursor.bg.b = UINT8_MAX;
-  default_cursor.bg.a = UINT8_MAX;
+  default_default.bg.r = 22;
+  default_default.bg.g = 23;
+  default_default.bg.b = 24;
+  default_default.bg.a = UINT8_MAX;
 
-  default_cursor.offset = 0;
-  default_cursor.length = 1;
+  default_default.offset = 0;
+  default_default.length = 0;
 
-  create_gui_property(GUI_PROP_ID_CURSOR, &default_cursor);
-
+  create_gui_property(GUI_PROP_ID_DEFAULT, &default_default);
 
   ctx->default_property.fg = default_default.fg;
   ctx->default_property.bg = default_default.bg;
@@ -534,12 +545,31 @@ int gui_loop() {
   // them.
   update_gui_string(to_update, new_contents);
 
+  // TODO: Call all "refresh" functions. Just a list of LISP forms that
+  // we then call each `car` of...
+  Atom refresh_hook = nil;
+  Atom result = nil;
+  err = env_get(*genv(), make_sym("REFRESH-HOOK"), &refresh_hook);
+  if (!err.type) {
+    for(; !nilp(refresh_hook); refresh_hook = cdr(refresh_hook)) {
+      err = evaluate_expression(car(refresh_hook), *genv(), &result);
+      if (err.type) {
+        printf("REFRESH HOOK ");
+        print_error(err);
+      }
+    }
+  }
+
+  // Todo: Add all GUIStringProperty from "pending" queue and clear it.
+
   if (bufferp(current_buffer) && current_buffer.value.buffer) {
+    GUIProperty *last = NULL;
     GUIProperty *it = gui_properties;
     while (it) {
       GUIStringProperty *new_property =
         string_property_copy_shallow(&it->property);
       // Handle non-standard GUI property.
+      // TODO: Move outside of loop.
       switch (it->id) {
       default:
         break;
@@ -551,8 +581,7 @@ int gui_loop() {
         new_property->offset = current_buffer.value.buffer->point_byte;
         break;
       case GUI_PROP_ID_REGION:
-        // If mark is activated, create GUIStringProperty for
-        // selection.
+        // If mark is activated, create property for selection.
         if (buffer_mark_active(*current_buffer.value.buffer)) {
           size_t mark_byte = buffer_mark(*current_buffer.value.buffer);
           size_t offset = 0;
@@ -569,7 +598,23 @@ int gui_loop() {
         }
         break;
       }
-      add_property(to_update, new_property);
+      if (it->id >= GUI_PROP_ID_BEGIN_USER) {
+        add_property(to_update, new_property);
+      } else {
+        add_property_end(to_update, new_property);
+      }
+      if (it->id >= GUI_PROP_ID_BEGIN_USER) {
+        // Remove user added property from list.
+        // TODO: Free property without completely borking things, which
+        // it seems to. Yes, we freed it after the final dereference.
+        if (last) {
+          last->next = it->next;
+        }
+        if (it == gui_properties) {
+          gui_properties = it->next;
+        }
+      }
+      last = it;
       it = it->next;
     }
   }
