@@ -300,7 +300,7 @@ static inline void draw_gui_string_into_surface_within_rect
       vertical_skip_count -= 1;
     }
     if (*string == '\0') {
-      // TODO: What happens if vertical scrolling skips entire string?
+      // Vertical scrolling has skipped entire GUIString.
       return;
     }
     string += 1;
@@ -349,102 +349,106 @@ static inline void draw_gui_string_into_surface_within_rect
         char *line_text = allocate_string_span
           (gui_string.string, start_of_line_offset, bytes_to_render);
         // Skip empty lines.
-        if (line_text) {
-          if (line_text[0] != '\0') {
-            // Use FreeType subpixel LCD rendering, if possible.
-#           if SDL_TTF_VERSION_ATLEAST(2,20,0) && !_WIN32
-            SDL_Surface *line_text_surface =
-              TTF_RenderUTF8_LCD(font, line_text, fg, bg);
-#           else
-            SDL_Surface *line_text_surface =
-              TTF_RenderUTF8_Shaded(font, line_text, fg, bg);
-#           endif
-            if (line_text_surface) {
-              // TODO: Handle BlitSurface failure everywhere (0 == success).
-              SDL_BlitSurface(line_text_surface, NULL, text_surface
-                              , rect_copy(&destination_copy,&destination));
-              SDL_FreeSurface(line_text_surface);
-            }
-          }
-          // Render text properties over current line.
-          for (GUIStringProperty *it = gui_string.properties; it; it = it->next) {
-            // Skip if property is not within current line.
-            if (it->offset > offset || it->offset + it->length <= start_of_line_offset) {
-              continue;
-            }
-            // How far the text property starts within the current line (index).
-            size_t offset_within_line = 0;
-            if (it->offset > start_of_line_offset) {
-              offset_within_line = it->offset - start_of_line_offset;
-            }
-            // Get draw position.
-            SDL_RECT_EMPTY(property_draw_position);
-            property_draw_position.x = 0;
-            property_draw_position.y = destination.y;
-            property_draw_position.w = destination.w;
-            property_draw_position.h = destination.h;
-            if (offset_within_line != 0) {
-              char *text_before = allocate_string_span
-                (line_text, 0, offset_within_line);
-              // Get width of text before beginning of text property.
-              TTF_SizeUTF8(font, text_before,
-                           &property_draw_position.x,
-                           &property_draw_position.y);
-              property_draw_position.y = destination.y;
-              // Width must take into account new draw position X offset.
-              property_draw_position.w -= property_draw_position.x;
-              free(text_before);
-            }
-            // Calculate the length of the propertized text, in bytes.
-            // We can't just use the iterator's length because of
-            // multi-line text properties.
-            size_t propertized_text_length = it->length;
-            if (it->offset < start_of_line_offset) {
-              propertized_text_length -= start_of_line_offset - it->offset;
-            }
-            // If property extends past end of line, truncate it.
-            if (it->offset + it->length > offset) {
-              propertized_text_length = offset - it->offset;
-            }
-            // Allocate the text that will has a property applied to it as
-            // a seperate string that can be fed to SDL_ttf for rendering.
-            char *propertized_text = allocate_string_span
-              (line_text, offset_within_line, propertized_text_length);
-            if (propertized_text) {
-              // Handle empty lines propertized (insert space).
-              if (propertized_text[0] == '\0') {
-                free(propertized_text);
-                propertized_text = malloc(2);
-                assert(propertized_text && "Could not display empty string");
-                propertized_text[0] = ' ';
-                propertized_text[1] = '\0';
-              } else if (propertized_text[0] == '\n') {
-                propertized_text[0] = ' ';
-              }
-              // Get colors for propertized text from text property.
-              SDL_Color prop_fg;
-              SDL_Color prop_bg;
-              gui_color_to_sdl(&prop_fg, &it->fg);
-              gui_color_to_sdl(&prop_bg, &it->bg);
-              // Render propertized text.
-              // Use FreeType subpixel LCD rendering, if possible.
-#               if SDL_TTF_VERSION_ATLEAST(2,20,0) && !_WIN32
-              SDL_Surface *propertized_text_surface = TTF_RenderUTF8_LCD
-                (font, propertized_text, prop_fg, prop_bg);
-#               else
-              SDL_Surface *propertized_text_surface = TTF_RenderUTF8_Shaded
-                (font, propertized_text, prop_fg, prop_bg);
-#               endif
-              if (propertized_text_surface) {
-                SDL_BlitSurface(propertized_text_surface, NULL,
-                                text_surface, &property_draw_position);
-                SDL_FreeSurface(propertized_text_surface);
-              }
-              free(propertized_text);
-            }
-          }
-          free(line_text);
+        if (!line_text) {
+          fprintf(stderr,
+                  "GFX::SDL2::ERROR: Could not allocate string span for line text.");
+          return;
         }
+        if (line_text[0] != '\0') {
+          // Use FreeType subpixel LCD rendering, if possible.
+#           if SDL_TTF_VERSION_ATLEAST(2,20,0) && !_WIN32
+          SDL_Surface *line_text_surface =
+            TTF_RenderUTF8_LCD(font, line_text, fg, bg);
+#           else
+          SDL_Surface *line_text_surface =
+            TTF_RenderUTF8_Shaded(font, line_text, fg, bg);
+#           endif
+          if (line_text_surface) {
+            // TODO: Handle BlitSurface failure everywhere (0 == success).
+            SDL_BlitSurface(line_text_surface, NULL, text_surface
+                            , rect_copy(&destination_copy,&destination));
+            SDL_FreeSurface(line_text_surface);
+          }
+        }
+        // Render text properties over current line.
+        for (GUIStringProperty *it = gui_string.properties; it; it = it->next) {
+          // Skip if property is not within current line.
+          if (it->offset > offset || it->offset + it->length <= start_of_line_offset) {
+            continue;
+          }
+          // How far the text property starts within the current line (index).
+          size_t offset_within_line = 0;
+          if (it->offset > start_of_line_offset) {
+            offset_within_line = it->offset - start_of_line_offset;
+          }
+          // Get draw position.
+          SDL_RECT_EMPTY(property_draw_position);
+          property_draw_position.x = 0;
+          property_draw_position.y = destination.y;
+          property_draw_position.w = destination.w;
+          property_draw_position.h = destination.h;
+          if (offset_within_line != 0) {
+            char *text_before = allocate_string_span
+              (line_text, 0, offset_within_line);
+            // Get width of text before beginning of text property.
+            TTF_SizeUTF8(font, text_before,
+                         &property_draw_position.x,
+                         &property_draw_position.y);
+            property_draw_position.y = destination.y;
+            // Width must take into account new draw position X offset.
+            property_draw_position.w -= property_draw_position.x;
+            free(text_before);
+          }
+          // Calculate the length of the propertized text, in bytes.
+          // We can't just use the iterator's length because of
+          // multi-line text properties.
+          size_t propertized_text_length = it->length;
+          if (it->offset < start_of_line_offset) {
+            propertized_text_length -= start_of_line_offset - it->offset;
+          }
+          // If property extends past end of line, truncate it.
+          if (it->offset + it->length > offset) {
+            propertized_text_length = offset - it->offset;
+          }
+          // Allocate the text that will has a property applied to it as
+          // a seperate string that can be fed to SDL_ttf for rendering.
+          char *propertized_text = allocate_string_span
+            (line_text, offset_within_line, propertized_text_length);
+          if (propertized_text) {
+            // Handle empty lines propertized (insert space).
+            if (propertized_text[0] == '\0') {
+              free(propertized_text);
+              propertized_text = malloc(2);
+              assert(propertized_text && "Could not display empty string");
+              propertized_text[0] = ' ';
+              propertized_text[1] = '\0';
+            } else if (propertized_text[0] == '\n') {
+              propertized_text[0] = ' ';
+            }
+            // Get colors for propertized text from text property.
+            SDL_Color prop_fg;
+            SDL_Color prop_bg;
+            gui_color_to_sdl(&prop_fg, &it->fg);
+            gui_color_to_sdl(&prop_bg, &it->bg);
+            // Render propertized text.
+            // Use FreeType subpixel LCD rendering, if possible.
+#               if SDL_TTF_VERSION_ATLEAST(2,20,0) && !_WIN32
+            SDL_Surface *propertized_text_surface = TTF_RenderUTF8_LCD
+              (font, propertized_text, prop_fg, prop_bg);
+#               else
+            SDL_Surface *propertized_text_surface = TTF_RenderUTF8_Shaded
+              (font, propertized_text, prop_fg, prop_bg);
+#               endif
+            if (propertized_text_surface) {
+              SDL_BlitSurface(propertized_text_surface, NULL,
+                              text_surface, &property_draw_position);
+              SDL_FreeSurface(propertized_text_surface);
+            }
+            free(propertized_text);
+          }
+        }
+        free(line_text);
+
         destination.y += line_height;
         destination.h -= line_height;
         destination.x = 0;
@@ -496,9 +500,10 @@ void draw_gui(GUIContext *ctx) {
   SDL_Surface *surface = SDL_CreateRGBSurfaceWithFormat
     (0, width, height, 32, SDL_PIXELFORMAT_RGBA32);
   if (!surface) {
-    printf("GFX::SDL:ERROR: Could not create surface for window.\n"
-           "              : %s\n"
-           , SDL_GetError());
+    fprintf(stderr,
+            "GFX::SDL:ERROR: Could not create surface for window.\n"
+            "              : %s\n",
+            SDL_GetError());
     return;
   }
 
