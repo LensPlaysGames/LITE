@@ -247,8 +247,9 @@ something before doing it."
   (evaluate-string (read-prompted "Eval: ")))
 
 (defun activate-mark ()
-  "Activate mark in current buffer."
-  (set-mark-activation t))
+  "Activate mark in current buffer, and update mark to current point."
+  (set-mark-activation t)
+  (set-mark (point)))
 
 (defun deactivate-mark ()
   "Deactivate mark in current buffer."
@@ -293,6 +294,13 @@ where it is."
    (select-current-line)
    (clipboard-copy current-buffer)))
 
+(defun delete-line-past ()
+  "Delete up to the next newline after point."
+  (save-point-and-mark current-buffer
+   (activate-mark)
+   (end-of-line)
+   (forward-byte)
+   (remove (region-length))))
 
 (defun backspace ()
   "Remove the character behind the cursor in the current buffer,

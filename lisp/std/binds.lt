@@ -148,7 +148,9 @@
      ctrl-keymap "d"
      '(buffer-remove-forward current-buffer 1))
 
+
     (keymap-push ctrl-keymap "g" '(keyboard-quit))
+    (keymap-push ctrl-keymap "k" '(delete-line-past))
 
     ;; ctrl keybinds: Simple buffer navigation
     (keymap-push ctrl-keymap " " '(set-or-toggle-mark))
