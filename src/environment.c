@@ -382,6 +382,10 @@ Atom default_environment() {
                        (char *)builtin_change_window_mode_name,
                        (char *)builtin_change_window_mode_docstring));
 
+  env_set(environment, make_sym((char *)builtin_make_gui_property_name),
+          make_builtin(builtin_make_gui_property,
+                       (char *)builtin_make_gui_property_name,
+                       (char *)builtin_make_gui_property_docstring));
   env_set(environment, make_sym((char *)builtin_set_gui_property_position_name),
           make_builtin(builtin_set_gui_property_position,
                        (char *)builtin_set_gui_property_position_name,

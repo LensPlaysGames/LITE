@@ -32,5 +32,6 @@ void create_gui_property(int id, GUIStringProperty *property) {
   gui_properties = malloc(sizeof(GUIProperty));
   gui_properties->id = id;
   gui_properties->property = *property;
+  gui_properties->property.next = NULL;
   gui_properties->next = properties;
 }
