@@ -196,6 +196,10 @@ int create_gui() {
     printf("GFX::SDL:ERROR: Could not create SDL renderer.\n");
     return 1;
   }
+  // Activate alpha blending.
+  if (SDL_SetRenderDrawBlendMode(grender, SDL_BLENDMODE_BLEND) != 0) {
+    return 1;
+  }
   printf("GFX::SDL: SDL Initialized\n");
   if (TTF_Init() != 0) {
     printf("GFX::SDL:ERROR: Failed to initialize SDL_ttf.\n");
@@ -511,6 +515,7 @@ void draw_gui(GUIContext *ctx) {
   int width = 0;
   int height = 0;
   SDL_GetWindowSize(gwindow, &width, &height);
+
   SDL_Surface *surface = SDL_CreateRGBSurfaceWithFormat
     (0, width, height, 32, SDL_PIXELFORMAT_RGBA32);
   if (!surface) {
@@ -578,15 +583,14 @@ void draw_gui(GUIContext *ctx) {
   // Copy screen surface into a texture.
   texture = SDL_CreateTextureFromSurface(grender, surface);
   SDL_FreeSurface(surface);
-  if (texture) {
-    // Render texture.
-    SDL_RenderCopy(grender, texture, NULL, NULL);
-    SDL_DestroyTexture(texture);
-  } else {
+  if (!texture) {
     printf("GFX::SDL:ERROR: Could not create texture from surface.\n"
            "              : %s\n"
            , SDL_GetError());
   }
+  // Render texture.
+  SDL_RenderCopy(grender, texture, NULL, NULL);
+  SDL_DestroyTexture(texture);
   SDL_RenderPresent(grender);
 }
 
