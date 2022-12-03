@@ -680,7 +680,16 @@ Error evaluate_expression(Atom expr, Atom environment, Atom *result) {
         }
       } else if (builtinp(operator)) {
         PREP_ERROR(err, ERROR_NONE, operator, NULL, NULL);
+        //printf("expr: ");pretty_print_atom(expr);putchar('\n');
+        gcol_mark_explicit(&expr);
+        gcol_mark_explicit(&environment);
+        gcol_mark_explicit(&stack);
+        gcol_mark_explicit(result);
         err.type = (*operator.value.builtin.function)(arguments, result);
+        gcol_unmark(&expr);
+        gcol_unmark(&environment);
+        gcol_unmark(&stack);
+        gcol_unmark(result);
       } else {
         // Evaluate operator before application.
         stack = make_frame(stack, environment, arguments);

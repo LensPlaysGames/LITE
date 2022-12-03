@@ -124,11 +124,34 @@ Error gcol_generic_allocation(Atom *ref, void *payload);
  * as generic allocations registered to atoms.
  *
  * @param root All atoms accessible from this atom will be marked.
+ *
+ * @see gcol()
  */
 void gcol_mark(Atom *root);
 
-/** Do a garbage collection, freeing all un-marked atoms that have been
- *  allocated.
+/** Just like gcol_mark() except it won't be unmarked at next gcol().
+ *
+ * Mark atoms that are accessible from a given root as in-use,
+ * preventing them from being garbage collected.
+ *
+ * This will mark pairs that have been allocated with `cons`, as well
+ * as generic allocations registered to atoms.
+ */
+void gcol_mark_explicit(Atom *root);
+
+/** Unmark all allocations reachable from ROOT unconditionally.
+ *
+ * Used to unmark atoms marked with gcol_mark_explicit(), mainly,
+ * due to it's unconditional unmarking.
+ */
+void gcol_unmark(Atom *root);
+
+/** Do a garbage collection.
+ *
+ * For all allocations within the global allocation list, free
+ * allocations not marked as in use.
+ *
+ * Both ConsAllocation and GenericAllocation are handled.
  */
 void gcol();
 

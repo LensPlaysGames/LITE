@@ -73,22 +73,69 @@ void gcol_mark(Atom *root) {
   if (pairp(*root) || closurep(*root) || macrop(*root)) {
     ConsAllocation *alloc = (ConsAllocation *)
       ((char *)root->value.pair - offsetof(ConsAllocation, pair));
-    if (!alloc || alloc->mark) { return; }
+    if (!alloc || alloc->mark == 1) { return; }
     alloc->mark = 1;
     gcol_mark(&car(*root));
-    if (!nilp(cdr(*root))) {
-      gcol_mark(&cdr(*root));
-    }
+    gcol_mark(&cdr(*root));
   }
 }
+
+void gcol_mark_explicit(Atom *root) {
+  if (!root || nilp(*root)) {
+    return;
+  }
+  if (root->galloc) {
+    GenericAllocation *galloc = root->galloc;
+    while (galloc) {
+      galloc->mark = 2;
+      galloc = galloc->more;
+    }
+  }
+  // Any type made with `cons()` belongs here.
+  if (pairp(*root) || closurep(*root) || macrop(*root)) {
+    ConsAllocation *alloc = (ConsAllocation *)
+      ((char *)root->value.pair - offsetof(ConsAllocation, pair));
+    if (!alloc || alloc->mark == 2) { return; }
+    alloc->mark = 2;
+    gcol_mark_explicit(&car(*root));
+    gcol_mark_explicit(&cdr(*root));
+  }
+}
+
+void gcol_unmark(Atom *root) {
+  if (!root || nilp(*root)) {
+    return;
+  }
+  if (root->galloc) {
+    GenericAllocation *galloc = root->galloc;
+    while (galloc) {
+      galloc->mark = 0;
+      galloc = galloc->more;
+    }
+  }
+  // Any type made with `cons()` belongs here.
+  if (pairp(*root) || closurep(*root) || macrop(*root)) {
+    ConsAllocation *alloc = (ConsAllocation *)
+      ((char *)root->value.pair - offsetof(ConsAllocation, pair));
+    if (alloc->mark == 0) { return; }
+    alloc->mark = 0;
+    gcol_unmark(&car(*root));
+    gcol_unmark(&cdr(*root));
+  }
+}
+
 
 void gcol_cons() {
   // Sweep cons allocations (pairs).
   ConsAllocation **pair_allocations_it = &global_pair_allocations;
   ConsAllocation *prev_pair_allocation = NULL;
   ConsAllocation *pair_allocation;
-  while ((pair_allocation = *pair_allocations_it) != NULL) {
-    if (!pair_allocation->mark) {
+  size_t found = 0;
+  while ((pair_allocation = *pair_allocations_it)) {
+    if (pair_allocation->mark == 2) {
+      found++;
+    }
+    if (pair_allocation->mark == 0) {
       *pair_allocations_it = pair_allocation->next;
       if (prev_pair_allocation) {
         prev_pair_allocation->next = pair_allocation->next;
@@ -98,15 +145,18 @@ void gcol_cons() {
       free(pair_allocation);
       pair_allocation = NULL;
       pair_allocations_freed += 1;
-    } else {
-      pair_allocations_it = &pair_allocation->next;
-      prev_pair_allocation = pair_allocation;
+      continue;
     }
+    pair_allocations_it = &pair_allocation->next;
+    prev_pair_allocation = pair_allocation;
   }
+  printf("Skipped %zu explicitly marked\n", found);
   // Clear mark.
   pair_allocation = global_pair_allocations;
-  while (pair_allocation != NULL) {
-    pair_allocation->mark = 0;
+  while (pair_allocation) {
+    if (pair_allocation->mark == 1) {
+      pair_allocation->mark = 0;
+    }
     pair_allocation = pair_allocation->next;
   }
 }
@@ -116,7 +166,7 @@ void gcol_generic() {
   GenericAllocation *prev_galloc = NULL;
   GenericAllocation *galloc = generic_allocations;
   while ((galloc = *galloc_it) != NULL) {
-    if (!galloc->mark) {
+    if (galloc->mark == 0) {
       *galloc_it = galloc->next;
       if (prev_galloc) {
         prev_galloc->next = galloc->next;
@@ -137,8 +187,10 @@ void gcol_generic() {
   }
   // Clear mark.
   galloc = generic_allocations;
-  while (galloc != NULL) {
-    galloc->mark = 0;
+  while (galloc) {
+    if (galloc->mark == 1) {
+      galloc->mark = 0;
+    }
     galloc = galloc->next;
   }
 }

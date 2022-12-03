@@ -418,7 +418,7 @@ The default value of '100000' means memory is freed in around twenty megabyte ch
 
   env_set(environment, make_sym("GARBAGE-COLLECTOR-PAIR-ALLOCATIONS-THRESHOLD"),
           make_int_with_docstring
-          (290500, "This number corresponds to the amount of pairs able to be allocated \
+          ((integer_t)290500, "This number corresponds to the amount of pairs able to be allocated \
 before running the garbage collector.\nSmaller numbers mean memory is freed more often, \
 but too small causes problems."));
 
