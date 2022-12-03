@@ -59,7 +59,7 @@ Error gcol_generic_allocation(Atom *ref, void *payload) {
 }
 
 void gcol_mark(Atom *root) {
-  if (!root || nilp(*root)) {
+  if (nilp(*root)) {
     return;
   }
   if (root->galloc) {
@@ -81,7 +81,7 @@ void gcol_mark(Atom *root) {
 }
 
 void gcol_mark_explicit(Atom *root) {
-  if (!root || nilp(*root)) {
+  if (nilp(*root)) {
     return;
   }
   if (root->galloc) {
@@ -103,7 +103,7 @@ void gcol_mark_explicit(Atom *root) {
 }
 
 void gcol_unmark(Atom *root) {
-  if (!root || nilp(*root)) {
+  if (nilp(*root)) {
     return;
   }
   if (root->galloc) {

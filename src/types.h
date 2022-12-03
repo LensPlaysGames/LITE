@@ -123,6 +123,8 @@ Error gcol_generic_allocation(Atom *ref, void *payload);
  * This will mark pairs that have been allocated with `cons`, as well
  * as generic allocations registered to atoms.
  *
+ * DO NOT CALL WITH NULL ARGUMENT!
+ *
  * @param root All atoms accessible from this atom will be marked.
  *
  * @see gcol()
@@ -136,6 +138,8 @@ void gcol_mark(Atom *root);
  *
  * This will mark pairs that have been allocated with `cons`, as well
  * as generic allocations registered to atoms.
+ *
+ * DO NOT CALL WITH NULL ARGUMENT!
  */
 void gcol_mark_explicit(Atom *root);
 
@@ -143,6 +147,8 @@ void gcol_mark_explicit(Atom *root);
  *
  * Used to unmark atoms marked with gcol_mark_explicit(), mainly,
  * due to it's unconditional unmarking.
+ *
+ * DO NOT CALL WITH NULL ARGUMENT!
  */
 void gcol_unmark(Atom *root);
 
