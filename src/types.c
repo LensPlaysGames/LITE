@@ -150,7 +150,6 @@ void gcol_cons() {
     pair_allocations_it = &pair_allocation->next;
     prev_pair_allocation = pair_allocation;
   }
-  printf("Skipped %zu explicitly marked\n", found);
   // Clear mark.
   pair_allocation = global_pair_allocations;
   while (pair_allocation) {
