@@ -10,6 +10,12 @@
       (lambda ints (foldl old* 1 ints)))
   "Return the product of any amount of integer arguments.")
 
+(define max
+    (lambda (x y)
+      (if (> x y)
+          x
+          y)))
+
 (define abs
     (lambda (x)
       (if (< x 0)

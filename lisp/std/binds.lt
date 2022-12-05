@@ -140,7 +140,8 @@
 
 ;; TODO Bind default SHFT remappings (need double quote escape sequence, as well as better single backslash support.)
 (let ((ctrl-keymap (get-keymap-or-make-simple keymap "CTRL")))
-  (let ((ctrl-shft-keymap (get-keymap-or-make-simple ctrl-keymap "SHFT")))
+  (let ((ctrl-shft-keymap (get-keymap-or-make-simple ctrl-keymap "SHFT"))
+        (ctrl-alts-keymap (get-keymap-or-make-simple ctrl-keymap "ALTS")))
 
     ;; keybinds: Backspace and... forwardspace?
     (keymap-push ctrl-shft-keymap "d" "<backspace>")
@@ -172,8 +173,12 @@
     (keymap-push ctrl-keymap "i" '(search-forward))
     (keymap-push ctrl-keymap "r" '(search-backward))
 
+    ;; ctrl-alts keybinds: font size
+    (keymap-push ctrl-alts-keymap "=" '(size-reset))
+
     ;; Update nested keymap(s) in local keymap.
     (keymap-set ctrl-keymap "SHFT" ctrl-shft-keymap)
+    (keymap-set ctrl-keymap "ALTS" ctrl-alts-keymap)
     ;; Update keymap in global environment from local keymap.
     (keymap-set keymap "CTRL" ctrl-keymap)))
 
@@ -194,6 +199,11 @@
   ;; keybinds: Buffer navigation
   (keymap-push alts-keymap "f" '(forward-word))
   (keymap-push alts-keymap "b" '(backward-word))
+
+  ;; keybinds: font size
+  ;; Also see ctrl-alts keymap for size-reset
+  (keymap-push alts-keymap "=" '(size-increase))
+  (keymap-push alts-keymap "-" '(size-decrease))
 
   ;; Update keymap in global environemt from local keymap.
   (keymap-set keymap "ALTS" alts-keymap))

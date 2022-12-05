@@ -322,4 +322,39 @@ or, if mark is active and a region is selected, remove the entire region."
       (remove 1)))
 
 
+(define default-font-size 18
+  "The default font size")
+
+(define font-size default-font-size
+  "The current font size, if using SIZE-... commands.")
+
+(define font-size-step 2
+  "The amount in point size that the current font will be changed by SIZE-... commands.")
+
+(define font-size-min 2
+  "The minimum font size that is able to be set from SIZE-... commands.")
+
+(defun size-set (n)
+    "Increase the point size of the current font."
+    (unless (integerp n)
+      (error "size-set MUST be passed an integer."))
+    (set font-size (max font-size-min n))
+    (change-font-size font-size))
+
+(defun size-reset ()
+  "Reset the point size of the current font to default."
+  (size-set default-font-size))
+
+(defun size-increase ()
+    "Increase the point size of the current font."
+    (set font-size (max font-size-min
+                        (+ font-size font-size-step)))
+    (change-font-size font-size))
+
+(defun size-decrease ()
+    "Increase the point size of the current font."
+    (set font-size (max font-size-min
+                        (- font-size font-size-step)))
+    (change-font-size font-size))
+
 (evaluate-file "lisp/std/binds.lt")
