@@ -26,6 +26,8 @@ int main(int argc, char **argv) {
 
   // Find and keep track of recognized arguments.
   int arg_script_index = -1;
+  int arg_file_flag_index = -1;
+  int arg_file_index = -1;
   for (int i = 1; i < argc; ++i) {
     if (strcmp(argv[i], "--script") == 0) {
       if (arg_script_index != -1) {
@@ -35,6 +37,20 @@ int main(int argc, char **argv) {
       arg_script_index = i;
       strict_output = true;
       break;
+    } else if (strcmp(argv[i], "-f") == 0
+               || strcmp(argv[i], "--file") == 0
+               ) {
+      if (arg_file_flag_index != -1) {
+        printf("LITE does not accept multiple `--file` arguments.\n");
+        exit(1);
+      }
+      if (i + 1 >= argc) {
+        printf("LITE --file argument must be followed by a filepath.\n");
+        exit(1);
+      }
+      arg_file_flag_index = i;
+      arg_file_index = i + 1;
+      ++i;
     }
   }
 
@@ -42,7 +58,12 @@ int main(int argc, char **argv) {
   // when NOT in script mode. This is needed due to get_file() and
   // friends printing to standard out, which breaks end-to-end tests.
   if (arg_script_index == -1) {
-    Atom initial_buffer = initialize_buffer_or_panic("LITE_SHINES_UPON_US.txt");
+    Atom initial_buffer = nil;
+    if (arg_file_index == -1) {
+      initial_buffer = initialize_buffer_or_panic("LITE_SHINES_UPON_US.txt");
+    } else {
+      initial_buffer = initialize_buffer_or_panic(argv[arg_file_index]);
+    }
     env_set(*genv(), make_sym("CURRENT-BUFFER"), initial_buffer);
 
 #   ifdef LITE_GFX
@@ -67,7 +88,12 @@ int main(int argc, char **argv) {
   // Evaluate all the arguments as file paths, except for detected
   // valid arguments.
   for (int i = 1; i < argc; ++i) {
-    if (i == arg_script_index) { continue; }
+    if (i == arg_script_index
+        || i == arg_file_flag_index
+        || i == arg_file_index
+        ) {
+      continue;
+    }
     err = evaluate_file(*genv(), argv[i], &result);
     if (err.type) {
       printf("%s: ", argv[i]);
