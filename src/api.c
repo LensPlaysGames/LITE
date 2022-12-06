@@ -570,6 +570,14 @@ int gui_loop(void) {
   }
   gctx->windows = NULL;
 
+  if (gui_ctx()->popup.string) {
+    free_properties(gui_ctx()->popup);
+    gui_ctx()->popup.properties = NULL;
+    free(gui_ctx()->popup.string);
+    gui_ctx()->popup.string = NULL;
+  }
+
+
   // TODO: Lots of type checking...
 
   integer_t index = 0;
@@ -669,7 +677,11 @@ int gui_loop(void) {
       cursor_property->offset = current_buffer.value.buffer->point_byte;
       cursor_property->length = 1;
 
-      add_property(&new_gui_window->contents, cursor_property);
+      if (gui_ctx()->reading) {
+        add_property(&gui_ctx()->popup, cursor_property);
+      } else {
+        add_property(&new_gui_window->contents, cursor_property);
+      }
 
       // If mark is activated, create property for selection.
       if (buffer_mark_active(*current_buffer.value.buffer)) {
@@ -692,8 +704,16 @@ int gui_loop(void) {
         }
         region_property->length = buffer_region_length(*current_buffer.value.buffer);
 
-        add_property(&new_gui_window->contents, region_property);
+        if (gui_ctx()->reading) {
+          add_property(&gui_ctx()->popup, region_property);
+        } else {
+          add_property(&new_gui_window->contents, region_property);
+        }
       }
+    }
+
+    if (gui_ctx()->reading) {
+      gui_ctx()->popup.string = buffer_string(*current_buffer.value.buffer);
     }
 
     // Add to windows linked list.
