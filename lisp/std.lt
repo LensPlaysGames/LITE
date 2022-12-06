@@ -230,10 +230,6 @@ something before doing it."
       (print (car env-it))
       (define env-it (cdr env-it)))))
 
-(defun switch-current-buffer ()
-  "Prompt user for a filepath to open a buffer at, and set current-buffer."
-  (set current-buffer (open-buffer (read-prompted "filepath: "))))
-
 (defun evaluate-line ()
   "Evaluate the current line in the current buffer as a LITE LISP expression."
   (evaluate-string (current-line)))
@@ -361,5 +357,15 @@ or, if mark is active and a region is selected, remove the entire region."
 (set windows
      `((0 (0 . 0) (100 . 100) (,current-buffer . nil)))
      )
+
+(defun set-active-window-buffer (buffer)
+  "Set the contents displayed in the active window to the given buffer"
+  (setcar (car (cdr (cdr (cdr (elt windows active-window-index))))) buffer)
+  (setcdr (car (cdr (cdr (cdr (elt windows active-window-index))))) nil))
+
+(defun switch-current-buffer ()
+  "Prompt user for a filepath to open a buffer at, and set current-buffer."
+  (set current-buffer (open-buffer (read-prompted "filepath: ")))
+  (set-active-window-buffer current-buffer))
 
 (evaluate-file "lisp/std/binds.lt")
