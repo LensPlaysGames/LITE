@@ -1771,8 +1771,10 @@ int builtin_clipboard_paste(Atom arguments, Atom *result) {
   *result = nil;
   char *to_insert = NULL;
 # ifdef LITE_GFX
+  char needs_freed = 0;
   if (has_clipboard_utf8()) {
     to_insert = get_clipboard_utf8();
+    needs_freed = true;
   } else {
 # endif
     if (!stringp(terrible_copy_paste_implementation)) {
@@ -1784,6 +1786,11 @@ int builtin_clipboard_paste(Atom arguments, Atom *result) {
 # endif
   *result = make_sym("T");
   buffer_insert(buffer.value.buffer, to_insert);
+# ifdef LITE_GFX
+  if (needs_freed) {
+    free(to_insert);
+  }
+# endif
   return ERROR_NONE;
 }
 
