@@ -130,11 +130,7 @@ void gcol_cons() {
   ConsAllocation **pair_allocations_it = &global_pair_allocations;
   ConsAllocation *prev_pair_allocation = NULL;
   ConsAllocation *pair_allocation;
-  size_t found = 0;
   while ((pair_allocation = *pair_allocations_it)) {
-    if (pair_allocation->mark == 2) {
-      found++;
-    }
     if (pair_allocation->mark == 0) {
       *pair_allocations_it = pair_allocation->next;
       if (prev_pair_allocation) {
@@ -179,10 +175,10 @@ void gcol_generic() {
       free(galloc);
       galloc = NULL;
       generic_allocations_freed += 1;
-    } else {
-      galloc_it = &galloc->next;
-      prev_galloc = galloc;
+      continue;
     }
+    galloc_it = &galloc->next;
+    prev_galloc = galloc;
   }
   // Clear mark.
   galloc = generic_allocations;

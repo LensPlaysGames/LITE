@@ -44,23 +44,32 @@ Error env_get(Atom environment, Atom symbol, Atom *result) {
       symbol = make_sym("POPUP-BUFFER");
     }
 #endif /* #ifdef LITE_GFX */
-  while (!nilp(bindings)) {
-    Atom bind = car(bindings);
-    if (car(bind).value.symbol == symbol.value.symbol) {
-      *result = cdr(bind);
-      return ok;
+  for (;;) {
+    while (!nilp(bindings)) {
+      Atom *bind = &car(bindings);
+      if (bind->value.pair->atom[0].value.symbol == symbol.value.symbol) {
+        *result = bind->value.pair->atom[1];
+        return ok;
+      }
+      bindings = cdr(bindings);
     }
-    bindings = cdr(bindings);
+    if (nilp(parent)) {
+      MAKE_ERROR(err, ERROR_NOT_BOUND
+                 , symbol
+                 // FIXME: Which environment?
+                 , "Symbol is not bound in environment."
+                 , NULL);
+      return err;
+    }
+    bindings = cdr(parent);
+    parent = car(parent);
   }
-  if (nilp(parent)) {
-    MAKE_ERROR(err, ERROR_NOT_BOUND
-               , symbol
-               // FIXME: Which environment?
-               , "Symbol is not bound in environment."
-               , NULL);
-    return err;
-  }
-  return env_get(parent, symbol, result);
+  MAKE_ERROR(err, ERROR_NOT_BOUND
+             , symbol
+             // FIXME: Which environment?
+             , "Symbol is not bound in environment."
+             , NULL);
+  return err;
 }
 
 int env_non_nil(Atom environment, Atom symbol) {
