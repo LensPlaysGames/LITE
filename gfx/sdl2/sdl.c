@@ -356,13 +356,13 @@ static inline void draw_gui_string_into_surface_within_rect
         }
         if (line_text[0] != '\0') {
           // Use FreeType subpixel LCD rendering, if possible.
-#           if SDL_TTF_VERSION_ATLEAST(2,20,0) && !_WIN32
+#         if SDL_TTF_VERSION_ATLEAST(2,20,0) && !_WIN32
           SDL_Surface *line_text_surface =
             TTF_RenderUTF8_LCD(font, line_text, fg, bg);
-#           else
+#         else
           SDL_Surface *line_text_surface =
             TTF_RenderUTF8_Shaded(font, line_text, fg, bg);
-#           endif
+#         endif
           if (line_text_surface) {
             // TODO: Handle BlitSurface failure everywhere (0 == success).
             SDL_BlitSurface(line_text_surface, NULL, text_surface
@@ -509,26 +509,18 @@ void draw_gui(GUIContext *ctx) {
 
   // Calculate height of head/foot lines using line count.
   // TODO: Handle wrapping of long lines.
-  size_t headline_line_count = count_lines(ctx->headline.string);
   size_t footline_line_count = count_lines(ctx->footline.string);
-  size_t headline_height = font_height * headline_line_count;
   size_t footline_height = font_height * footline_line_count;
 
   // TODO: Handle corner case when there is not enough room for contents.
-  size_t contents_height = height - headline_height - footline_height;
+  size_t contents_height = height - footline_height;
 
   // Simple vertical layout, for now.
-  SDL_Rect rect_headline;
   SDL_Rect rect_contents;
   SDL_Rect rect_footline;
 
-  rect_headline.x = 0;
-  rect_headline.y = 0;
-  rect_headline.w = width;
-  rect_headline.h = headline_height;
-
   rect_contents.x = 0;
-  rect_contents.y = rect_headline.h + rect_headline.y;
+  rect_contents.y = 0;
   rect_contents.w = width;
   rect_contents.h = contents_height;
 
@@ -539,8 +531,24 @@ void draw_gui(GUIContext *ctx) {
 
   // Draw context string contents onto screen surface within calculated rectangle,
   // taking in to account text properties of GUIStrings.
-  draw_gui_string_into_surface_within_rect(ctx->headline, surface, &rect_headline);
-  draw_gui_string_into_surface_within_rect(ctx->contents, surface, &rect_contents);
+  // TODO: Make new linked list sorted by Z order. For now, just go in order.
+  for (GUIWindow *window = ctx->windows; window; window = window->next) {
+    // Skip windows that can't be displayed.
+    if (window->posx >= 100 || window->posy >= 100
+        || window->sizex == 0 || window->sizey == 0
+        || window->sizex > 100 || window->sizey > 100
+        ) {
+      continue;
+    }
+    // TODO: Calculate rectangle
+    SDL_Rect rect_window;
+    // Treat posx and posy as integer percent between 0-100 inclusive
+    rect_window.x = (int)(((float)(window->posx) / 100.0f) * rect_contents.w);
+    rect_window.y = (int)(((float)(window->posy) / 100.0f) * rect_contents.h);
+    rect_window.w = (int)(((float)(window->sizex) / 100.0f) * rect_contents.w);
+    rect_window.h = (int)(((float)(window->sizey) / 100.0f) * rect_contents.h);
+    draw_gui_string_into_surface_within_rect(window->contents, surface, &rect_window);
+  }
   draw_gui_string_into_surface_within_rect(ctx->footline, surface, &rect_footline);
 
   if (ctx->reading) {

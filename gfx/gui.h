@@ -24,6 +24,7 @@ typedef struct GUIColor {
 #define GUIColour GUIColor
 
 typedef struct GUIStringProperty {
+  size_t id;
   size_t offset;
   size_t length;
   GUIColor fg;
@@ -42,14 +43,20 @@ typedef struct GUIString {
   GUIStringProperty *properties;
 } GUIString;
 
-// TODO: Extend GUIContext (maybe even make it extensible).
-//       Definitely split contents into a linked list of windows,
-//       each with their own string of contents (or something similar).
+typedef struct GUIWindow {
+  unsigned char z;
+  unsigned char posx;
+  unsigned char posy;
+  unsigned char sizex;
+  unsigned char sizey;
+  GUIString contents;
+  struct GUIWindow *next;
+} GUIWindow;
+
 typedef struct GUIContext {
   GUIStringProperty default_property;
   char *title; /// Graphical window title
-  GUIString headline;
-  GUIString contents;
+  GUIWindow *windows;
   GUIString footline;
   GUIString popup;
   char reading;

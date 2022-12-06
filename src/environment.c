@@ -44,23 +44,32 @@ Error env_get(Atom environment, Atom symbol, Atom *result) {
       symbol = make_sym("POPUP-BUFFER");
     }
 #endif /* #ifdef LITE_GFX */
-  while (!nilp(bindings)) {
-    Atom bind = car(bindings);
-    if (car(bind).value.symbol == symbol.value.symbol) {
-      *result = cdr(bind);
-      return ok;
+  for (;;) {
+    while (!nilp(bindings)) {
+      Atom *bind = &car(bindings);
+      if (bind->value.pair->atom[0].value.symbol == symbol.value.symbol) {
+        *result = bind->value.pair->atom[1];
+        return ok;
+      }
+      bindings = cdr(bindings);
     }
-    bindings = cdr(bindings);
+    if (nilp(parent)) {
+      MAKE_ERROR(err, ERROR_NOT_BOUND
+                 , symbol
+                 // FIXME: Which environment?
+                 , "Symbol is not bound in environment."
+                 , NULL);
+      return err;
+    }
+    bindings = cdr(parent);
+    parent = car(parent);
   }
-  if (nilp(parent)) {
-    MAKE_ERROR(err, ERROR_NOT_BOUND
-               , symbol
-               // FIXME: Which environment?
-               , "Symbol is not bound in environment."
-               , NULL);
-    return err;
-  }
-  return env_get(parent, symbol, result);
+  MAKE_ERROR(err, ERROR_NOT_BOUND
+             , symbol
+             // FIXME: Which environment?
+             , "Symbol is not bound in environment."
+             , NULL);
+  return err;
 }
 
 int env_non_nil(Atom environment, Atom symbol) {
@@ -346,6 +355,10 @@ Atom default_environment() {
           make_builtin(builtin_member,
                        (char *)builtin_member_name,
                        (char *)builtin_member_docstring));
+  env_set(environment, make_sym((char *)builtin_length_name),
+          make_builtin(builtin_length,
+                       (char *)builtin_length_name,
+                       (char *)builtin_length_docstring));
 
   env_set(environment, make_sym((char *)builtin_clipboard_cut_name),
           make_builtin(builtin_clipboard_cut,

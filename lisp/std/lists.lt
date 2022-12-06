@@ -74,3 +74,9 @@ This function mutates GIVEN-ALIST in place."
   (let ((mutable-alist (copy given-alist)))
     (add-to-alist mutable-alist key value)
     mutable-alist))
+
+(defun elt (sequence n)
+  "Return element of SEQUENCE at index N."
+  (if (= n 0)
+      (car sequence)
+      (elt (cdr sequence) (- n 1))))

@@ -346,6 +346,30 @@ int builtin_member(Atom arguments, Atom *result) {
   return ERROR_NONE;
 }
 
+const char *const builtin_length_name = "LENGTH";
+const char *const builtin_length_docstring =
+  "(length SEQUENCE)\n"
+  "\n"
+  "Return the length of SEQUENCE, if it is a string, symbol, or list.\n"
+  "Otherwise, return nil.\n";
+int builtin_length(Atom arguments, Atom *result) {
+  BUILTIN_ENSURE_ONE_ARGUMENT(arguments);
+  Atom arg = car(arguments);
+  size_t size = 0;
+  if (pairp(arg)) {
+    for (; !nilp(arg); arg = cdr(arg)) {
+      ++size;
+    }
+  } else if (symbolp(arg) || stringp(arg)) {
+    size = strlen(arg.value.symbol);
+  } else {
+    *result = nil;
+    return ERROR_NONE;
+  }
+  *result = make_int(size);
+  return ERROR_NONE;
+}
+
 const char *const builtin_add_name = "+";
 const char *const builtin_add_docstring =
   "(+ A B)\n"
@@ -1581,6 +1605,23 @@ int builtin_make_gui_property(Atom arguments, Atom *result) {
   return ERROR_NONE;
 }
 
+static Atom get_active_window() {
+  Atom window_list = nil;
+  Error err = env_get(*genv(), make_sym("WINDOWS"), &window_list);
+  if (err.type) {
+    print_error(err);
+    return nil;
+  }
+
+  Atom active_window_index = nil;
+  err = env_get(*genv(), make_sym("ACTIVE-WINDOW-INDEX"), &active_window_index);
+  if (err.type) {
+    active_window_index = make_int(0);
+  }
+
+  Atom active_window = list_get_safe(window_list, active_window_index.value.integer);
+  return active_window;
+}
 
 const char *const builtin_scroll_down_name = "SCROLL-DOWN";
 const char *const builtin_scroll_down_docstring =
@@ -1607,12 +1648,14 @@ int builtin_scroll_down(Atom arguments, Atom *result) {
       offset = car(arguments).value.integer;
     }
   }
+  Atom active_window = get_active_window();
   // Prevent unsigned integer overflow.
-  size_t old_vertical_offset = gui_ctx()->contents.vertical_offset;
-  gui_ctx()->contents.vertical_offset += offset;
-  if (gui_ctx()->contents.vertical_offset < old_vertical_offset) {
+  Atom scrollxy = list_get(active_window, 3);
+  integer_t old_vertical_offset = cdr(scrollxy).value.integer;
+  cdr(scrollxy).value.integer += offset;
+  if (cdr(scrollxy).value.integer < old_vertical_offset) {
     // Restore vertical offset to what it was before overflow.
-    gui_ctx()->contents.vertical_offset = old_vertical_offset;
+    cdr(scrollxy).value.integer = old_vertical_offset;
   }
 #else
   (void)arguments;
@@ -1630,7 +1673,7 @@ int builtin_scroll_up(Atom arguments, Atom *result) {
 #ifdef LITE_GFX
   // Use the default offset of one, unless a positive integer value was
   // given.
-  size_t offset = 1;
+  integer_t offset = 1;
   if (!nilp(arguments)) {
     if (!integerp(car(arguments))) {
       return ERROR_TYPE;
@@ -1639,11 +1682,13 @@ int builtin_scroll_up(Atom arguments, Atom *result) {
       offset = car(arguments).value.integer;
     }
   }
+  Atom active_window = get_active_window();
   // Prevent unsigned integer underflow.
-  if (offset > gui_ctx()->contents.vertical_offset) {
-    offset = gui_ctx()->contents.vertical_offset;
+  Atom scrollxy = list_get(active_window, 3);
+  if (offset > cdr(scrollxy).value.integer) {
+    offset = cdr(scrollxy).value.integer;
   }
-  gui_ctx()->contents.vertical_offset -= offset;
+  cdr(scrollxy).value.integer -= offset;
 #else
   (void)arguments;
 #endif /* #ifdef LITE_GFX */
