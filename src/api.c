@@ -590,6 +590,19 @@ int gui_loop(void) {
     new_gui_window->sizex = car(car(cdr(cdr(window)))).value.integer;
     new_gui_window->sizey = cdr(car(cdr(cdr(window)))).value.integer;
 
+    if (new_gui_window->posx > 100) {
+      new_gui_window->posx = 100;
+    }
+    if (new_gui_window->posy > 100) {
+      new_gui_window->posy = 100;
+    }
+    if (new_gui_window->posx + new_gui_window->sizex > 100) {
+      new_gui_window->sizex = 100 - new_gui_window->posx;
+    }
+    if (new_gui_window->posy + new_gui_window->sizey > 100) {
+      new_gui_window->sizey = 100 - new_gui_window->posy;
+    }
+
     // Set contents
     Atom contents   = car(car(cdr(cdr(cdr(window)))));
     Atom properties = cdr(car(cdr(cdr(cdr(window)))));
@@ -628,6 +641,7 @@ int gui_loop(void) {
 
     if (index == active_window_index.value.integer) {
       // Active window specific properties, like cursor ig
+
       // TODO: Somehow think about how to rework these; it seems like
       // I'm doing something backwards or inside out.
       // The user *should* be able to set these as known IDS.
@@ -635,6 +649,12 @@ int gui_loop(void) {
       // So maybe *every* window should have three properties added;
       // default, region, and cursor. These could be something like
       // builtin properties and always accessible at the same ID.
+      //
+      // 1. We could have separate properties that are special. So like
+      // CURSOR would be in the LISP environment by itself, gotten
+      // here, and used to set the property. Not a bad way to go about
+      // things, and it would avoid the entire ID debacle.
+
       GUIStringProperty *cursor_property = calloc(1, sizeof(GUIStringProperty));
       cursor_property->fg.r = 0;
       cursor_property->fg.g = 0;
