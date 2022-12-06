@@ -20,15 +20,33 @@
 #  include <gui.h>
 #endif
 
-int main(int argc, char **argv) {
-  Error err = ok;
-  Atom result = nil;
+void help(int argc, char **argv) {
+  printf("USAGE: `%s [filepath to open] [flags/options] [ -- filepaths to evaluate ]`\n"
+         "Flags:\n"
+         "    --script ... evaluate the given files and then exit, printing\n"
+         "                 nothing except what is done from LITE LISP.\n",
+         argv[0]);
+  exit(0);
+}
 
-  // Find and keep track of recognized arguments.
-  int arg_script_index = -1;
-  int arg_file_flag_index = -1;
-  int arg_file_index = -1;
+// Find and keep track of recognized arguments.
+static int arg_script_index          = -1;
+static int arg_eval_delimiter_index  = -1;
+static int arg_eval_index            = -1;
+static int arg_file_index            = -1;
+
+void handle_arguments(int argc, char **argv) {
+  if (argc == 1) {
+    return;
+  }
   for (int i = 1; i < argc; ++i) {
+    if ((strcmp(argv[i], "help") == 0)
+        || (strcmp(argv[i], "-help") == 0)
+        || (strcmp(argv[i], "--help") == 0)
+        ) {
+      help(argc, argv);
+      exit(0);
+    }
     if (strcmp(argv[i], "--script") == 0) {
       if (arg_script_index != -1) {
         printf("LITE does not accept multiple `--script` arguments.\n");
@@ -36,23 +54,28 @@ int main(int argc, char **argv) {
       }
       arg_script_index = i;
       strict_output = true;
-      break;
-    } else if (strcmp(argv[i], "-f") == 0
-               || strcmp(argv[i], "--file") == 0
-               ) {
-      if (arg_file_flag_index != -1) {
-        printf("LITE does not accept multiple `--file` arguments.\n");
-        exit(1);
-      }
-      if (i + 1 >= argc) {
-        printf("LITE --file argument must be followed by a filepath.\n");
-        exit(1);
-      }
-      arg_file_flag_index = i;
-      arg_file_index = i + 1;
-      ++i;
+      continue;
     }
+    if (strcmp(argv[i], "--") == 0) {
+      if (i + 1 >= argc) {
+        continue;
+      }
+      arg_eval_delimiter_index = i;
+      arg_eval_index = i + 1;
+      return;
+    }
+    if (arg_file_index != -1) {
+      fprintf(stderr, "WARN: Multiple filepaths given, using latest\n");
+    }
+    arg_file_index = i;
   }
+  return;
+}
+
+int main(int argc, char **argv) {
+  Error err = ok;
+  Atom result = nil;
+  handle_arguments(argc, argv);
 
   // Only initialize buffers before evaluating arguments as filepaths
   // when NOT in script mode. This is needed due to get_file() and
@@ -87,18 +110,14 @@ int main(int argc, char **argv) {
 
   // Evaluate all the arguments as file paths, except for detected
   // valid arguments.
-  for (int i = 1; i < argc; ++i) {
-    if (i == arg_script_index
-        || i == arg_file_flag_index
-        || i == arg_file_index
-        ) {
-      continue;
-    }
-    err = evaluate_file(*genv(), argv[i], &result);
-    if (err.type) {
-      printf("%s: ", argv[i]);
-      print_error(err);
-      err = ok;
+  if (arg_eval_index != -1) {
+    for (int i = arg_eval_index; i < argc; ++i) {
+      err = evaluate_file(*genv(), argv[i], &result);
+      if (err.type) {
+        printf("%s: ", argv[i]);
+        print_error(err);
+        err = ok;
+      }
     }
   }
 
