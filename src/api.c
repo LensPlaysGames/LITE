@@ -529,27 +529,11 @@ GUIContext *initialize_lite_gui_ctx() {
 
 HOTFUNCTION
 int gui_loop() {
-  char *new_contents = NULL;
-  Atom current_buffer = nil;
-  Error err = env_get(*genv(), make_sym("CURRENT-BUFFER"), &current_buffer);
-  if (!err.type) {
-    new_contents = buffer_string(*current_buffer.value.buffer);
-  }
-
-  // Figure out which GUIString to update. This is effectively window
-  // selection.
-  GUIString *to_update =
-    gctx->reading ? &gctx->popup : &gctx->contents;
-
-  // This yeets all the properties, so now we have to re-add all of
-  // them.
-  update_gui_string(to_update, new_contents);
-
-  // TODO: Call all "refresh" functions. Just a list of LISP forms that
+  // Call all "refresh" functions. Just a list of LISP forms that
   // we then call each `car` of...
   Atom refresh_hook = nil;
   Atom result = nil;
-  err = env_get(*genv(), make_sym("REFRESH-HOOK"), &refresh_hook);
+  Error err = env_get(*genv(), make_sym("REFRESH-HOOK"), &refresh_hook);
   if (!err.type) {
     for(; !nilp(refresh_hook); refresh_hook = cdr(refresh_hook)) {
       err = evaluate_expression(car(refresh_hook), *genv(), &result);
@@ -560,64 +544,30 @@ int gui_loop() {
     }
   }
 
-  // Todo: Add all GUIStringProperty from "pending" queue and clear it.
+  Atom current_buffer = nil;
+  err = env_get(*genv(), make_sym("CURRENT-BUFFER"), &current_buffer);
+  if (err.type) {
+    print_error(err);
+  }
+  Atom active_window_index = nil;
+  err = env_get(*genv(), make_sym("ACTIVE-WINDOW-INDEX"), &current_buffer);
+  if (err.type) {
+    print_error(err);
+  }
+  Atom window_list = nil;
+  err = env_get(*genv(), make_sym("WINDOWS"), &current_buffer);
+  if (err.type) {
+    print_error(err);
+  }
 
-  if (bufferp(current_buffer) && current_buffer.value.buffer) {
-    GUIProperty *last = NULL;
-    GUIProperty *it = gui_properties;
-    while (it) {
-      GUIStringProperty *new_property =
-        string_property_copy_shallow(&it->property);
-      // Handle non-standard GUI property.
-      // TODO: Move outside of loop.
-      switch (it->id) {
-      default:
-        break;
-      case GUI_PROP_ID_DEFAULT:
-        gctx->default_property.fg = it->property.fg;
-        gctx->default_property.bg = it->property.bg;
-        break;
-      case GUI_PROP_ID_CURSOR:
-        new_property->offset = current_buffer.value.buffer->point_byte;
-        break;
-      case GUI_PROP_ID_REGION:
-        // If mark is activated, create property for selection.
-        if (buffer_mark_active(*current_buffer.value.buffer)) {
-          size_t mark_byte = buffer_mark(*current_buffer.value.buffer);
-          size_t offset = 0;
-          size_t length = 0;
-          if (current_buffer.value.buffer->point_byte > mark_byte) {
-            offset = mark_byte;
-            length = current_buffer.value.buffer->point_byte - offset;
-          } else {
-            offset = current_buffer.value.buffer->point_byte;
-            length = mark_byte - offset;
-          }
-          new_property->offset = offset;
-          new_property->length = length;
-        }
-        break;
-      }
-      if (it->id >= GUI_PROP_ID_BEGIN_USER) {
-        add_property(to_update, new_property);
-      } else {
-        add_property_end(to_update, new_property);
-      }
-      if (it->id >= GUI_PROP_ID_BEGIN_USER) {
-        // Remove user added property from list.
-        // TODO: Free property without completely borking things, which
-        // it seems to. Yes, we freed it after the final dereference.
-        if (last) {
-          last->next = it->next;
-        }
-        if (it == gui_properties) {
-          gui_properties = it->next;
-        }
-      }
-      last = it;
-      it = it->next;
+  size_t index = 0;
+  for (Atom window_it = window_list; !nilp(window_it); window_it = cdr(window_it), ++index) {
+    Atom window = car(window_it);
+    if (index == active_window_index.value.integer) {
+      // TODO: Active window specific stuff, like cursor ig
     }
   }
+
   return do_gui(gctx);
 }
 
