@@ -354,10 +354,11 @@ or, if mark is active and a region is selected, remove the entire region."
     (change-font-size font-size))
 
 (set active-window-index 0)
-(set windows
-     `((0 (0 . 0) (50 . 100) (,current-buffer . nil))
-       (0 (50 . 0) (50 . 100) (,current-buffer . nil)))
-     )
+(set windows `((0 (0 . 0) (100 . 100) (,current-buffer . nil))))
+;;(set windows
+;;     `((0 (0 . 0) (50 . 100) (,current-buffer . nil))
+;;       (0 (50 . 0) (50 . 100) (,current-buffer . nil)))
+;;     )
 
 (defun set-active-window-buffer (buffer)
   "Set the contents displayed in the active window to the given buffer"
