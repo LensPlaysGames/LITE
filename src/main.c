@@ -80,16 +80,23 @@ int main(int argc, char **argv) {
   // Only initialize buffers before evaluating arguments as filepaths
   // when NOT in script mode. This is needed due to get_file() and
   // friends printing to standard out, which breaks end-to-end tests.
-  if (arg_script_index == -1) {
+
+  // We now have to initialize them no matter what as it is becoming so
+  // complex that the std library now mentions the current buffer and
+  // such.
+
+  {
     Atom initial_buffer = nil;
     if (arg_file_index == -1) {
+      // TODO: Don't panic when default file isn't found. Also maybe
+      // have default file included XD.
       initial_buffer = initialize_buffer_or_panic("LITE_SHINES_UPON_US.txt");
     } else {
       initial_buffer = initialize_buffer_or_panic(argv[arg_file_index]);
     }
     env_set(*genv(), make_sym("CURRENT-BUFFER"), initial_buffer);
 
-#   ifdef LITE_GFX
+# ifdef LITE_GFX
     Atom popup_buffer = initialize_buffer_or_panic(".popup");
     env_set(*genv(), make_sym("POPUP-BUFFER"), popup_buffer);
 
@@ -97,10 +104,8 @@ int main(int argc, char **argv) {
     if (status != CREATE_GUI_OK && status != CREATE_GUI_ALREADY_CREATED) {
       return 420;
     }
-#   endif
-
+# endif
   }
-
   // Attempt to load the standard library.
   err = evaluate_file(*genv(), "lisp/std.lt", &result);
   if (err.type && err.type != ERROR_FILE) {
