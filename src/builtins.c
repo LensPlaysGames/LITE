@@ -1711,7 +1711,6 @@ const char *const builtin_clipboard_cut_docstring =
 int builtin_clipboard_cut(Atom arguments, Atom *result) {
   BUILTIN_ENSURE_ONE_ARGUMENT(arguments);
   *result = nil;
-
   Atom buffer = car(arguments);
   if (!bufferp(buffer) || !buffer.value.buffer) {
     return ERROR_TYPE;
@@ -1725,6 +1724,10 @@ int builtin_clipboard_cut(Atom arguments, Atom *result) {
     }
     // TODO: This is a terrible copy and paste implementation!
     terrible_copy_paste_implementation = make_string(region);
+#   ifdef LITE_GFX
+    set_clipboard_utf8(region);
+#   endif
+    free(region);
     *result = make_sym("T");
   }
   return ERROR_NONE;
@@ -1737,7 +1740,6 @@ const char *const builtin_clipboard_copy_docstring =
 int builtin_clipboard_copy(Atom arguments, Atom *result) {
   BUILTIN_ENSURE_ONE_ARGUMENT(arguments);
   *result = nil;
-
   Atom buffer = car(arguments);
   if (!bufferp(buffer) || !buffer.value.buffer) {
     return ERROR_TYPE;
@@ -1746,6 +1748,10 @@ int builtin_clipboard_copy(Atom arguments, Atom *result) {
     char *region = buffer_region(*buffer.value.buffer);
     // TODO: This is a terrible copy and paste implementation!
     terrible_copy_paste_implementation = make_string(region);
+#   ifdef LITE_GFX
+    set_clipboard_utf8(region);
+#   endif
+    free(region);
     *result = make_sym("T");
   }
 
@@ -1763,11 +1769,21 @@ int builtin_clipboard_paste(Atom arguments, Atom *result) {
     return ERROR_TYPE;
   }
   *result = nil;
-  if (!stringp(terrible_copy_paste_implementation)) {
-    return ERROR_TYPE;
+  char *to_insert = NULL;
+# ifdef LITE_GFX
+  if (has_clipboard_utf8()) {
+    to_insert = get_clipboard_utf8();
+  } else {
+# endif
+    if (!stringp(terrible_copy_paste_implementation)) {
+      return ERROR_TYPE;
+    }
+    to_insert = terrible_copy_paste_implementation.value.symbol;
+# ifdef LITE_GFX
   }
+# endif
   *result = make_sym("T");
-  buffer_insert(buffer.value.buffer, terrible_copy_paste_implementation.value.symbol);
+  buffer_insert(buffer.value.buffer, to_insert);
   return ERROR_NONE;
 }
 

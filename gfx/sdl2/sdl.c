@@ -11,10 +11,12 @@
 
 #define SDL_MAIN_HANDLED
 #include <SDL.h>
+#include <SDL_clipboard.h>
 #include <SDL_events.h>
 #include <SDL_keycode.h>
 #include <SDL_rect.h>
 #include <SDL_render.h>
+#include <SDL_stdinc.h>
 #include <SDL_surface.h>
 #include <SDL_ttf.h>
 #include <SDL_video.h>
@@ -978,4 +980,21 @@ void change_window_visibility(enum GFXWindowVisible visible) {
   } else if (visible == GFX_WINDOW_INVISIBLE) {
     SDL_HideWindow(gwindow);
   }
+}
+
+void set_clipboard_utf8(const char *data) {
+  SDL_SetClipboardText(data);
+}
+
+char *get_clipboard_utf8() {
+  char *tmp = SDL_GetClipboardText();
+  size_t len = strlen(tmp) + 1;
+  char *out = calloc(1, len);
+  memcpy(out, tmp, len);
+  SDL_free(tmp);
+  return out;
+}
+
+char has_clipboard_utf8() {
+  return SDL_HasClipboardText() == SDL_TRUE;
 }

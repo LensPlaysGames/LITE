@@ -99,6 +99,19 @@ void window_size(size_t *width, size_t *height);
 /// @return Zero upon success.
 void change_window_size(size_t width, size_t height);
 
+/// Set the data on the clipboard to this UTF8 string.
+void set_clipboard_utf8(const char *data);
+
+/** Get the data on the clipboard to this UTF8 string.
+ *
+ * Do not forget to free the returned string---ownership is given to
+ * the callee.
+ */
+char *get_clipboard_utf8();
+
+/// @return 1 if clipboard has data on it, otherwise 0.
+char has_clipboard_utf8();
+
 enum GFXWindowMode {
   GFX_WINDOW_MODE_WINDOWED = 0,
   GFX_WINDOW_MODE_FULLSCREEN,
