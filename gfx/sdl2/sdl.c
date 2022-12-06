@@ -356,13 +356,13 @@ static inline void draw_gui_string_into_surface_within_rect
         }
         if (line_text[0] != '\0') {
           // Use FreeType subpixel LCD rendering, if possible.
-#           if SDL_TTF_VERSION_ATLEAST(2,20,0) && !_WIN32
+#         if SDL_TTF_VERSION_ATLEAST(2,20,0) && !_WIN32
           SDL_Surface *line_text_surface =
             TTF_RenderUTF8_LCD(font, line_text, fg, bg);
-#           else
+#         else
           SDL_Surface *line_text_surface =
             TTF_RenderUTF8_Shaded(font, line_text, fg, bg);
-#           endif
+#         endif
           if (line_text_surface) {
             // TODO: Handle BlitSurface failure everywhere (0 == success).
             SDL_BlitSurface(line_text_surface, NULL, text_surface

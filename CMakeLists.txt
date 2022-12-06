@@ -4,7 +4,10 @@ set(LITE_LANGUAGES C)
 
 # Use `ccache` if it is installed in system's PATH.
 find_program(CCACHE_PROGRAM ccache)
-if(CCACHE_PROGRAM)
+# Only use ccache for debug modes, that way release modes will always
+# rebuild. This is helpful because ccache can cache a debug build and
+# use it in release builds, which is not ideal at all.
+if(CCACHE_PROGRAM AND CMAKE_BUILD_TYPE STREQUAL "Debug")
   set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE "${CCACHE_PROGRAM}")
 endif()
 

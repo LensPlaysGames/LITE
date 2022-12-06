@@ -584,7 +584,7 @@ int gui_loop(void) {
   GUIWindow *last_window = gctx->windows;
   for (Atom window_it = window_list; !nilp(window_it); window_it = cdr(window_it), ++index) {
     // Expected format:
-    // ((z (posx . posy) (sizex . sizey) (contents . properties)))
+    // ((z (posx . posy) (sizex . sizey) (scrollx . scrolly) (contents . properties)))
     // properties:
     // ((id offset length (fg.r fg.g fg.b fg.r) (bg.r bg.g bg.b bg.a)))
     GUIWindow *new_gui_window = calloc(1, sizeof(GUIWindow));
@@ -597,6 +597,8 @@ int gui_loop(void) {
     new_gui_window->posy  = cdr(car(cdr(window))).value.integer;
     new_gui_window->sizex = car(car(cdr(cdr(window)))).value.integer;
     new_gui_window->sizey = cdr(car(cdr(cdr(window)))).value.integer;
+    new_gui_window->contents.horizontal_offset = car(car(cdr(cdr(cdr(window))))).value.integer;
+    new_gui_window->contents.vertical_offset   = cdr(car(cdr(cdr(cdr(window))))).value.integer;
 
     if (new_gui_window->posx > 100) {
       new_gui_window->posx = 100;
@@ -612,8 +614,8 @@ int gui_loop(void) {
     }
 
     // Set contents
-    Atom contents   = car(car(cdr(cdr(cdr(window)))));
-    Atom properties = cdr(car(cdr(cdr(cdr(window)))));
+    Atom contents   = car(car(cdr(cdr(cdr(cdr(window))))));
+    Atom properties = cdr(car(cdr(cdr(cdr(cdr(window))))));
     char *contents_string = NULL;
     if (bufferp(contents) && contents.value.buffer) {
       contents_string = buffer_string(*contents.value.buffer);

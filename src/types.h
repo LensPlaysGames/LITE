@@ -188,6 +188,16 @@ int listp(Atom expr);
  */
 Atom list_get(Atom list, int k);
 
+/** Get a single element in a list from a given index.
+ *
+ * @param list The list to get an element from.
+ * @param k The index of the element within the list to get.
+ *
+ * @return The element at index `k` within the given list, or the last
+ * element if `k` is out of bounds.
+ */
+Atom list_get_safe(Atom list, int k);
+
 /** Get the rest of the elements in a list after a given index.
  *
  * This function does not check for nil, so ensure to give it an

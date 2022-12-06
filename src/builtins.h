@@ -66,6 +66,11 @@ extern const char *const builtin_member_name;
 extern const char *const builtin_member_docstring;
 int builtin_member(Atom arguments, Atom *result);
 
+extern const char *const builtin_length_name;
+extern const char *const builtin_length_docstring;
+int builtin_length(Atom arguments, Atom *result);
+
+
 // LOGICAL
 
 extern const char *const builtin_not_name;

@@ -353,28 +353,64 @@ or, if mark is active and a region is selected, remove the entire region."
                         (- font-size font-size-step)))
     (change-font-size font-size))
 
+
+;; WINDOW:
+;;   (z-level (posx . posy) (sizex . sizey) (scrollx . scrolly) (contents . properties))
+
+;; PROPERTY:
+;;   (id offset length (fg.r fg.g fg.b fg.a) (bg.r bg.g bg.b bg.a))
+
+;; One main window.
+(set windows   `((0 (0  . 0) (100 . 100) (0 . 0) (,current-buffer . nil))))
+;; Two windows side by side.
+;;(set windows `((0 (0  . 0) (50  . 100) (0 . 0) (,current-buffer . nil))
+;;               (0 (50 . 0) (50  . 100) (0 . 0) (,current-buffer . nil))))
+;; Two windows top and bottom.
+;;(set windows `((0 (0 .  0) (100 .  50) (0 . 0) (,current-buffer . nil))
+;;               (0 (0 . 50) (100 .  50) (0 . 0) (,current-buffer . nil))))
+
 (set active-window-index 0)
-(set windows `((0 (0 . 0) (100 . 100) (,current-buffer . nil))))
-;;(set windows
-;;     `((0 (0 . 0) (50 . 100) (,current-buffer . nil))
-;;       (0 (50 . 0) (50 . 100) (,current-buffer . nil)))
-;;     )
+
+(defun active-window ()
+  "Return the active window from window list based on index."
+  (elt windows active-window-index))
+
+;; TODO: API for the rest of the window members.
+
+(defun window-contents (window)
+  "Return the contents associated with WINDOW."
+  (car (elt window 4)))
+
+(defun set-window-contents (window new-contents)
+  "Set the contents associated with WINDOW to NEW-CONTENTS."
+  (setcar (elt window 4) new-contents))
+
+(defun window-properties (window)
+  "Return the contents associated with WINDOW."
+  (cdr (elt window 4)))
+
+(defun set-window-properties (window new-properties)
+  "Set the text properties associated with WINDOW to NEW-PROPERTIES."
+  (setcdr (elt window 4) new-properties))
 
 (defun set-active-window-buffer (buffer)
   "Set the contents displayed in the active window to the given buffer"
-  (setcar (car (cdr (cdr (cdr (elt windows active-window-index))))) buffer)
-  (setcdr (car (cdr (cdr (cdr (elt windows active-window-index))))) nil))
+  ;; Reset window contents to given buffer.
+  (set-window-contents (active-window) buffer)
+  ;; Reset text properties to nil.
+  (set-window-properties (active-window) nil))
 
 (defun set-buffer-from-active-window ()
   "Set the contents displayed in the active window to the given buffer"
   ;; TODO: Ensure window is not displaying a string.
-  (set current-buffer (car (car (cdr (cdr (cdr (elt windows active-window-index))))))))
+  (set current-buffer (window-contents (active-window))))
 
 (defun set-active-window (n)
   "Select a different window in the window list as active."
   ;; TODO: Ensure n is within bounds
-  (set active-window-index n)
-  (set-buffer-from-active-window))
+  (when (< n (length windows))
+    (set active-window-index n)
+    (set-buffer-from-active-window)))
 
 (defun switch-current-buffer ()
   "Prompt user for a filepath to open a buffer at, and set current-buffer."

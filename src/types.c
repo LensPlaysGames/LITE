@@ -575,6 +575,17 @@ Atom list_get(Atom list, int k) {
   return car(list);
 }
 
+Atom list_get_safe(Atom list, int k) {
+  while (k--) {
+    if (nilp(cdr(list))) {
+      return list;
+    }
+    list = cdr(list);
+  }
+  return car(list);
+}
+
+
 Atom list_get_past(Atom list, int k) {
   while (k--) {
     list = cdr(list);
