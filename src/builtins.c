@@ -1607,13 +1607,14 @@ int builtin_scroll_down(Atom arguments, Atom *result) {
       offset = car(arguments).value.integer;
     }
   }
+  // TODO: Get active window through active window index.
   // Prevent unsigned integer overflow.
-  size_t old_vertical_offset = gui_ctx()->contents.vertical_offset;
-  gui_ctx()->contents.vertical_offset += offset;
-  if (gui_ctx()->contents.vertical_offset < old_vertical_offset) {
-    // Restore vertical offset to what it was before overflow.
-    gui_ctx()->contents.vertical_offset = old_vertical_offset;
-  }
+  //size_t old_vertical_offset = gui_ctx()->contents.vertical_offset;
+  //gui_ctx()->contents.vertical_offset += offset;
+  //if (gui_ctx()->contents.vertical_offset < old_vertical_offset) {
+  //  // Restore vertical offset to what it was before overflow.
+  //  gui_ctx()->contents.vertical_offset = old_vertical_offset;
+  //}
 #else
   (void)arguments;
 #endif /* #ifdef LITE_GFX */
@@ -1639,11 +1640,12 @@ int builtin_scroll_up(Atom arguments, Atom *result) {
       offset = car(arguments).value.integer;
     }
   }
+  // TODO: Get active window through active window index.
   // Prevent unsigned integer underflow.
-  if (offset > gui_ctx()->contents.vertical_offset) {
-    offset = gui_ctx()->contents.vertical_offset;
-  }
-  gui_ctx()->contents.vertical_offset -= offset;
+  //if (offset > gui_ctx()->contents.vertical_offset) {
+  //  offset = gui_ctx()->contents.vertical_offset;
+  //}
+  //gui_ctx()->contents.vertical_offset -= offset;
 #else
   (void)arguments;
 #endif /* #ifdef LITE_GFX */

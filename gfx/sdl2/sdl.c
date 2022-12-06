@@ -547,7 +547,7 @@ void draw_gui(GUIContext *ctx) {
     rect_window.y = (int)(((float)(window->posy) / 100.0f) * rect_contents.h);
     rect_window.w = (int)(((float)(window->sizex) / 100.0f) * rect_contents.w);
     rect_window.h = (int)(((float)(window->sizey) / 100.0f) * rect_contents.h);
-    draw_gui_string_into_surface_within_rect(window->contents, surface, &rect_contents);
+    draw_gui_string_into_surface_within_rect(window->contents, surface, &rect_window);
   }
   draw_gui_string_into_surface_within_rect(ctx->footline, surface, &rect_footline);
 

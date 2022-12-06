@@ -357,4 +357,9 @@ or, if mark is active and a region is selected, remove the entire region."
                         (- font-size font-size-step)))
     (change-font-size font-size))
 
+(set active-window-index 0)
+(set windows
+     `((0 (0 . 0) (100 . 100) (,current-buffer . nil)))
+     )
+
 (evaluate-file "lisp/std/binds.lt")

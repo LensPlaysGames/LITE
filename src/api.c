@@ -463,11 +463,10 @@ GUIContext *initialize_lite_gui_ctx() {
   GUIContext *ctx = calloc(1, sizeof(GUIContext));
   if (!ctx) { return NULL; }
   ctx->title = "LITE GFX";
-  update_gui_string(&ctx->headline, allocate_string("LITE Headline"));
-  update_gui_string(&ctx->contents, allocate_string("LITE Contents"));
+  // TODO/FIXME: Should we create a window by default here?
   update_gui_string(&ctx->footline, allocate_string("LITE Footline"));
   update_gui_string(&ctx->popup,    allocate_string("LITE Popup"));
-  if (!ctx->headline.string || !ctx->contents.string || !ctx->footline.string) {
+  if (!ctx->popup.string || !ctx->footline.string) {
     return NULL;
   }
 
@@ -528,7 +527,7 @@ GUIContext *initialize_lite_gui_ctx() {
 }
 
 HOTFUNCTION
-int gui_loop() {
+int gui_loop(void) {
   // Call all "refresh" functions. Just a list of LISP forms that
   // we then call each `car` of...
   Atom refresh_hook = nil;
@@ -550,28 +549,146 @@ int gui_loop() {
     print_error(err);
   }
   Atom active_window_index = nil;
-  err = env_get(*genv(), make_sym("ACTIVE-WINDOW-INDEX"), &current_buffer);
+  err = env_get(*genv(), make_sym("ACTIVE-WINDOW-INDEX"), &active_window_index);
   if (err.type) {
     print_error(err);
   }
   Atom window_list = nil;
-  err = env_get(*genv(), make_sym("WINDOWS"), &current_buffer);
+  err = env_get(*genv(), make_sym("WINDOWS"), &window_list);
   if (err.type) {
     print_error(err);
   }
 
-  size_t index = 0;
+  // Free all GUIWindows!
+  GUIWindow *window = gctx->windows;
+  while (window) {
+    free_properties(window->contents);
+    free(window->contents.string);
+    GUIWindow *next_window = window->next;
+    free(window);
+    window = next_window;
+  }
+  gctx->windows = NULL;
+
+  // TODO: Lots of type checking...
+
+  integer_t index = 0;
+  GUIWindow *last_window = gctx->windows;
   for (Atom window_it = window_list; !nilp(window_it); window_it = cdr(window_it), ++index) {
+    // Expected format:
+    // ((z (posx . posy) (sizex . sizey) (contents . properties)))
+    // properties:
+    // ((id offset length (fg.r fg.g fg.b fg.r) (bg.r bg.g bg.b bg.a)))
+    GUIWindow *new_gui_window = calloc(1, sizeof(GUIWindow));
+
     Atom window = car(window_it);
-    if (index == active_window_index.value.integer) {
-      // TODO: Active window specific stuff, like cursor ig
+
+    // Set integer values
+    new_gui_window->z     = car(window).value.integer;
+    new_gui_window->posx  = car(car(cdr(window))).value.integer;
+    new_gui_window->posy  = cdr(car(cdr(window))).value.integer;
+    new_gui_window->sizex = car(car(cdr(cdr(window)))).value.integer;
+    new_gui_window->sizey = cdr(car(cdr(cdr(window)))).value.integer;
+
+    // Set contents
+    Atom contents   = car(car(cdr(cdr(cdr(window)))));
+    Atom properties = cdr(car(cdr(cdr(cdr(window)))));
+    char *contents_string = NULL;
+    if (bufferp(contents) && contents.value.buffer) {
+      contents_string = buffer_string(*contents.value.buffer);
+    } else if (stringp(contents) && contents.value.symbol) {
+      contents_string = strdup(contents.value.symbol);
     }
+    new_gui_window->contents.string = contents_string;
+
+    GUIStringProperty *last_property = NULL;
+    for (Atom property_it = properties; !nilp(property_it); property_it = cdr(property_it)) {
+      GUIStringProperty *new_property = calloc(1, sizeof(GUIStringProperty));
+
+      Atom property = car(property_it);
+      new_property->id = car(property).value.integer;
+      new_property->offset = car(cdr(property)).value.integer;
+      new_property->length = car(cdr(cdr(property))).value.integer;
+
+      Atom fg = car(cdr(cdr(cdr(property))));
+      new_property->fg.r = car(fg).value.integer;
+      new_property->fg.g = car(cdr(fg)).value.integer;
+      new_property->fg.b = car(cdr(cdr(fg))).value.integer;
+      new_property->fg.a = car(cdr(cdr(cdr(fg)))).value.integer;
+
+      Atom bg = car(cdr(cdr(cdr(cdr(property)))));
+      new_property->bg.r = car(bg).value.integer;
+      new_property->bg.g = car(cdr(bg)).value.integer;
+      new_property->bg.b = car(cdr(cdr(bg))).value.integer;
+      new_property->bg.a = car(cdr(cdr(cdr(bg)))).value.integer;
+
+      // Add new property to list.
+      add_property(&new_gui_window->contents, new_property);
+    }
+
+    if (index == active_window_index.value.integer) {
+      // Active window specific properties, like cursor ig
+      // TODO: Somehow think about how to rework these; it seems like
+      // I'm doing something backwards or inside out.
+      // The user *should* be able to set these as known IDS.
+      // User added properties should have higher IDs.
+      // So maybe *every* window should have three properties added;
+      // default, region, and cursor. These could be something like
+      // builtin properties and always accessible at the same ID.
+      GUIStringProperty *cursor_property = calloc(1, sizeof(GUIStringProperty));
+      cursor_property->fg.r = 0;
+      cursor_property->fg.g = 0;
+      cursor_property->fg.b = 0;
+      cursor_property->fg.a = UINT8_MAX;
+
+      cursor_property->bg.r = UINT8_MAX;
+      cursor_property->bg.g = UINT8_MAX;
+      cursor_property->bg.b = UINT8_MAX;
+      cursor_property->bg.a = UINT8_MAX;
+
+      cursor_property->offset = current_buffer.value.buffer->point_byte;
+      cursor_property->length = 1;
+
+      add_property(&new_gui_window->contents, cursor_property);
+
+      // If mark is activated, create property for selection.
+      if (buffer_mark_active(*current_buffer.value.buffer)) {
+        GUIStringProperty *region_property = calloc(1, sizeof(GUIStringProperty));
+        region_property->fg.r = UINT8_MAX;
+        region_property->fg.g = UINT8_MAX;
+        region_property->fg.b = UINT8_MAX;
+        region_property->fg.a = UINT8_MAX;
+
+        region_property->bg.r = 53;
+        region_property->bg.g = 53;
+        region_property->bg.b = 53;
+        region_property->bg.a = UINT8_MAX;
+
+        size_t mark_byte = buffer_mark(*current_buffer.value.buffer);
+        if (current_buffer.value.buffer->point_byte > mark_byte) {
+          region_property->offset = mark_byte;
+        } else {
+          region_property->offset = current_buffer.value.buffer->point_byte;
+        }
+        region_property->length = buffer_region_length(*current_buffer.value.buffer);
+
+        add_property(&new_gui_window->contents, region_property);
+      }
+    }
+
+    // Add to windows linked list.
+    if (last_window) {
+      last_window->next = new_gui_window;
+    } else {
+      gctx->windows = new_gui_window;
+    }
+    last_window = new_gui_window;
   }
 
   return do_gui(gctx);
 }
 
-int enter_lite_gui() {
+int enter_lite_gui(void) {
   int status = create_gui();
   if (status != CREATE_GUI_OK && status != CREATE_GUI_ALREADY_CREATED) {
     return 69;
