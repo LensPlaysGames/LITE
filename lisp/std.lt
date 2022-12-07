@@ -360,22 +360,70 @@ or, if mark is active and a region is selected, remove the entire region."
 ;; PROPERTY:
 ;;   (id offset length (fg.r fg.g fg.b fg.a) (bg.r bg.g bg.b bg.a))
 
-;; One main window.
-(set windows   `((0 (0  . 0) (100 . 100) (0 . 0) (,current-buffer . nil))))
-;; Two windows side by side.
-;;(set windows `((0 (0  . 0) (50  . 100) (0 . 0) (,current-buffer . nil))
-;;               (0 (50 . 0) (50  . 100) (0 . 0) (,current-buffer . nil))))
-;; Two windows top and bottom.
-;;(set windows `((0 (0 .  0) (100 .  50) (0 . 0) (,current-buffer . nil))
-;;               (0 (0 . 50) (100 .  50) (0 . 0) (,current-buffer . nil))))
-
-(set active-window-index 0)
 
 (defun active-window ()
   "Return the active window from window list based on index."
   (elt windows active-window-index))
 
-;; TODO: API for the rest of the window members.
+;; TODO: `set` API for the rest of the members.
+;;   NOTE: scroll-up and scroll-down are builtins, but they no longer
+;;   have to be.
+
+(defun window-z (window)
+  "Return the x position of WINDOW."
+  (car window))
+
+(defun set-window-z (window)
+  "Set the z level of WINDOW to VALUE."
+  (setcar window value))
+
+(defun window-x (window)
+  "Return the x position of WINDOW."
+  (car (elt window 1)))
+
+(defun set-window-x (window value)
+  "Reposition WINDOW at x position VALUE."
+  (setcar (elt window 1) value))
+
+(defun window-y (window)
+  "Return the y position of WINDOW."
+  (cdr (elt window 1)))
+
+(defun set-window-y (window value)
+  "Reposition WINDOW at y position VALUE."
+  (setcdr (elt window 1) value))
+
+(defun window-w (window)
+  "Return the width value in integer percent (0 - 100 inclusive) of WINDOW."
+  (car (elt window 2)))
+
+(defun set-window-width (window value)
+  "Resize WINDOW width to the given width VALUE."
+  (setcar (elt window 2) value))
+
+(defun window-h (window)
+  "Return the height value in integer percent (0 - 100 inclusive) of WINDOW."
+  (cdr (elt window 2)))
+
+(defun set-window-height (window value)
+  "Resize WINDOW height to the given VALUE."
+  (setcdr (elt window 2) value))
+
+(defun window-scrollx (window)
+  "Return the horizontal scroll value of WINDOW."
+  (car (elt window 3)))
+
+(defun set-window-scrollx (window value)
+  "Associate the given horizontal scroll VALUE with WINDOW."
+  (setcar (elt window 3) value))
+
+(defun window-scrolly (window)
+  "Return the vertical scroll value of WINDOW."
+  (cdr (elt window 3)))
+
+(defun set-window-scrolly (window value)
+  "Associate the given vertical scroll VALUE with WINDOW."
+  (setcdr (elt window 3) value))
 
 (defun window-contents (window)
   "Return the contents associated with WINDOW."
@@ -407,14 +455,55 @@ or, if mark is active and a region is selected, remove the entire region."
 
 (defun set-active-window (n)
   "Select a different window in the window list as active."
-  ;; TODO: Ensure n is within bounds
-  (when (< n (length windows))
+  (when (and
+         (> n -1)
+         (< n (length windows)))
     (set active-window-index n)
     (set-buffer-from-active-window)))
+
+(defun cycle-active-window (direction)
+  "Change active window to another window in the list, if possible.
+Attempt to move backwards"
+  (if (or (= direction 0)(> direction 0))
+      (unless (set-active-window (+ 1 active-window-index))
+        (set-active-window 0))
+        (unless (set-active-window (- active-window-index 1))
+          (set-active-window (length windows)))))
 
 (defun switch-current-buffer ()
   "Prompt user for a filepath to open a buffer at, and set current-buffer."
   (set current-buffer (open-buffer (read-prompted "filepath: ")))
   (set-active-window-buffer current-buffer))
+
+(defun layout-1 ()
+  "One main window."
+  (set windows   `((0 (0  . 0) (100 . 100) (0 . 0) (,current-buffer . nil))))
+  (set-active-window 0))
+
+(defun layout-vsplit ()
+  "Two windows side by side."
+  (set windows `((0 (0  . 0) (50  . 100) (0 . 0) (,current-buffer . nil))
+                 (0 (50 . 0) (50  . 100) (0 . 0) (,current-buffer . nil))))
+  (set-active-window 0))
+
+(defun layout-hsplit ()
+  "Two windows top and bottom."
+  (set windows `((0 (0 .  0) (100 .  50) (0 . 0) (,current-buffer . nil))
+                 (0 (0 . 50) (100 .  50) (0 . 0) (,current-buffer . nil))))
+  (set-active-window 0))
+
+(defun layout-maxpane ()
+  "Four windows, one in each quadrant."
+  (set windows `((0 (40 . 40) (20 . 20) (0 . 0) (,current-buffer . nil))
+                 (0 ( 0 .  0) (50 . 50) (0 . 0) (,current-buffer . nil))
+                 (0 (50 .  0) (50 . 50) (0 . 0) (,current-buffer . nil))
+                 (0 ( 0 . 50) (50 . 50) (0 . 0) (,current-buffer . nil))
+                 (0 (50 . 50) (50 . 50) (0 . 0) (,current-buffer . nil))))
+  (set-active-window 0))
+
+
+(layout-1)
+
+
 
 (evaluate-file "lisp/std/binds.lt")
