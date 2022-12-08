@@ -716,5 +716,10 @@ Error evaluate_expression(Atom expr, Atom environment, Atom *result) {
       err = evaluate_return_value(&stack, &expr, &environment, result);
     }
   } while (!err.type);
+  // When done evaluating an expression, it's a good time to garbage collect.
+  gcol_mark(genv());
+  gcol_mark(&environment);
+  gcol_mark(buf_table());
+  gcol();
   return err;
 }
