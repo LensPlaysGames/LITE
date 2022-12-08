@@ -47,3 +47,11 @@ char *string_join(const char *const a, const char *const b) {
   out[new_len] = '\0';
   return out;
 }
+
+char *string_trijoin(const char *const a, const char *const b, const char *const c) {
+  if (!a || !b || !c) { return NULL; }
+  char *tmp = string_join(a, b);
+  char *out = string_join(tmp, c);
+  free(tmp);
+  return out;
+}

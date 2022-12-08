@@ -20,10 +20,13 @@ typedef struct SimpleFile {
   size_t size;
 } SimpleFile;
 
-SimpleFile get_file(char* path);
+SimpleFile get_file(char *path);
 void free_file(SimpleFile file);
 
 size_t file_size(FILE *file);
+
+/// @return Boolean-like value: 1 if file at path exists, 0 otherwise.
+char file_exists(char *path);
 
 /// Returns a heap-allocated buffer containing the
 /// contents of the file found at the given path.

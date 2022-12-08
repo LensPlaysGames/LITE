@@ -582,7 +582,35 @@ int builtin_open_buffer(Atom arguments, Atom *result) {
   if (!stringp(path) || !path.value.symbol) {
     return ERROR_TYPE;
   }
-  // TODO: Buffer-local environment should go here.
+  if (file_exists(path.value.symbol)) {
+    // TODO: A buffer-local environment should go in each call to
+    // make_buffer, or something?
+    *result = make_buffer(env_create(nil), (char *)path.value.symbol);
+    return ERROR_NONE;
+  }
+
+  char *working_path = string_trijoin(args_vector[0], "/../../", path.value.symbol);
+  if (file_exists(working_path)) {
+    *result = make_buffer(env_create(nil), working_path);
+    free(working_path);
+    return ERROR_NONE;
+  }
+  free(working_path);
+
+  // Attempt to load relative to path of current buffer.
+  Atom current_buffer = nil;
+  Error err = env_get(*genv(), make_sym("CURRENT-BUFFER"), &current_buffer);
+  if (!err.type && bufferp(current_buffer) && current_buffer.value.buffer) {
+    working_path = string_trijoin(current_buffer.value.buffer->path, "/", path.value.symbol);
+    if (file_exists(working_path)) {
+      *result = make_buffer(env_create(nil), working_path);
+      free(working_path);
+      return ERROR_NONE;
+    }
+  }
+  free(working_path);
+
+  // If no existing file was found, just make a buffer at a new file.
   *result = make_buffer(env_create(nil), (char *)path.value.symbol);
   return ERROR_NONE;
 }
@@ -1104,9 +1132,27 @@ const char *const builtin_evaluate_file_docstring =
   "Evaluate file at FILEPATH as LITE LISP source code.";
 int builtin_evaluate_file(Atom arguments, Atom *result) {
   BUILTIN_ENSURE_ONE_ARGUMENT(arguments);
+
   Atom filepath = car(arguments);
   if (!stringp(filepath)) { return ERROR_TYPE; }
+
   Error err = evaluate_file(*genv(), filepath.value.symbol, result);
+  if (err.type == ERROR_FILE) {
+    // Attempt to load relative to "argv[0]/../../"
+    char *path = string_trijoin(args_vector[0], "/../../", filepath.value.symbol);
+    err = evaluate_file(*genv(), path, result);
+    free(path);
+  }
+  if (err.type == ERROR_FILE) {
+    // Attempt to load relative to path of current buffer.
+    Atom current_buffer;
+    Error err = env_get(*genv(), make_sym("CURRENT-BUFFER"), &current_buffer);
+    if (!err.type && bufferp(current_buffer) && current_buffer.value.buffer) {
+      char *path = string_trijoin(current_buffer.value.buffer->path, "/", filepath.value.symbol);
+      *result = make_buffer(env_create(nil), path);
+      free(path);
+    }
+  }
   if (err.type) {
     print_error(err);
     return err.type;

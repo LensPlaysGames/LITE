@@ -41,4 +41,14 @@ char *allocate_string(const char *const string);
  */
 char *string_join(const char *const a, const char *const b);
 
+/** Concatenate the three given strings into a new string.
+ *
+ * @param[in] a Prefix string
+ * @param[in] b Middle string
+ * @param[in] c Suffix string
+ *
+ * @return A heap-allocated string with the contents of A followed by B followed by C.
+ */
+char *string_trijoin(const char *const a, const char *const b, const char *const c);
+
 #endif /* LITE_UTILITY_H */

@@ -173,3 +173,13 @@ Error evaluate_file(Atom environment, const char *path, Atom *result) {
   free(input);
   return ok;
 }
+
+char file_exists(char *path) {
+  FILE *f = fopen(path, "r");
+  if (f) {
+    fclose(f);
+    return 1;
+  }
+  return 0;
+}
+
