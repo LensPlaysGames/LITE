@@ -355,6 +355,15 @@ Error evaluate_return_value(Atom *stack, Atom *expr, Atom *environment, Atom *re
 Error evaluate_expression(Atom expr, Atom environment, Atom *result) {
   MAKE_ERROR(err, ERROR_NONE, nil, NULL, NULL);
   Atom stack = nil;
+
+#define FOR_ALL_GCOL_THINGS(F)                  \
+    F(&expr);                                   \
+    F(result);                                  \
+    F(genv());                                  \
+    F(&environment);                            \
+    F(&stack);                                  \
+    F(buf_table());
+
   // These numbers are tailored to free around twenty mebibytes at a time,
   // and to have both of the reasons for garbage collection actually used.
 # define gcol_pair_allocations_threshold_default     290500
@@ -409,11 +418,7 @@ Error evaluate_expression(Atom expr, Atom environment, Atom *result) {
         iterations_threshold = (size_t)threshold_atom.value.integer;
       }
       evaluation_iterations_until_gcol = iterations_threshold;
-      gcol_mark(&expr);
-      gcol_mark(genv());
-      gcol_mark(&environment);
-      gcol_mark(&stack);
-      gcol_mark(buf_table());
+      FOR_ALL_GCOL_THINGS(gcol_mark);
       gcol();
 #     ifdef LITE_DBG
       if (!nilp(debug_memory)) {
@@ -734,17 +739,11 @@ Error evaluate_expression(Atom expr, Atom environment, Atom *result) {
           || operator.value.builtin.function == builtin_evaluate_file
           || operator.value.builtin.function == builtin_evaluate_string;
         if (needs_explicit) {
-          gcol_mark_explicit(&expr);
-          gcol_mark_explicit(&environment);
-          gcol_mark_explicit(&stack);
-          gcol_mark_explicit(result);
+          FOR_ALL_GCOL_THINGS(gcol_mark_explicit);
         }
         err.type = (*operator.value.builtin.function)(arguments, result);
         if (needs_explicit) {
-          gcol_unmark(&expr);
-          gcol_unmark(&environment);
-          gcol_unmark(&stack);
-          gcol_unmark(result);
+          FOR_ALL_GCOL_THINGS(gcol_unmark);
         }
       } else {
         // Evaluate operator before application.
@@ -761,4 +760,5 @@ Error evaluate_expression(Atom expr, Atom environment, Atom *result) {
     }
   } while (!err.type);
   return err;
+#undef FOR_ALL_GCOL_THINGS
 }
