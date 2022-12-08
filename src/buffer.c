@@ -555,6 +555,10 @@ Error buffer_save(Buffer buffer) {
                , NULL);
     return args;
   }
+
+  // TODO: Check if overwriting a file, ask user what to do or
+  // something.
+
   FILE *file = fopen(buffer.path, "wb");
   if (!file) {
     printf("Failure to save buffer at \"%s\" -- failed to open file\n"
