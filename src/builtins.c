@@ -604,6 +604,13 @@ int builtin_open_buffer(Atom arguments, Atom *result) {
   Atom current_buffer = nil;
   Error err = env_get(*genv(), make_sym("CURRENT-BUFFER"), &current_buffer);
   if (!err.type && bufferp(current_buffer) && current_buffer.value.buffer) {
+    working_path = string_trijoin(current_buffer.value.buffer->path, "/../", path.value.symbol);
+    if (file_exists(working_path)) {
+      *result = make_buffer(env_create(nil), working_path);
+      free(working_path);
+      return ERROR_NONE;
+    }
+    free(working_path);
     working_path = string_trijoin(current_buffer.value.buffer->path, "/", path.value.symbol);
     if (file_exists(working_path)) {
       *result = make_buffer(env_create(nil), working_path);
@@ -1150,10 +1157,17 @@ int builtin_evaluate_file(Atom arguments, Atom *result) {
     // Attempt to load relative to path of current buffer.
     Atom current_buffer;
     Error err = env_get(*genv(), make_sym("CURRENT-BUFFER"), &current_buffer);
-    if (!err.type && bufferp(current_buffer) && current_buffer.value.buffer) {
-      char *path = string_trijoin(current_buffer.value.buffer->path, "/", filepath.value.symbol);
-      *result = make_buffer(env_create(nil), path);
+    // Treat current buffer path as file.
+    if (bufferp(current_buffer) && current_buffer.value.buffer) {
+      char *path = string_trijoin(current_buffer.value.buffer->path, "/../", filepath.value.symbol);
+      err = evaluate_file(*genv(), path, result);
       free(path);
+      if (err.type == ERROR_FILE) {
+        // Treat current buffer path as directory (no trailing separator).
+        char *path = string_trijoin(current_buffer.value.buffer->path, "/", filepath.value.symbol);
+        err = evaluate_file(*genv(), path, result);
+        free(path);
+      }
     }
   }
   if (err.type) {
