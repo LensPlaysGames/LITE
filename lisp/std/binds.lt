@@ -176,6 +176,9 @@
     ;; ctrl-alts keybinds: font size
     (keymap-push ctrl-alts-keymap "=" '(size-reset))
 
+    ;; ctrl-alts keybinds: quit completely
+    (keymap-push ctrl-alts-keymap "q" '(quit-completely 0))
+
     ;; Update nested keymap(s) in local keymap.
     (keymap-set ctrl-keymap "SHFT" ctrl-shft-keymap)
     (keymap-set ctrl-keymap "ALTS" ctrl-alts-keymap)

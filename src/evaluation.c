@@ -682,6 +682,31 @@ Error evaluate_expression(Atom expr, Atom environment, Atom *result) {
           fprintf(stderr, "LISP ERROR: %s\n", message.value.symbol);
           *result = make_string(message.value.symbol);
           break;
+        } else if (strcmp(operator.value.symbol, "QUIT-COMPLETELY") == 0) {
+          const char *usage_error = "Usage: (QUIT-COMPLETELY status)";
+          if (nilp(arguments) || !nilp(cdr(arguments))) {
+            PREP_ERROR(err, ERROR_ARGUMENTS
+                       , arguments
+                       , "ERROR: Only a single integer argument is accepted."
+                       , usage_error);
+            return err;
+          }
+          Atom status = nil;
+          if (pairp(arguments)) {
+            status = car(arguments);
+            if (!integerp(status)) {
+              PREP_ERROR(err, ERROR_TYPE
+                         , arguments
+                         , "ERROR: Only a single *integer* argument is accepted."
+                         , usage_error);
+              return err;
+            }
+          } else {
+            status = make_int(0);
+          }
+          printf("LISP QUIT: STATUS %zu\n", status.value.integer);
+          exit((int)status.value.integer);
+          break;
         } else if (strcmp(operator.value.symbol, "OR") == 0) {
           stack = make_frame(stack, environment, arguments);
           list_set(stack, 2, operator);
