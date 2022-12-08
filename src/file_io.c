@@ -132,10 +132,15 @@ Error evaluate_file(Atom environment, const char *path, Atom *result) {
     return err;
   }
   char *input = NULL;
+  //printf("Attempting to get contents at path: %s\n", path);
   err = file_contents(path, &input);
-  if (err.type) { return err; }
+  if (err.type) {
+    //printf("    Could not get contents at path: %s\n", path);
+    return err;
+  }
 
   Atom debug_eval_file = nil;
+#ifdef LITE_DBG
   env_get(*genv(), make_sym("DEBUG/EVALUATE-FILE"), &debug_eval_file);
   if (!nilp(debug_eval_file)) {
     printf("Evaluating file at \"%s\"\n", path);
@@ -146,6 +151,11 @@ Error evaluate_file(Atom environment, const char *path, Atom *result) {
     //       input);
   }
 
+  Atom debug_memory = nil;
+  size_t pair_allocations_count_before = pair_allocations_count;
+  size_t pair_allocations_freed_before = pair_allocations_freed;
+#endif
+
   const char* source = input;
   Atom expr = nil;
   Atom dummy_result = nil;
@@ -153,23 +163,40 @@ Error evaluate_file(Atom environment, const char *path, Atom *result) {
     result = &dummy_result;
   }
   while (parse_expr(source, &source, &expr).type == ERROR_NONE) {
+#   ifdef LITE_DBG
     if (!nilp(debug_eval_file)) {
       printf("Parsed expression: ");
       print_atom(expr);
       putchar('\n');
     }
+#   endif
+
     err = evaluate_expression(expr, environment, result);
     if (err.type) { return err; }
-
     if (user_quit) {
       break;
     }
 
+#   ifdef LITE_DBG
     if (!nilp(debug_eval_file)) {
       print_atom(*result);
       putchar('\n');
     }
+#   endif
   }
+
+# ifdef LITE_DBG
+  env_get(*genv(), make_sym("DEBUG/MEMORY"), &debug_memory);
+  if (!nilp(debug_memory)) {
+    printf("%s:\n"
+           "  allocated: %20zu\n"
+           "      freed: %20zu\n",
+           path,
+           pair_allocations_count - pair_allocations_count_before,
+           pair_allocations_freed - pair_allocations_freed_before);
+  }
+# endif
+
   free(input);
   return ok;
 }

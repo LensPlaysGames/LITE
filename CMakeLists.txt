@@ -51,6 +51,7 @@ target_compile_definitions(
   LITE
   PRIVATE
   $<$<BOOL:${LITE_GFX}>:LITE_GFX>
+  LITE_DBG # This enables the debug/... variable interaction.
 )
 target_include_directories(
   LITE
