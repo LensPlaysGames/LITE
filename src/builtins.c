@@ -589,13 +589,16 @@ int builtin_open_buffer(Atom arguments, Atom *result) {
     return ERROR_NONE;
   }
 
-  char *working_path = string_trijoin(args_vector[0], "/../../", path.value.symbol);
-  if (file_exists(working_path)) {
-    *result = make_buffer(env_create(nil), working_path);
+  char *working_path = NULL;
+  if (args_vector) {
+    working_path = string_trijoin(args_vector[0], "/../../", path.value.symbol);
+    if (file_exists(working_path)) {
+      *result = make_buffer(env_create(nil), working_path);
+      free(working_path);
+      return ERROR_NONE;
+    }
     free(working_path);
-    return ERROR_NONE;
   }
-  free(working_path);
 
   // Attempt to load relative to path of current buffer.
   Atom current_buffer = nil;
@@ -1137,7 +1140,7 @@ int builtin_evaluate_file(Atom arguments, Atom *result) {
   if (!stringp(filepath)) { return ERROR_TYPE; }
 
   Error err = evaluate_file(*genv(), filepath.value.symbol, result);
-  if (err.type == ERROR_FILE) {
+  if (err.type == ERROR_FILE && args_vector) {
     // Attempt to load relative to "argv[0]/../../"
     char *path = string_trijoin(args_vector[0], "/../../", filepath.value.symbol);
     err = evaluate_file(*genv(), path, result);
