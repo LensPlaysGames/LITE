@@ -7,6 +7,9 @@
 #  define HOTFUNCTION
 #endif
 
+extern int args_count;
+extern char **args_vector;
+
 /** Exit the program entirely and safely.
  * Cleans up as much memory as possible before calling `exit()`.
  *

@@ -504,6 +504,4 @@ Attempt to move backwards"
 
 (layout-1)
 
-
-
 (evaluate-file "lisp/std/binds.lt")
