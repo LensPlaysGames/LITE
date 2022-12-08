@@ -139,8 +139,8 @@ Error evaluate_file(Atom environment, const char *path, Atom *result) {
     return err;
   }
 
-  Atom debug_eval_file = nil;
 #ifdef LITE_DBG
+  Atom debug_eval_file = nil;
   env_get(*genv(), make_sym("DEBUG/EVALUATE-FILE"), &debug_eval_file);
   if (!nilp(debug_eval_file)) {
     printf("Evaluating file at \"%s\"\n", path);

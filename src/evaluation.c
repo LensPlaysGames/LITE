@@ -170,6 +170,7 @@ Error evaluate_return_value(Atom *stack, Atom *expr, Atom *environment, Atom *re
       operator.type = ATOM_TYPE_CLOSURE;
       list_set(*stack, 2, operator);
       list_set(*stack, 4, arguments);
+#     ifdef LITE_DBG
       if (env_non_nil(*environment, make_sym("DEBUG/MACRO"))) {
         printf("Evaluating macro: (");
         print_atom(*expr);
@@ -177,6 +178,7 @@ Error evaluate_return_value(Atom *stack, Atom *expr, Atom *environment, Atom *re
         print_atom(list_get(*stack, 4));
         printf(")\n");
       }
+#     endif
       return evaluate_bind_arguments(stack, expr, environment);
     }
   } else if (symbolp(operator)) {
@@ -229,7 +231,6 @@ Error evaluate_return_value(Atom *stack, Atom *expr, Atom *environment, Atom *re
       return ok;
     } else if (strcmp(operator.value.symbol, "WHILE") == 0) {
       arguments = list_get(*stack, 3);
-      int debug_while = env_non_nil(*environment, make_sym("DEBUG/WHILE"));
 
       // Store recurse count in evaluated arguments list.
       Atom recurse_count = list_get(*stack, 4);
@@ -243,6 +244,8 @@ Error evaluate_return_value(Atom *stack, Atom *expr, Atom *environment, Atom *re
       if (!integerp(recurse_maximum)) { recurse_maximum = make_int(10000); }
       list_set(*stack, 4, recurse_count);
 
+#     ifdef LITE_DBG
+      int debug_while = env_non_nil(*environment, make_sym("DEBUG/WHILE"));
       if (debug_while) {
         printf("WHILE: recurse count is ");
         print_atom(recurse_count);
@@ -261,14 +264,20 @@ Error evaluate_return_value(Atom *stack, Atom *expr, Atom *environment, Atom *re
           putchar('\n');
         }
       }
+#     endif
+
       // At this point, result contains condition return value.
       // If result is nil, or maximum recursion limit has been reached, exit the loop.
       if (nilp(*result) || recurse_count.value.integer >= recurse_maximum.value.integer) {
+#       ifdef LITE_DBG
         if (debug_while) { printf("  Loop ending.\n"); }
+#       endif
         *stack = car(*stack);
         return ok;
       }
+#     ifdef LITE_DBG
       if (debug_while) { printf("  Loop continuing.\n"); }
+#     endif
       *stack = make_frame(*stack, *environment, nil);
       list_set(*stack, 2, make_sym("WHILE-BODY"));
       list_set(*stack, 5, cdr(arguments));
@@ -317,11 +326,13 @@ Error evaluate_return_value(Atom *stack, Atom *expr, Atom *environment, Atom *re
     }
   } else if (macrop(operator)) {
     *expr = *result;
+#   ifdef LITE_DBG
     if (env_non_nil(*environment, make_sym("DEBUG/MACRO"))) {
       printf("          result: ");
       print_atom(*result);
       putchar('\n');
     }
+#   endif
     *stack = car(*stack);
     return ok;
   } else {
@@ -376,6 +387,7 @@ Error evaluate_expression(Atom expr, Atom environment, Atom *result) {
     if (should_gcol) {
       size_t pair_allocations_freed_before = pair_allocations_freed;
       size_t generic_allocations_freed_before = generic_allocations_freed;
+#     ifdef LITE_DBG
       Atom debug_memory = nil;
       env_get(environment, make_sym("DEBUG/MEMORY"), &debug_memory);
       if (!nilp(debug_memory)) {
@@ -388,6 +400,7 @@ Error evaluate_expression(Atom expr, Atom environment, Atom *result) {
         print_gcol_data();
         printf("VVVVV\n");
       }
+#     endif
       size_t iterations_threshold = gcol_evaluation_iteration_threshold_default;
       Atom threshold_atom = nil;
       err = env_get(environment, make_sym("GARBAGE-COLLECTOR-EVALUATION-ITERATIONS-THRESHOLD"), &threshold_atom);
@@ -402,6 +415,7 @@ Error evaluate_expression(Atom expr, Atom environment, Atom *result) {
       gcol_mark(&stack);
       gcol_mark(buf_table());
       gcol();
+#     ifdef LITE_DBG
       if (!nilp(debug_memory)) {
         size_t pair_allocations_freed_this_iteration =
           pair_allocations_freed - pair_allocations_freed_before;
@@ -424,6 +438,7 @@ Error evaluate_expression(Atom expr, Atom environment, Atom *result) {
                pair_allocations_bytes_freed + generic_allocations_bytes_freed);
         printf("=====\n");
       }
+#     endif
     }
 
     // Expression Evaluation
@@ -439,6 +454,7 @@ Error evaluate_expression(Atom expr, Atom environment, Atom *result) {
     } else {
       Atom operator = car(expr);
       Atom arguments = cdr(expr);
+#     ifdef LITE_DBG
       if (env_non_nil(environment, make_sym("DEBUG/EVALUATE"))) {
         printf("Evaluating expression: ");
         print_atom(expr);
@@ -450,6 +466,7 @@ Error evaluate_expression(Atom expr, Atom environment, Atom *result) {
         print_atom(arguments);
         putchar('\n');
       }
+#     endif
       if (symbolp(operator)) {
         // Special forms
         if (strcmp(operator.value.symbol, "QUOTE") == 0) {
@@ -543,11 +560,13 @@ Error evaluate_expression(Atom expr, Atom environment, Atom *result) {
                        , usage_while);
             return err;
           }
+#         ifdef LITE_DBG
           if (env_non_nil(environment, make_sym("DEBUG/WHILE"))) {
             printf("WHILE: First encounter of ");
             print_atom(cons(operator, arguments));
             putchar('\n');
           }
+#         endif
           stack = make_frame(stack, environment, arguments);
           // Stack operator set to WHILE.
           list_set(stack, 2, operator);
