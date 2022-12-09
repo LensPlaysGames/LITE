@@ -110,21 +110,23 @@ int main(int argc, char **argv) {
   const char *const std_path = "lisp/std.lt";
   char *concat_path = string_trijoin(argv[0], "/../../", std_path);
   err = evaluate_file(*genv(), concat_path, &result);
-  free(concat_path);
   if (err.type == ERROR_FILE) {
-    fprintf(stderr,
-            "[WARN]: LITE could not load the standard library,\n"
-            "and a large portion of the functionality will be missing.\n");
+    // Try loading the path directly. For some reason, this is needed
+    // on Windows when LITE is in PATH.
+
+    err = evaluate_file(*genv(), std_path, &result);
+    if (err.type == ERROR_FILE) {
+      fprintf(stderr,
+              "[WARN]: LITE could not load the standard library,\n"
+              "and a large portion of the functionality will be missing.\n"
+              "  Path: %s\n", concat_path);
+    }
   }
   if (err.type) {
     print_error(err);
-    return 36;
-  }
-
-  if (err.type && err.type != ERROR_FILE) {
-    print_error(err);
     return 7;
   }
+  free(concat_path);
 
   // Evaluate all the arguments as file paths, except for detected
   // valid arguments.
