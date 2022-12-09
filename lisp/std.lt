@@ -441,6 +441,72 @@ or, if mark is active and a region is selected, remove the entire region."
   "Set the text properties associated with WINDOW to NEW-PROPERTIES."
   (setcdr (elt window 4) new-properties))
 
+(defun get-window-property-by-id-impl (properties id)
+  "Call 'get-window-property-by-id, not this!"
+  (if (pairp properties)
+      (if (= id (caar properties))
+          (car properties)
+          (get-window-property-by-id-impl (cdr properties) id))
+      nil))
+
+(defun get-window-property-by-id (window id)
+  "Return the window property with ID, or nil if it wasn't found"
+  (get-window-property-by-id-impl (window-properties window) id))
+
+(defun add-property-to-window (window id offset length fg bg)
+  "Built a text property to add to WINDOW from the given parameters.
+Foreground (FG) and background (BG) are in format of '(R G B A)'."
+  ;; Property:
+  ;; (id offset length (fg.r fg.g fg.b fg.a) (bg.r bg.g bg.b bg.a))
+  ;; Type checking
+  ;; TODO: Ensure window is window...
+  (unless (and (integerp id)
+               (integerp offset)
+               (integerp length)
+
+               ;; (R G B A) integer values
+               (pairp fg)
+               (integerp (car fg))
+               (pairp (cdr fg))
+               (integerp (car (cdr fg)))
+               (pairp (cdr (cdr fg)))
+               (integerp (car (cdr (cdr fg))))
+               (pairp (cdr (cdr (cdr fg))))
+               (integerp (car (cdr (cdr (cdr fg)))))
+
+               ;; (R G B A) integer values
+               (pairp bg)
+               (integerp (car bg))
+               (pairp (cdr bg))
+               (integerp (car (cdr bg)))
+               (pairp (cdr (cdr bg)))
+               (integerp (car (cdr (cdr bg))))
+               (pairp (cdr (cdr (cdr bg))))
+               (integerp (car (cdr (cdr (cdr bg))))))
+    (error "Invalid argument types in add-property-to-window"))
+  (set-window-properties window (cons
+                                 (list id offset length fg bg)
+                                 (window-properties window)))
+  id)
+
+(defun remove-window-property-by-id-impl (properties prev-properties id)
+  "Call 'remove-window-property-by-id', not this!
+
+Update cdr of PREV-PROPERTIES with CDR of removed property.
+First call should have prev-properties set to the (contents . properties) pair."
+
+  (if (pairp properties)
+      (if (= id (caar properties))
+          (setcdr prev-properties (cdr properties))
+          (remove-window-property-by-id-impl (cdr properties) properties id))
+      nil)
+  )
+
+(defun remove-window-property-by-id (window id)
+  "Remove the window property with id of ID within WINDOW."
+  (when (get-window-property-by-id window id)
+    (remove-window-property-by-id-impl (window-properties window) (elt window 4) id)))
+
 (defun set-active-window-buffer (buffer)
   "Set the contents displayed in the active window to the given buffer"
   ;; Reset window contents to given buffer.

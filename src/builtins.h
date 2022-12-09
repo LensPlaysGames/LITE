@@ -278,15 +278,4 @@ extern const char *const builtin_scroll_up_name;
 extern const char *const builtin_scroll_up_docstring;
 int builtin_scroll_up(Atom arguments, Atom *result);
 
-extern const char *const builtin_make_gui_property_name;
-extern const char *const builtin_make_gui_property_docstring;
-int builtin_make_gui_property(Atom arguments, Atom *result);
-extern const char *const builtin_set_gui_property_position_name;
-extern const char *const builtin_set_gui_property_position_docstring;
-int builtin_set_gui_property_position(Atom arguments, Atom *result);
-extern const char *const builtin_set_gui_property_color_name;
-extern const char *const builtin_set_gui_property_color_docstring;
-int builtin_set_gui_property_color(Atom arguments, Atom *result);
-
-
 #endif /* LITE_BUILTINS_H */
