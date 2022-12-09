@@ -624,31 +624,6 @@ int gui_loop(void) {
     }
     new_gui_window->contents.string = contents_string;
 
-    GUIStringProperty *last_property = NULL;
-    for (Atom property_it = properties; !nilp(property_it); property_it = cdr(property_it)) {
-      GUIStringProperty *new_property = calloc(1, sizeof(GUIStringProperty));
-
-      Atom property = car(property_it);
-      new_property->id = car(property).value.integer;
-      new_property->offset = car(cdr(property)).value.integer;
-      new_property->length = car(cdr(cdr(property))).value.integer;
-
-      Atom fg = car(cdr(cdr(cdr(property))));
-      new_property->fg.r = car(fg).value.integer;
-      new_property->fg.g = car(cdr(fg)).value.integer;
-      new_property->fg.b = car(cdr(cdr(fg))).value.integer;
-      new_property->fg.a = car(cdr(cdr(cdr(fg)))).value.integer;
-
-      Atom bg = car(cdr(cdr(cdr(cdr(property)))));
-      new_property->bg.r = car(bg).value.integer;
-      new_property->bg.g = car(cdr(bg)).value.integer;
-      new_property->bg.b = car(cdr(cdr(bg))).value.integer;
-      new_property->bg.a = car(cdr(cdr(cdr(bg)))).value.integer;
-
-      // Add new property to list.
-      add_property(&new_gui_window->contents, new_property);
-    }
-
     if (index == active_window_index.value.integer) {
       // Active window specific properties, like cursor ig
 
@@ -712,6 +687,32 @@ int gui_loop(void) {
           add_property(&new_gui_window->contents, region_property);
         }
       }
+    }
+
+    // Add all text properties defined in the window data structure itself.
+    GUIStringProperty *last_property = NULL;
+    for (Atom property_it = properties; !nilp(property_it); property_it = cdr(property_it)) {
+      GUIStringProperty *new_property = calloc(1, sizeof(GUIStringProperty));
+
+      Atom property = car(property_it);
+      new_property->id = car(property).value.integer;
+      new_property->offset = car(cdr(property)).value.integer;
+      new_property->length = car(cdr(cdr(property))).value.integer;
+
+      Atom fg = car(cdr(cdr(cdr(property))));
+      new_property->fg.r = car(fg).value.integer;
+      new_property->fg.g = car(cdr(fg)).value.integer;
+      new_property->fg.b = car(cdr(cdr(fg))).value.integer;
+      new_property->fg.a = car(cdr(cdr(cdr(fg)))).value.integer;
+
+      Atom bg = car(cdr(cdr(cdr(cdr(property)))));
+      new_property->bg.r = car(bg).value.integer;
+      new_property->bg.g = car(cdr(bg)).value.integer;
+      new_property->bg.b = car(cdr(cdr(bg))).value.integer;
+      new_property->bg.a = car(cdr(cdr(cdr(bg)))).value.integer;
+
+      // Add new property to list.
+      add_property(&new_gui_window->contents, new_property);
     }
 
     if (gui_ctx()->reading) {
