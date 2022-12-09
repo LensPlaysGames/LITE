@@ -441,19 +441,19 @@ or, if mark is active and a region is selected, remove the entire region."
   "Set the text properties associated with WINDOW to NEW-PROPERTIES."
   (setcdr (elt window 4) new-properties))
 
-(defun get-window-property-by-id-impl (properties id)
-  "Call 'get-window-property-by-id, not this!"
+(defun get-window-text-property-impl (properties id)
+  "Call 'get-window-text-property, not this!"
   (if (pairp properties)
       (if (= id (caar properties))
           (car properties)
-          (get-window-property-by-id-impl (cdr properties) id))
+          (get-window-text-property-impl (cdr properties) id))
       nil))
 
-(defun get-window-property-by-id (window id)
+(defun get-window-text-property (window id)
   "Return the window property with ID, or nil if it wasn't found"
-  (get-window-property-by-id-impl (window-properties window) id))
+  (get-window-text-property-impl (window-properties window) id))
 
-(defun add-property-to-window (window id offset length fg bg)
+(defun add-text-property-to-window (window id offset length fg bg)
   "Built a text property to add to WINDOW from the given parameters.
 Foreground (FG) and background (BG) are in format of '(R G B A)'."
   ;; Property:
@@ -483,29 +483,34 @@ Foreground (FG) and background (BG) are in format of '(R G B A)'."
                (integerp (car (cdr (cdr bg))))
                (pairp (cdr (cdr (cdr bg))))
                (integerp (car (cdr (cdr (cdr bg))))))
-    (error "Invalid argument types in add-property-to-window"))
+    (error "Invalid argument types in add-text-property-to-window"))
   (set-window-properties window (cons
                                  (list id offset length fg bg)
                                  (window-properties window)))
   id)
 
-(defun remove-window-property-by-id-impl (properties prev-properties id)
-  "Call 'remove-window-property-by-id', not this!
+(defun add-text-property (id offset length fg bg)
+  "Add a property to the active window. See 'add-text-property-to-window'."
+  (add-text-property-to-window (active-window) id offset length fg bg))
+
+(defun remove-window-text-property-impl (properties prev-properties id)
+  "Call 'remove-window-text-property', not this!
 
 Update cdr of PREV-PROPERTIES with CDR of removed property.
 First call should have prev-properties set to the (contents . properties) pair."
-
   (if (pairp properties)
       (if (= id (caar properties))
           (setcdr prev-properties (cdr properties))
-          (remove-window-property-by-id-impl (cdr properties) properties id))
-      nil)
-  )
+          (remove-window-text-property-impl (cdr properties) properties id))
+      nil))
 
-(defun remove-window-property-by-id (window id)
+(defun remove-window-text-property (window id)
   "Remove the window property with id of ID within WINDOW."
-  (when (get-window-property-by-id window id)
-    (remove-window-property-by-id-impl (window-properties window) (elt window 4) id)))
+  (remove-window-text-property-impl (window-properties window) (elt window 4) id))
+
+(defun remove-text-property (id)
+  "Remove the window property with id of ID from the active window."
+  (remove-window-text-property (active-window) id))
 
 (defun set-active-window-buffer (buffer)
   "Set the contents displayed in the active window to the given buffer"
