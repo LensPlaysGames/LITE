@@ -433,11 +433,11 @@ or, if mark is active and a region is selected, remove the entire region."
   "Set the contents associated with WINDOW to NEW-CONTENTS."
   (setcar (elt window 4) new-contents))
 
-(defun window-properties (window)
+(defun window-text-properties (window)
   "Return the contents associated with WINDOW."
   (cdr (elt window 4)))
 
-(defun set-window-properties (window new-properties)
+(defun set-window-text-properties (window new-properties)
   "Set the text properties associated with WINDOW to NEW-PROPERTIES."
   (setcdr (elt window 4) new-properties))
 
@@ -451,7 +451,7 @@ or, if mark is active and a region is selected, remove the entire region."
 
 (defun get-window-text-property (window id)
   "Return the window property with ID, or nil if it wasn't found"
-  (get-window-text-property-impl (window-properties window) id))
+  (get-window-text-property-impl (window-text-properties window) id))
 
 (defun add-text-property-to-window (window id offset length fg bg)
   "Built a text property to add to WINDOW from the given parameters.
@@ -484,9 +484,9 @@ Foreground (FG) and background (BG) are in format of '(R G B A)'."
                (pairp (cdr (cdr (cdr bg))))
                (integerp (car (cdr (cdr (cdr bg))))))
     (error "Invalid argument types in add-text-property-to-window"))
-  (set-window-properties window (cons
-                                 (list id offset length fg bg)
-                                 (window-properties window)))
+  (set-window-text-properties window (cons
+                                      (list id offset length fg bg)
+                                      (window-text-properties window)))
   id)
 
 (defun add-text-property (id offset length fg bg)
@@ -506,7 +506,7 @@ First call should have prev-properties set to the (contents . properties) pair."
 
 (defun remove-window-text-property (window id)
   "Remove the window property with id of ID within WINDOW."
-  (remove-window-text-property-impl (window-properties window) (elt window 4) id))
+  (remove-window-text-property-impl (window-text-properties window) (elt window 4) id))
 
 (defun remove-text-property (id)
   "Remove the window property with id of ID from the active window."
@@ -517,7 +517,7 @@ First call should have prev-properties set to the (contents . properties) pair."
   ;; Reset window contents to given buffer.
   (set-window-contents (active-window) buffer)
   ;; Reset text properties to nil.
-  (set-window-properties (active-window) nil))
+  (set-window-text-properties (active-window) nil))
 
 (defun set-buffer-from-active-window ()
   "Set the contents displayed in the active window to the given buffer"
