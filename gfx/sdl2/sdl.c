@@ -177,12 +177,14 @@ int change_font(char *path, size_t size) {
 }
 
 int change_font_size(size_t size) {
+# if SDL_TTF_VERSION_ATLEAST(2,0,18)
   int status = TTF_SetFontSize(font, size);
   if (status == 0) {
     font_height = TTF_FontHeight(font);
     return 0;
   }
   return 1;
+#endif
 }
 
 static int created_gui_marker = 0;
