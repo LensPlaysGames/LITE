@@ -534,7 +534,7 @@ First call should have prev-properties set to the (contents . properties) pair."
 
 (defun cycle-active-window (direction)
   "Change active window to another window in the list, if possible.
-Attempt to move backwards"
+If DIRECTION is negative, decrease active window index. Otherwise, increase it."
   (if (or (= direction 0)(> direction 0))
       (unless (set-active-window (+ 1 active-window-index))
         (set-active-window 0))
