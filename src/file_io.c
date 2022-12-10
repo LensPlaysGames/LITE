@@ -14,6 +14,8 @@
 // #  include <stdlib.h
 #  include <limits.h>
 #  include <unistd.h>
+#  include <errno.h>
+#  include <assert.h>
 #endif
 
 #if defined (_WIN32)
@@ -224,14 +226,20 @@ char file_exists(char *path) {
 char *get_working_dir() {
 #if _WIN32
   // Requires direct.h
-  char *out;
-  if (!(out = _getcwd(NULL, 0))) {
+  char *out = _getcwd(NULL, 0);
+  if (!out) {
     perror("get_working_dir() -> _getcwd() ERROR\n");
     return NULL;
   }
+  return out;
 #elif defined (__unix__)
   // Requires unistd.h
-  return get_current_dir_name()
+  char *out = getcwd(NULL, PATH_MAX);
+  if (!out) {
+    fprintf(stderr, "get_working_dir() -> getcwd() returned NULL\n");
+    return NULL;
+  }
+  return out;
 #else
 #  error "get_working_dir() does not support your platform."
 #endif
@@ -269,9 +277,25 @@ char *getfullpath(const char *path) {
     return NULL;
   }
   out = realpath(path, out);
+  // If file does not exist and that is why Unix realpath fails, create
+  // the file and try again.
+  if (!out && errno == ENOENT) {
+    FILE *f = fopen(path, "w");
+    assert(f && "realpath() required file to exist but it was not able to be created.");
+    fclose(f);
+    out = realpath(path, out);
+  }
   if (!out) {
-    fprintf(stderr, "realpath() ERROR: %s\n", strerror(errno));
-    return NULL;
+    if (!out) {
+      fprintf(stderr,
+              "realpath() ERROR: %s\n"
+              "    Path: %s\n"
+              "     out: %s\n",
+              strerror(errno),
+              path,
+              out);
+      return NULL;
+    }
   }
   //printf("getfullpath() got absolute %s from %s\n", out, path);
   return out;
