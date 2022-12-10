@@ -125,14 +125,7 @@ Error evaluate_apply(Atom *stack, Atom *expr, Atom *environment) {
       list_set(*stack, 5, body);
       return ok;
     } else if (strcmp(operator.value.symbol, "PROGN") == 0) {
-      Atom body = list_get(*stack, 5);
-      // If there is an existing body, then simply evaluate the next expression within it.
-      assert(!nilp(body) && "PROGN: evaluate_apply should not be called when stack body is NIL!");
-      *environment = list_get(*stack, 1);
-      *expr = car(body);
-      body = cdr(body);
-      list_set(*stack, 5, body);
-      return ok;
+      return evaluate_next_expression(stack, expr, environment);
     }
   }
   if (builtinp(operator)) {

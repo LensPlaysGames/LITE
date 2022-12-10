@@ -10,10 +10,10 @@ Atom env_create(Atom parent);
 Error env_set(Atom environment, Atom symbol, Atom value);
 Error env_get(Atom environment, Atom symbol, Atom *result);
 
-// Return 0 if symbol is not bound in environment, otherwise return 1.
+/// Return 0 if symbol is not bound in environment, otherwise return 1.
 int boundp(Atom environment, Atom symbol);
 
-// Return 0 if evaluated symbol is equal to NIL or not bound, otherwise return 1.
+/// Return 0 if evaluated symbol is equal to NIL or not bound, otherwise return 1.
 int env_non_nil(Atom environment, Atom symbol);
 
 Atom default_environment();

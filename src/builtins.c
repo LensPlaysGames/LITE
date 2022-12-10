@@ -1323,8 +1323,7 @@ const char *const builtin_prins_name = "PRINS";
 const char *const builtin_prins_docstring =
   "(prins STRING)\n"
   "\n"
-  "Print the given STRING to standard out.\n"
-  "When FLUSH is non-nil, flush standard out after writing.";
+  "Print the given STRING to standard out.";
 int builtin_prins(Atom arguments, Atom *result) {
   BUILTIN_ENSURE_ONE_ARGUMENT(arguments);
   Atom string = car(arguments);
