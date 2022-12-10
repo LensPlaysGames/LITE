@@ -187,9 +187,19 @@ Error evaluate_return_value(Atom *stack, Atom *expr, Atom *environment, Atom *re
         result->docstring = strdup(docstring.value.symbol);
         gcol_generic_allocation(result, result->docstring);
       }
-      Atom *define_environment = define_locality == 0 ? environment : genv();
-      err = env_set(*define_environment, symbol, *result);
-      if (err.type) { return err; }
+      if (define_locality == 0) {
+        Atom containing = env_get_containing(*environment, symbol);
+        if (nilp(containing)) {
+          err = env_set(*environment, symbol, *result);
+        } else {
+          err = env_set(containing, symbol, *result);
+        }
+      } else {
+        err = env_set(*genv(), symbol, *result);
+      }
+      if (err.type) {
+        return err;
+      }
       *stack = car(*stack);
       *expr = cons(make_sym("QUOTE"), cons(symbol, nil));
       return ok;
