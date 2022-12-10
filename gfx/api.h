@@ -14,7 +14,9 @@
 
 /// Get global GUI Context.
 typedef struct GUIContext GUIContext;
-GUIContext *gui_ctx();
+GUIContext *gui_ctx(void);
+
+extern char *getlitedir(void);
 
 /** Handle a character down event sent from the OS to the application.
  * Characters are converted to strings. Most of the time the string is
@@ -44,9 +46,9 @@ void handle_modifier_dn(GUIModifierKey);
 void handle_modifier_up(GUIModifierKey);
 
 /// Enter LITE GFX, creating a window and entering appropriate loop.
-int enter_lite_gui();
+int enter_lite_gui(void);
 
 /// One iteration of the LITE GFX runtime loop.
-int gui_loop();
+int gui_loop(void);
 
 #endif /* API_H */

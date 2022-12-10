@@ -97,12 +97,12 @@ int change_font(char *path, size_t size) {
     return 0;
   }
 
-  // TODO: ENV FILE PATH STUFF
+  // Search install directory.
+  char *dir = getlitedir();
+  if (dir) {
 
-  // Search base of the repository assuming normal placement of LITE
-  // executable.
-  if (args_vector) {
-    working_path = string_trijoin(args_vector[0], "/../../gfx/fonts/apache/", path);
+    working_path = string_trijoin(dir, "/gfx/fonts/apache/", path);
+    free(dir);
     if (!working_path) { return 2; }
     working_font = TTF_OpenFont(working_path, size);
     free(working_path);
@@ -110,36 +110,37 @@ int change_font(char *path, size_t size) {
       font = working_font;
       return 0;
     }
-  }
 
-  // Assume working directory of base of the repository.
-  working_path = string_join("gfx/fonts/apache/", path);
-  if (!working_path) { return 2; }
-  working_font = TTF_OpenFont(working_path, size);
-  free(working_path);
-  if (working_font) {
-    font = working_font;
-    return 0;
-  }
+    working_path = string_trijoin(dir, "/gfx/fonts/", path);
+    free(dir);
+    if (!working_path) { return 2; }
+    working_font = TTF_OpenFont(working_path, size);
+    free(working_path);
+    if (working_font) {
+      font = working_font;
+      return 0;
+    }
 
-  // Assume working directory of bin repository subdirectory.
-  working_path = string_join("../gfx/fonts/apache/", path);
-  if (!working_path) { return 2; }
-  working_font = TTF_OpenFont(working_path, size);
-  free(working_path);
-  if (working_font) {
-    font = working_font;
-    return 0;
-  }
+    working_path = string_trijoin(dir, "/gfx/", path);
+    free(dir);
+    if (!working_path) { return 2; }
+    working_font = TTF_OpenFont(working_path, size);
+    free(working_path);
+    if (working_font) {
+      font = working_font;
+      return 0;
+    }
 
-  // Assume working directory of gfx repository subdirectory.
-  working_path = string_join("fonts/apache/", path);
-  if (!working_path) { return 2; }
-  working_font = TTF_OpenFont(working_path, size);
-  free(working_path);
-  if (working_font) {
-    font = working_font;
-    return 0;
+    working_path = string_trijoin(dir, "/", path);
+    free(dir);
+    if (!working_path) { return 2; }
+    working_font = TTF_OpenFont(working_path, size);
+    free(working_path);
+    if (working_font) {
+      font = working_font;
+      return 0;
+    }
+
   }
 
 # if defined (_WIN32) || defined (_WIN64)
