@@ -495,17 +495,18 @@ char *buffer_current_line(Buffer buffer) {
     beg -= 1;
     point -= 1;
   }
-  char *current_line = NULL;
-  size_t line_length = 0;
   if (*beg == '\n') {
     beg += 1;
+    point += 1;
   }
+  char *current_line = NULL;
+  size_t line_length = 0;
   // Search forward for end of string, newline, or end of rope.
   char *end = contents + buffer.point_byte;
   while (*end != '\0' && *end != '\n' && point < buffer.rope->weight) {
     end += 1;
-    point += 1;
   }
+  end += 1;
   line_length = end - beg;
   current_line = malloc(line_length + 1);
   if (!current_line) {
