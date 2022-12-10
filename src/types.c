@@ -927,7 +927,12 @@ Atom compare_atoms(Atom a, Atom b) {
       equal = (a.value.symbol == b.value.symbol);
       break;
     case ATOM_TYPE_STRING:
-      equal = (strcmp(a.value.symbol, b.value.symbol) == 0);
+      // Special case for empty string.
+      if (a.value.symbol[0] == '\0' && b.value.symbol[0] == '0') {
+        equal = 1;
+      } else {
+        equal = (strcmp(a.value.symbol, b.value.symbol) == 0);
+      }
       break;
     case ATOM_TYPE_INTEGER:
       equal = (a.value.integer == b.value.integer);
