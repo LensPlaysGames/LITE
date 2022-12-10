@@ -537,7 +537,7 @@ Atom make_buffer(Atom environment, char *path) {
   char *buffer_path = getfullpath(path);
   if (!buffer_path) {
     MAKE_ERROR(err, ERROR_FILE, nil
-               , "make_buffer: Could not get full path of file: %s\n"
+               , "make_buffer: Could not get full path of file\n"
                , NULL);
     print_error(err);
     return nil;
