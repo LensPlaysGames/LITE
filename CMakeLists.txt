@@ -90,3 +90,32 @@ if(DOXYGEN_PROGRAM)
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/docs
   )
 endif()
+
+if (WIN32)
+  file(TO_CMAKE_PATH $ENV{APPDATA} appdata)
+  install(
+    TARGETS LITE
+    RUNTIME DESTINATION "${appdata}/lite"
+  )
+  install(
+    DIRECTORY gfx/fonts
+    DESTINATION "${appdata}/lite/gfx"
+  )
+  install(
+    DIRECTORY lisp
+    DESTINATION "${appdata}/lite"
+  )
+else ()
+  install(
+    TARGETS LITE
+    RUNTIME DESTINATION "$ENV{HOME}/lite"
+  )
+  install(
+    DIRECTORY gfx/fonts
+    DESTINATION "$ENV{HOME}/lite/gfx"
+  )
+  install(
+    DIRECTORY lisp
+    DESTINATION "$ENV{HOME}/lite"
+  )
+endif()
