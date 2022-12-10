@@ -107,17 +107,13 @@ int main(int argc, char **argv) {
   }
 # endif
 
-  // Attempt to load the standard library at a relative path from the
-  // executable. This has proven the most reliable, given the
-  // executable of LITE hasn't been moved.
-  // "<argv[0]>/../../<std_path>"
   const char *const std_path = "lisp/std.lt";
-  char *concat_path = string_trijoin(argv[0], "/../../", std_path);
+  char *litedir = getlitedir();
+  char *concat_path = string_trijoin(litedir, "/", std_path);
+  free(litedir);
   err = evaluate_file(*genv(), concat_path, &result);
   if (err.type == ERROR_FILE) {
-    // Try loading the path directly. For some reason, this is needed
-    // on Windows when LITE is in PATH.
-
+    // Try loading the path directly.
     err = evaluate_file(*genv(), std_path, &result);
     if (err.type == ERROR_FILE) {
       fprintf(stderr,

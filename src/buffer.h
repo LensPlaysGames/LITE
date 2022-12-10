@@ -25,8 +25,9 @@ typedef struct Buffer {
 /** Open file or create new if one doesn't exist.
  *
  * @param[in] path A string denoting a file path to open a new buffer
- *                 at. The string is copied, and is not needed after
- *                 returning.
+ *                 at. The string transfers ownership to the buffer.
+ *                 DO NOT FREE THE STRING. It is expected to be an
+ *                 absolute path.
  *
  * @return The address to a Buffer structure with a rope containing
  *         the contents of the file at path (if it exists),

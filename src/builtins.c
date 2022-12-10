@@ -575,7 +575,11 @@ int builtin_buffer_region_length(Atom arguments, Atom *result) {
 
 const char *const builtin_open_buffer_name = "OPEN-BUFFER";
 const char *const builtin_open_buffer_docstring =
-  "(open-buffer PATH)\n\nReturn a buffer visiting PATH.";
+  "(open-buffer PATH)\n\nReturn a buffer visiting PATH.\n"
+  "The following places are searched for files.\n"
+  "1. If file exists at PATH, open buffer at PATH.\n"
+  "2. Try PATH relative to current buffer path.\n"
+  "3. Try PATH relative to current working directory.";
 int builtin_open_buffer(Atom arguments, Atom *result) {
   BUILTIN_ENSURE_ONE_ARGUMENT(arguments);
   Atom path = car(arguments);
@@ -590,15 +594,6 @@ int builtin_open_buffer(Atom arguments, Atom *result) {
   }
 
   char *working_path = NULL;
-  if (args_vector) {
-    working_path = string_trijoin(args_vector[0], "/../../", path.value.symbol);
-    if (file_exists(working_path)) {
-      *result = make_buffer(env_create(nil), working_path);
-      free(working_path);
-      return ERROR_NONE;
-    }
-    free(working_path);
-  }
 
   // Attempt to load relative to path of current buffer.
   Atom current_buffer = nil;
@@ -618,6 +613,30 @@ int builtin_open_buffer(Atom arguments, Atom *result) {
       return ERROR_NONE;
     }
   }
+
+  char *cwd = get_working_dir();
+  if (cwd) {
+    working_path = string_trijoin(cwd, "/", path.value.symbol);
+    free(cwd);
+    if (file_exists(working_path)) {
+      *result = make_buffer(env_create(nil), working_path);
+      free(working_path);
+      return ERROR_NONE;
+    }
+  }
+
+  // Attempt to load from lite application data directory.
+  char *litedir = getlitedir();
+  if (litedir) {
+    working_path = string_trijoin(litedir, "/", path.value.symbol);
+    free(litedir);
+    if (file_exists(working_path)) {
+      *result = make_buffer(env_create(nil), working_path);
+      free(working_path);
+      return ERROR_NONE;
+    }
+  }
+
   free(working_path);
 
   // If no existing file was found, just make a buffer at a new file.
@@ -1139,7 +1158,10 @@ const char *const builtin_evaluate_file_name = "EVALUATE-FILE";
 const char *const builtin_evaluate_file_docstring =
   "(evaluate-file FILEPATH)\n"
   "\n"
-  "Evaluate file at FILEPATH as LITE LISP source code.";
+  "Evaluate file at FILEPATH as LITE LISP source code.\n"
+  "1. If file exists at PATH, evaluate that.\n"
+  "2. Try PATH relative to current buffer and current buffer parent.\n"
+  "3. Try PATH relative to current working directory.";
 int builtin_evaluate_file(Atom arguments, Atom *result) {
   BUILTIN_ENSURE_ONE_ARGUMENT(arguments);
 
@@ -1147,16 +1169,11 @@ int builtin_evaluate_file(Atom arguments, Atom *result) {
   if (!stringp(filepath)) { return ERROR_TYPE; }
 
   Error err = evaluate_file(*genv(), filepath.value.symbol, result);
-  if (err.type == ERROR_FILE && args_vector) {
-    // Attempt to load relative to "argv[0]/../../"
-    char *path = string_trijoin(args_vector[0], "/../../", filepath.value.symbol);
-    err = evaluate_file(*genv(), path, result);
-    free(path);
-  }
+
   if (err.type == ERROR_FILE) {
     // Attempt to load relative to path of current buffer.
     Atom current_buffer;
-    Error err = env_get(*genv(), make_sym("CURRENT-BUFFER"), &current_buffer);
+    err = env_get(*genv(), make_sym("CURRENT-BUFFER"), &current_buffer);
     // Treat current buffer path as file.
     if (bufferp(current_buffer) && current_buffer.value.buffer) {
       char *path = string_trijoin(current_buffer.value.buffer->path, "/../", filepath.value.symbol);
@@ -1170,6 +1187,20 @@ int builtin_evaluate_file(Atom arguments, Atom *result) {
       }
     }
   }
+  if (err.type == ERROR_FILE) {
+    // Attempt to load from lite application data directory.
+    char *litedir = getlitedir();
+    if (litedir) {
+      char *path = string_trijoin(litedir, "/", filepath.value.symbol);
+      free(litedir);
+      err = evaluate_file(*genv(), path, result);
+      free(path);
+    }
+  }
+
+  // TODO: Attempt to load relative to "argv[0]" and it's parents? iff
+  //       argv[0] contains a path separating character.
+
   if (err.type) {
     print_error(err);
     return err.type;

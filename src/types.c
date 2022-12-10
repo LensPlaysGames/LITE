@@ -4,6 +4,7 @@
 #include <buffer.h>
 #include <builtins.h>
 #include <error.h>
+#include <file_io.h>
 #include <stdarg.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -532,17 +533,27 @@ Atom make_buffer(Atom environment, char *path) {
     print_error(args);
     return nil;
   }
+
+  char *buffer_path = getfullpath(path);
+  if (!buffer_path) {
+    MAKE_ERROR(err, ERROR_FILE, nil
+               , "make_buffer: Could not get full path of file: %s\n"
+               , NULL);
+    print_error(err);
+    return nil;
+  }
+
   // Attempt to find existing buffer in buffer table.
   Atom buffer_table_it = buffer_table;
   while (!nilp(buffer_table_it)) {
     Atom a = car(buffer_table_it);
-    if (strcmp(a.value.buffer->path, path) == 0) {
+    if (strcmp(a.value.buffer->path, buffer_path) == 0) {
       return a;
     }
     buffer_table_it = cdr(buffer_table_it);
   }
   // Create new buffer and add it to buffer table.
-  Buffer *buffer = buffer_create(path);
+  Buffer *buffer = buffer_create(buffer_path);
   if (!buffer) {
     MAKE_ERROR(err, ERROR_MEMORY, nil
                , "make_buffer: `buffer_create(path)` failed!."

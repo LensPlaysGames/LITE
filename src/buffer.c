@@ -29,11 +29,11 @@ Buffer *buffer_create(char *path) {
     print_error(oom);
     return NULL;
   }
-  buffer->path = strdup(path);
+  buffer->path = path;
   buffer->point_byte = 0;
   buffer->mark_byte = 0;
   Rope *rope = NULL;
-  const SimpleFile file = get_file(path);
+  const SimpleFile file = get_file(buffer->path);
   if (file.flags & SMPL_FILE_FLAG_OK) {
     rope = rope_from_buffer(file.contents, file.size);
     free_file(file);
@@ -611,6 +611,7 @@ void buffer_free(Buffer* buffer) {
 
 Atom initialize_buffer_or_panic(const char *const path) {
   Atom buffer = make_buffer(env_create(nil), (char *)path);
+  // TODO: I don't think this check can ever succeed...
   if (nilp(buffer)) {
     exit(1);
   }

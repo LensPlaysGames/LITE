@@ -97,6 +97,8 @@ int change_font(char *path, size_t size) {
     return 0;
   }
 
+  // TODO: ENV FILE PATH STUFF
+
   // Search base of the repository assuming normal placement of LITE
   // executable.
   if (args_vector) {
