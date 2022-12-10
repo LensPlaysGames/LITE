@@ -33,6 +33,35 @@ Error env_set(Atom environment, Atom symbol, Atom value) {
   return ok;
 }
 
+Atom env_get_containing(Atom environment, Atom symbol) {
+  Atom parent = car(environment);
+  Atom bindings = cdr(environment);
+#ifdef LITE_GFX
+  // Handle reading/popup-buffer.
+  if (gui_ctx() && gui_ctx()->reading
+      && symbol.value.symbol == make_sym("CURRENT-BUFFER").value.symbol)
+    {
+      symbol = make_sym("POPUP-BUFFER");
+    }
+#endif /* #ifdef LITE_GFX */
+  for (;;) {
+    while (!nilp(bindings)) {
+      Atom *bind = &car(bindings);
+      if (bind->value.pair->atom[0].value.symbol == symbol.value.symbol) {
+        return environment;
+      }
+      bindings = cdr(bindings);
+    }
+    if (nilp(parent)) {
+      return nil;
+    }
+    bindings = cdr(parent);
+    environment = parent;
+    parent = car(parent);
+  }
+  return nil;
+}
+
 Error env_get(Atom environment, Atom symbol, Atom *result) {
   Atom parent = car(environment);
   Atom bindings = cdr(environment);
