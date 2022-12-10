@@ -737,7 +737,8 @@ Error evaluate_expression(Atom expr, Atom environment, Atom *result) {
         char needs_explicit =
           operator.value.builtin.function == builtin_apply
           || operator.value.builtin.function == builtin_evaluate_file
-          || operator.value.builtin.function == builtin_evaluate_string;
+          || operator.value.builtin.function == builtin_evaluate_string
+          || operator.value.builtin.function == builtin_read_prompted;
         if (needs_explicit) {
           FOR_ALL_GCOL_THINGS(gcol_mark_explicit);
         }
