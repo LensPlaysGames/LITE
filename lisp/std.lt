@@ -50,6 +50,15 @@ Return the result of BODY."
        (buffer-set-mark-activation ,buffer original-mark-activation)
        result)))
 
+(defmacro with-current-buffer (buffer . body)
+  "Evaluate body with CURRENT-BUFFER set to BUFFER,
+then restore CURRENT-BUFFER. Return the result of BODY."
+  `(let ((original-buffer current-buffer))
+     (set current-buffer ,buffer)
+     (let ((result (progn ,@body)))
+       (set current-buffer original-buffer)
+       result)))
+
 ;; BUFFERS
 
 (defun buffer-prev-line (buffer)
