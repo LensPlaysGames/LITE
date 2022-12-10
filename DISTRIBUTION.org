@@ -1,10 +1,12 @@
-LITE is a text editor that may be configured; hopefully, all
-configuration can stay within the distribution folder itself. This
-means that we can always use relative paths in our program, and we have
-a known, expected filesystem environment surrounding the executable.
+<DIR> is OS specific, but refers to an environment variable.
+This directory is searched when finding files, and is the only way LITE
+can launch with the standard library (necessary at this point).
+
+Linux:   $HOME
+Windows: $APPDATA
 
 #+begin_example
-LITE_RLS_Vx.x.x
+<DIR>/lite
 |-- LITE.exe
 |-- lisp
 |   |-- std.lt
