@@ -30,7 +30,39 @@ char file_exists(char *path);
 
 /// Returns a heap-allocated buffer containing the
 /// contents of the file found at the given path.
-Error file_contents(const char* path, char **result);
+Error file_contents(const char *path, char **result);
+
+/** Get the current working directory.
+ *
+ * OS specific implementation.
+ * WINDOWS: https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/getcwd-wgetcwd?view=msvc-170
+ * LINUX:   `man getcwd.3`
+ *
+ * @return heap-allocated null-terminated string containing current
+ * working directory, or NULL.
+ */
+char *get_working_dir();
+
+/** Get the absolute path of a filepath as a heap allocated string.
+ *
+ * OS specific implementation.
+ * WINDOWS: https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/fullpath-wfullpath?view=msvc-170
+ * LINUX:   `man realpath.3`
+ *
+ * @return heap-allocated null-terminated string containing absolute path, or NULL.
+ */
+char *getfullpath(const char *path);
+
+/** Get the absolute path of a filepath as a heap allocated string.
+ *
+ * OS specific environment variables.
+ * WINDOWS: $APPDATA/lite
+ * LINUX:   $HOME/lite
+ *
+ * @return heap-allocated null-terminated string containing absolute
+ * path to lite directory, or NULL.
+ */
+char *getlitedir(void);
 
 Error evaluate_file(Atom environment, const char* path, Atom *result);
 

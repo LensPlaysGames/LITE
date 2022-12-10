@@ -8,6 +8,17 @@
 #include <stdlib.h>
 #include <string.h>
 #include <types.h>
+#include <utility.h>
+
+#if defined (__unix__)
+// #  include <stdlib.h
+#  include <limits.h>
+#  include <unistd.h>
+#endif
+
+#if defined (_WIN32)
+#  include <direct.h>
+#endif
 
 size_t file_size(FILE *file) {
   if (!file) {
@@ -73,7 +84,7 @@ SimpleFile get_file(char *path) {
   FILE *file = fopen(path, "rb");
   if (!file) {
     free(smpl.path);
-    printf("%sCouldn't open file at %s\n", error_prefix, path);
+    //printf("%sCouldn't open file at %s\n", error_prefix, path);
     return smpl;
   }
 
@@ -81,7 +92,7 @@ SimpleFile get_file(char *path) {
   if (size == 0) {
     fclose(file);
     free(smpl.path);
-    printf("%sFile has zero size at %s\n", error_prefix, path);
+    //printf("%sFile has zero size at %s\n", error_prefix, path);
     return smpl;
   }
   smpl.size = size;
@@ -210,3 +221,75 @@ char file_exists(char *path) {
   return 0;
 }
 
+char *get_working_dir() {
+#if _WIN32
+  // Requires direct.h
+  char *out;
+  if (!(out = _getcwd(NULL, 0))) {
+    perror("get_working_dir() -> _getcwd() ERROR\n");
+    return NULL;
+  }
+#elif defined (__unix__)
+  // Requires unistd.h
+  return get_current_dir_name()
+#else
+#  error "get_working_dir() does not support your platform."
+#endif
+}
+
+char *getfullpath(const char *path) {
+  if (!path) { return NULL; }
+  char *out = NULL;
+# ifdef _WIN32
+  // _fullpath() and _MAX_PATH are in stdlib.h
+  // char *_fullpath(char *absPath, const char *relPath, size_t maxLength);
+  out = calloc(1, _MAX_PATH);
+  if (!out) {
+    fprintf(stderr, "getfullpath() -> calloc() ERROR\n");
+    return NULL;
+  }
+  out = _fullpath(out, path, _MAX_PATH);
+  if (!out) {
+    fprintf(stderr,
+            "getfullpath() -> _fullpath() ERROR\n"
+            "    Path: %s\n"
+            "     out: %s\n",
+            path,
+            out);
+    return NULL;
+  }
+  //printf("getfullpath() got absolute %s from %s\n", out, path);
+  return out;
+# elif defined (__unix__)
+  // realpath requires stdlib.h and limits.h to be included.
+  // char *realpath(const char *path, char *resolved_path);
+  out = calloc(1, PATH_MAX + 1);
+  if (!out) {
+    fprintf(stderr, "getfullpath() -> calloc() ERROR\n");
+    return NULL;
+  }
+  out = realpath(path, out);
+  if (!out) {
+    fprintf(stderr, "realpath() ERROR: %s\n", strerror(errno));
+    return NULL;
+  }
+  //printf("getfullpath() got absolute %s from %s\n", out, path);
+  return out;
+# else
+#  error "getfullpath() doesn't support your system type, or at least doesn't think it does."
+# endif
+  return NULL;
+}
+
+char *getlitedir(void) {
+# ifdef _WIN32
+  static const char *app_data = "appdata";
+# elif defined (__unix__)
+  static const char *app_data = "HOME";
+# else
+#   error "getlitedir() unsupported platform."
+# endif
+  char *out = getenv(app_data);
+  out = string_join(out, "/lite");
+  return out;
+}
