@@ -97,9 +97,13 @@ int main(int argc, char **argv) {
   Atom popup_buffer = initialize_buffer_or_panic(".popup");
   env_set(*genv(), make_sym("POPUP-BUFFER"), popup_buffer);
 
-  int gui_status = create_gui();
-  if (gui_status != CREATE_GUI_OK && gui_status != CREATE_GUI_ALREADY_CREATED) {
-    return 420;
+  // Only initialize GUI if script mode is NOT active, as if it is, we
+  // won't be launching into the GUI.
+  if (arg_script_index == -1) {
+    int gui_status = create_gui();
+    if (gui_status != CREATE_GUI_OK && gui_status != CREATE_GUI_ALREADY_CREATED) {
+      return 420;
+    }
   }
 # endif
 
