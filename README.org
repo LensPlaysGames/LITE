@@ -29,6 +29,9 @@ of this repository.
 
 *** Usage
 
+If you have the LITE executable, run it with the ~--help~ argument for
+usage information.
+
 **** LITE REPL
 
 By default, LITE builds a terminal-only "read, evaluate, print, loop"
@@ -44,8 +47,8 @@ On Windows:
   .\bin\LITE
 #+end_src
 
-Any and all arguments are treated as file paths and are attempted to be
-loaded as LITE LISP source files.
+Any and all arguments following a ~--~ argument are treated as file
+paths and are attempted to be loaded as LITE LISP source files.
 
 **** LITE GFX
 
@@ -88,6 +91,15 @@ Once the build tree is generated, invoke it to generate an executable.
 
 If no fatal errors occur, the ~bin~ subdirectory of the
 repository will be populated with the LITE executable.
+
+In order for LITE to find the standard library at runtime, it is
+necessary to install LITE. This creates a directory in which LITE will
+look during runtime for certain resources like fonts or lisp. On Linux,
+this is located at ~$HOME/lite~. On Windows, it's at ~%APPDATA%/lite~.
+
+#+begin_src sh
+  cmake --install bld
+#+end_src
 
 ** LITE LISP
 
