@@ -1,5 +1,7 @@
 #include <environment.h>
 
+#include <stdlib.h>
+
 #ifdef LITE_GFX
 #  include <api.h>
 #  include <gui.h>
@@ -11,94 +13,117 @@
 
 char user_quit = 0;
 
-Atom env_create(Atom parent) {
-  return cons(parent, nil);
+Atom env_create(Atom parent, size_t initial_capacity) {
+  Atom out;
+  out.type = ATOM_TYPE_ENVIRONMENT;
+  out.galloc = 0;
+  out.docstring = NULL;
+  out.value.env.parent = 0;
+  out.value.env.data_count = 0;
+  out.value.env.data_capacity = initial_capacity;
+  out.value.env.data = calloc(1, initial_capacity * sizeof(*out.value.env.data));
+  gcol_generic_allocation(&out, out.value.env.data);
+  return out;
+}
+
+static size_t knuth_multiplicative(unsigned char *symbol_pointer) {
+  return ((size_t)symbol_pointer) * 2654435761;
+}
+
+static size_t hash32shiftmult(unsigned char *symbol_pointer)
+{
+  size_t key = (size_t)symbol_pointer;
+  size_t c2=0x27d4eb2d; // a prime or an odd constant
+  key = (key ^ 61) ^ (key >> 16);
+  key = key + (key << 3);
+  key = key ^ (key >> 4);
+  key = key * c2;
+  key = key ^ (key >> 15);
+  return key;
+}
+
+static size_t env_hash(environment table, char *symbol_pointer) {
+  return hash32shiftmult((unsigned char *)symbol_pointer) & (table.data_capacity - 1);
+  //return knuth_multiplicative((unsigned char *)symbol_pointer) & (table.data_capacity - 1);
+}
+
+/// Return the entry for the given key string.
+static Atom *env_entry(environment env, char *symbol_pointer) {
+  if (!symbol_pointer) {
+    fprintf(stderr, "Can not get environment entry for NULL key!\n");
+    return NULL;
+  }
+  size_t index = env_hash(env, symbol_pointer);
+  Atom *entry = env.data + index;
+  if (!nilp(*entry)) {
+    return entry;
+  }
+  if (env.parent) {
+    return env_entry(env.parent->value.env, symbol_pointer);
+  }
+  return entry;
+}
+
+static void env_insert(environment env, char *symbol_pointer, Atom to_insert) {
+  Atom *entry = env_entry(env, symbol_pointer);
+  if (!nilp(*entry)) {
+    printf("OVERWRITING ");
+    print_atom(*entry);
+    printf(" with ");
+    print_atom(to_insert);
+    printf("\n");
+    fflush(stdout);
+  }
+  *entry = to_insert;
 }
 
 Error env_set(Atom environment, Atom symbol, Atom value) {
-  Atom bindings = cdr(environment);
-  while (!nilp(bindings)) {
-    Atom bind = car(bindings);
-    if (car(bind).value.symbol == symbol.value.symbol) {
-      // Update docstring, or use the old one.
-      char *docstring = value.docstring ? value.docstring : cdr(bind).docstring;
-      cdr(bind) = value;
-      cdr(bind).docstring = docstring;
-      return ok;
-    }
-    bindings = cdr(bindings);
-  }
-  bindings = cons(symbol, value);
-  cdr(environment) = cons(bindings, cdr(environment));
+  env_insert(environment.value.env, symbol.value.symbol, value);
+  printf("Set %s to ", symbol.value.symbol);
+  print_atom(value);
+  putchar('\n');
   return ok;
 }
 
+void env_free(environment env) {
+  free(env.data);
+}
+
 Atom env_get_containing(Atom environment, Atom symbol) {
-  Atom parent = car(environment);
-  Atom bindings = cdr(environment);
-#ifdef LITE_GFX
+# ifdef LITE_GFX
   // Handle reading/popup-buffer.
   if (gui_ctx() && gui_ctx()->reading
-      && symbol.value.symbol == make_sym("CURRENT-BUFFER").value.symbol)
-    {
-      symbol = make_sym("POPUP-BUFFER");
-    }
-#endif /* #ifdef LITE_GFX */
-  for (;;) {
-    while (!nilp(bindings)) {
-      Atom *bind = &car(bindings);
-      if (bind->value.pair->atom[0].value.symbol == symbol.value.symbol) {
-        return environment;
-      }
-      bindings = cdr(bindings);
-    }
-    if (nilp(parent)) {
+      && symbol.value.symbol == make_sym("CURRENT-BUFFER").value.symbol
+      ) {
+    symbol = make_sym("POPUP-BUFFER");
+  }
+# endif /* #ifdef LITE_GFX */
+
+  Atom binding = *env_entry(environment.value.env, symbol.value.symbol);
+  if (nilp(binding)) {
+    if (environment.value.env.parent) {
+      return env_get_containing(*environment.value.env.parent, symbol);
+    } else {
       return nil;
     }
-    bindings = cdr(parent);
-    environment = parent;
-    parent = car(parent);
   }
-  return nil;
+  return environment;
 }
 
 Error env_get(Atom environment, Atom symbol, Atom *result) {
-  Atom parent = car(environment);
-  Atom bindings = cdr(environment);
-#ifdef LITE_GFX
+# ifdef LITE_GFX
   // Handle reading/popup-buffer.
   if (gui_ctx() && gui_ctx()->reading
-      && symbol.value.symbol == make_sym("CURRENT-BUFFER").value.symbol)
-    {
-      symbol = make_sym("POPUP-BUFFER");
-    }
-#endif /* #ifdef LITE_GFX */
-  for (;;) {
-    while (!nilp(bindings)) {
-      Atom *bind = &car(bindings);
-      if (bind->value.pair->atom[0].value.symbol == symbol.value.symbol) {
-        *result = bind->value.pair->atom[1];
-        return ok;
-      }
-      bindings = cdr(bindings);
-    }
-    if (nilp(parent)) {
-      MAKE_ERROR(err, ERROR_NOT_BOUND
-                 , symbol
-                 // FIXME: Which environment?
-                 , "Symbol is not bound in environment."
-                 , NULL);
-      return err;
-    }
-    bindings = cdr(parent);
-    parent = car(parent);
+      && symbol.value.symbol == make_sym("CURRENT-BUFFER").value.symbol
+      ) {
+    symbol = make_sym("POPUP-BUFFER");
   }
-  MAKE_ERROR(err, ERROR_NOT_BOUND
-             , symbol
-             // FIXME: Which environment?
-             , "Symbol is not bound in environment."
-             , NULL);
-  return err;
+# endif /* #ifdef LITE_GFX */
+  *result = *env_entry(environment.value.env, symbol.value.symbol);
+  if (nilp(*result) && environment.value.env.parent) {
+    return env_get(*environment.value.env.parent, symbol, result);
+  }
+  return ok;
 }
 
 int env_non_nil(Atom environment, Atom symbol) {
@@ -115,8 +140,8 @@ int boundp(Atom environment, Atom symbol) {
   return !(env_get(environment, symbol, &bind).type);
 }
 
-Atom default_environment() {
-  Atom environment = env_create(nil);
+Atom default_environment(void) {
+  Atom environment = env_create(nil, 2 << 15);
   env_set(environment, make_sym("T"), make_sym("T"));
   env_set(environment, make_sym((char *)builtin_quit_lisp_name),
           make_builtin(builtin_quit_lisp,
@@ -478,7 +503,7 @@ including data output at each iteration of the loop."));
 }
 
 static Atom global_environment = { ATOM_TYPE_NIL, { 0 }, NULL, NULL };
-Atom *genv() {
+Atom *genv(void) {
   if (nilp(global_environment)) {
     //printf("Recreating global environment from defaults...\n");
     global_environment = default_environment();

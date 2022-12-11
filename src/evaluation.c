@@ -66,7 +66,7 @@ Error evaluate_bind_arguments(Atom *stack, Atom *expr, Atom *environment) {
   // Else, bind the arguments into the current stack frame.
   Atom operator = list_get(*stack, 2);
   Atom arguments = list_get(*stack, 4);
-  *environment = env_create(car(operator));
+  *environment = env_create(car(operator), 2 << 12);
   Atom argument_names = car(cdr(operator));
   body = cdr(cdr(operator));
   list_set(*stack, 1, *environment);
@@ -598,8 +598,8 @@ Error evaluate_expression(Atom expr, Atom environment, Atom *result) {
           const char* usage_macro = "Usage: (MACRO <symbol> <argument> <docstring> <body>...)";
           if (nilp(arguments) || nilp(cdr(arguments))
               || nilp (cdr(cdr(arguments))) || nilp(cdr(cdr(cdr(arguments))))
-              || !nilp(cdr(cdr(cdr(cdr(arguments))))))
-            {
+              || !nilp(cdr(cdr(cdr(cdr(arguments)))))
+              ) {
               PREP_ERROR(err, ERROR_ARGUMENTS
                          , arguments
                          , "MACRO: Incorrect number of arguments."

@@ -79,6 +79,13 @@ void gcol_mark(Atom *root) {
     gcol_mark(&car(*root));
     gcol_mark(&cdr(*root));
   }
+  if (envp(*root)) {
+    size_t index = 0;
+    while (index < root->value.env.data_capacity) {
+      gcol_mark(root->value.env.data + index);
+      ++index;
+    }
+  }
 }
 
 void gcol_mark_explicit(Atom *root) {
@@ -100,6 +107,13 @@ void gcol_mark_explicit(Atom *root) {
     alloc->mark = 2;
     gcol_mark_explicit(&car(*root));
     gcol_mark_explicit(&cdr(*root));
+  }
+  if (envp(*root)) {
+    size_t index = 0;
+    while (index < root->value.env.data_capacity) {
+      gcol_mark_explicit(root->value.env.data + index);
+      ++index;
+    }
   }
 }
 
@@ -123,10 +137,17 @@ void gcol_unmark(Atom *root) {
     gcol_unmark(&car(*root));
     gcol_unmark(&cdr(*root));
   }
+  if (envp(*root)) {
+    size_t index = 0;
+    while (index < root->value.env.data_capacity) {
+      gcol_unmark(root->value.env.data + index);
+      ++index;
+    }
+  }
 }
 
 
-void gcol_cons() {
+void gcol_cons(void) {
   // Sweep cons allocations (pairs).
   ConsAllocation **pair_allocations_it = &global_pair_allocations;
   ConsAllocation *prev_pair_allocation = NULL;
@@ -157,7 +178,7 @@ void gcol_cons() {
   }
 }
 
-void gcol_generic() {
+void gcol_generic(void) {
   GenericAllocation **galloc_it = &generic_allocations;
   GenericAllocation *prev_galloc = NULL;
   GenericAllocation *galloc = generic_allocations;
@@ -696,7 +717,7 @@ void alist_set(Atom *alist, Atom key, Atom value) {
 }
 
 void print_atom(Atom atom) {
-  assert(ATOM_TYPE_MAX == 9);
+  assert(ATOM_TYPE_MAX == 10);
   switch (atom.type) {
   default:
     printf("#<UNKNOWN>:%d", atom.type);
@@ -721,6 +742,19 @@ void print_atom(Atom atom) {
     }
     putchar(')');
     break;
+  case ATOM_TYPE_ENVIRONMENT: {
+    putchar('(');
+    size_t index = 0;
+    Atom it;
+    while (index < atom.value.env.data_capacity) {
+      it = atom.value.env.data[index];
+      if (!nilp(it)) {
+        print_atom(it);
+        putchar(' ');
+      }
+    }
+    putchar(')');
+    } break;
   case ATOM_TYPE_SYMBOL:
     printf("%s", atom.value.symbol);
     break;
@@ -749,6 +783,19 @@ void print_atom(Atom atom) {
 
 void pretty_print_atom(Atom atom) {
   switch (atom.type) {
+  case ATOM_TYPE_ENVIRONMENT: {
+    putchar('(');
+    size_t index = 0;
+    Atom it;
+    while (index < atom.value.env.data_capacity) {
+      it = atom.value.env.data[index];
+      if (!nilp(it)) {
+        pretty_print_atom(it);
+        putchar('\n');
+      }
+    }
+    putchar(')');
+    } break;
   case ATOM_TYPE_PAIR:
     putchar('(');
     print_atom(car(atom));

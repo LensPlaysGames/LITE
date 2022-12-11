@@ -19,6 +19,13 @@ typedef struct BuiltIn {
   BuiltInFunction function;
 } BuiltIn;
 
+typedef struct environment {
+  struct Atom *parent;
+  size_t data_count;
+  size_t data_capacity;
+  struct Atom *data;
+} environment;
+
 typedef struct Buffer Buffer;
 typedef struct Error Error;
 typedef struct GenericAllocation GenericAllocation;
@@ -35,6 +42,7 @@ typedef struct Atom {
     ATOM_TYPE_MACRO,
     ATOM_TYPE_STRING,
     ATOM_TYPE_BUFFER,
+    ATOM_TYPE_ENVIRONMENT,
     ATOM_TYPE_MAX,
   } type;
   union AtomValue {
@@ -43,6 +51,7 @@ typedef struct Atom {
     Buffer *buffer;
     BuiltIn builtin;
     integer_t integer;
+    environment env;
   } value;
   char *docstring;
   GenericAllocation *galloc;
@@ -63,6 +72,7 @@ static const Atom nil = { ATOM_TYPE_NIL, { 0 }, NULL, NULL };
 #define macrop(a)   ((a).type == ATOM_TYPE_MACRO)
 #define stringp(a)  ((a).type == ATOM_TYPE_STRING)
 #define bufferp(a)  ((a).type == ATOM_TYPE_BUFFER)
+#define envp(a)     ((a).type == ATOM_TYPE_ENVIRONMENT)
 
 #define car(a) ((a).value.pair->atom[0])
 #define cdr(a) ((a).value.pair->atom[1])
@@ -267,12 +277,12 @@ Error make_closure(Atom environment, Atom arguments, Atom body, Atom *result);
 Atom make_buffer(Atom environment, char *path);
 
 /// Print the global symbol table to stdout.
-void print_symbol_table();
+void print_symbol_table(void);
 /// Build a LISP atom from the current global symbol table.
-Atom symbol_table();
+Atom symbol_table(void);
 
 /// Return a pointer to the global buffer table (never NULL).
-Atom *buf_table();
+Atom *buf_table(void);
 
 /** Get a heap-allocated string containing the textual representation
  *  of the given atom.

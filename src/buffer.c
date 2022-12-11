@@ -611,7 +611,7 @@ void buffer_free(Buffer* buffer) {
 }
 
 Atom initialize_buffer_or_panic(const char *const path) {
-  Atom buffer = make_buffer(env_create(nil), (char *)path);
+  Atom buffer = make_buffer(env_create(nil, 0), (char *)path);
   // TODO: I don't think this check can ever succeed...
   if (nilp(buffer)) {
     exit(1);

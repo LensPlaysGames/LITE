@@ -589,7 +589,7 @@ int builtin_open_buffer(Atom arguments, Atom *result) {
   if (file_exists(path.value.symbol)) {
     // TODO: A buffer-local environment should go in each call to
     // make_buffer, or something?
-    *result = make_buffer(env_create(nil), (char *)path.value.symbol);
+    *result = make_buffer(env_create(nil, 0), (char *)path.value.symbol);
     return ERROR_NONE;
   }
 
@@ -601,14 +601,14 @@ int builtin_open_buffer(Atom arguments, Atom *result) {
   if (!err.type && bufferp(current_buffer) && current_buffer.value.buffer) {
     working_path = string_trijoin(current_buffer.value.buffer->path, "/../", path.value.symbol);
     if (file_exists(working_path)) {
-      *result = make_buffer(env_create(nil), working_path);
+      *result = make_buffer(env_create(nil, 0), working_path);
       free(working_path);
       return ERROR_NONE;
     }
     free(working_path);
     working_path = string_trijoin(current_buffer.value.buffer->path, "/", path.value.symbol);
     if (file_exists(working_path)) {
-      *result = make_buffer(env_create(nil), working_path);
+      *result = make_buffer(env_create(nil, 0), working_path);
       free(working_path);
       return ERROR_NONE;
     }
@@ -619,7 +619,7 @@ int builtin_open_buffer(Atom arguments, Atom *result) {
     working_path = string_trijoin(cwd, "/", path.value.symbol);
     free(cwd);
     if (file_exists(working_path)) {
-      *result = make_buffer(env_create(nil), working_path);
+      *result = make_buffer(env_create(nil, 0), working_path);
       free(working_path);
       return ERROR_NONE;
     }
@@ -631,7 +631,7 @@ int builtin_open_buffer(Atom arguments, Atom *result) {
     working_path = string_trijoin(litedir, "/", path.value.symbol);
     free(litedir);
     if (file_exists(working_path)) {
-      *result = make_buffer(env_create(nil), working_path);
+      *result = make_buffer(env_create(nil, 0), working_path);
       free(working_path);
       return ERROR_NONE;
     }
@@ -640,7 +640,7 @@ int builtin_open_buffer(Atom arguments, Atom *result) {
   free(working_path);
 
   // If no existing file was found, just make a buffer at a new file.
-  *result = make_buffer(env_create(nil), (char *)path.value.symbol);
+  *result = make_buffer(env_create(nil, 0), (char *)path.value.symbol);
   return ERROR_NONE;
 }
 
@@ -1249,7 +1249,7 @@ int builtin_apply(Atom arguments, Atom *result) {
   }
   // Handle closure.
   // Layout: FUNCTION ARGUMENTS . BODY
-  Atom environment = env_create(car(function));
+  Atom environment = env_create(car(function), 2 << 12);
   Atom argument_names = car(cdr(function));
   Atom body = cdr(cdr(function));
   // Bind arguments into local environment.
@@ -1364,7 +1364,7 @@ int builtin_read_prompted(Atom arguments, Atom *result) {
   env_set(*genv(), make_sym("KEYMAP"), keymap);
   env_set(*genv(), make_sym("CURRENT-KEYMAP"), keymap);
 
-  Atom popup_buffer = make_buffer(env_create(nil), ".popup");
+  Atom popup_buffer = make_buffer(env_create(nil, 0), ".popup");
   if (!bufferp(popup_buffer) || !popup_buffer.value.buffer) {
     return ERROR_GENERIC;
   }
