@@ -104,19 +104,7 @@ Error evaluate_apply(Atom *stack, Atom *expr, Atom *environment) {
     list_set(*stack, 4, arguments);
   }
   if (symbolp(operator)) {
-    if (strcmp(operator.value.symbol, "APPLY") == 0) {
-      // Replace current frame with new frame.
-      *stack = car(*stack);
-      *stack = make_frame(*stack, *environment, nil);
-      operator = car(arguments);
-      arguments = car(cdr(arguments));
-      if (!listp(arguments)) {
-        MAKE_ERROR(err, ERROR_SYNTAX, arguments, "Arguments must be a list.", NULL);
-        return err;
-      }
-      list_set(*stack, 2, operator);
-      list_set(*stack, 4, arguments);
-    } else if (strcmp(operator.value.symbol, "WHILE-BODY") == 0) {
+    if (strcmp(operator.value.symbol, "WHILE-BODY") == 0) {
       Atom body = list_get(*stack, 5);
       assert(!nilp(body) && "WHILE-BODY: evaluate_apply should not be called when stack body is NIL!");
       *environment = list_get(*stack, 1);
@@ -127,13 +115,12 @@ Error evaluate_apply(Atom *stack, Atom *expr, Atom *environment) {
     } else if (strcmp(operator.value.symbol, "PROGN") == 0) {
       return evaluate_next_expression(stack, expr, environment);
     }
-  }
-  if (builtinp(operator)) {
+  } else if (builtinp(operator)) {
     *stack = car(*stack);
     *expr = cons(operator, arguments);
     return ok;
-  }
-  if (operator.type != ATOM_TYPE_CLOSURE) {
+  } else if (operator.type != ATOM_TYPE_CLOSURE) {
+    print_stackframe(*stack, 0);
     MAKE_ERROR(err, ERROR_TYPE
                , operator
                , "APPLY: Expected operator type of #<BUILTIN> or #<CLOSURE>."
