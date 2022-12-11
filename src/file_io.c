@@ -185,7 +185,11 @@ Error evaluate_file(Atom environment, const char *path, Atom *result) {
 #   endif
 
     err = evaluate_expression(expr, environment, result);
-    if (err.type) { return err; }
+    if (err.type) {
+      printf("evaluate_file() ERROR: expression == ");
+      print_atom(expr);putchar('\n');
+      return err;
+    }
     if (user_quit) {
       break;
     }
