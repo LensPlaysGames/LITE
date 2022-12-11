@@ -30,21 +30,21 @@ static size_t knuth_multiplicative(unsigned char *symbol_pointer) {
   return ((size_t)symbol_pointer) * 2654435761;
 }
 
-static size_t hash32shiftmult(unsigned char *symbol_pointer)
+static size_t hash64shift(char *symbol_pointer)
 {
   size_t key = (size_t)symbol_pointer;
-  size_t c2=0x27d4eb2d; // a prime or an odd constant
-  key = (key ^ 61) ^ (key >> 16);
-  key = key + (key << 3);
-  key = key ^ (key >> 4);
-  key = key * c2;
-  key = key ^ (key >> 15);
+  key = (~key) + (key << 21); // key = (key << 21) - key - 1;
+  key = key ^ (key >> 24);
+  key = (key + (key << 3)) + (key << 8); // key * 265
+  key = key ^ (key >> 14);
+  key = (key + (key << 2)) + (key << 4); // key * 21
+  key = key ^ (key >> 28);
+  key = key + (key << 31);
   return key;
 }
 
 static size_t env_hash(environment table, char *symbol_pointer) {
-  return hash32shiftmult((unsigned char *)symbol_pointer) & (table.data_capacity - 1);
-  //return knuth_multiplicative((unsigned char *)symbol_pointer) & (table.data_capacity - 1);
+  return hash64shift(symbol_pointer) & (table.data_capacity - 1);
 }
 
 /// Return the entry for the given key string.

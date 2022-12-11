@@ -596,8 +596,10 @@ Error evaluate_expression(Atom expr, Atom environment, Atom *result) {
         } else if (strcmp(operator.value.symbol, "MACRO") == 0) {
           // Arguments: MACRO_NAME ARGUMENTS DOCSTRING BODY
           const char* usage_macro = "Usage: (MACRO <symbol> <argument> <docstring> <body>...)";
-          if (nilp(arguments) || nilp(cdr(arguments))
-              || nilp (cdr(cdr(arguments))) || nilp(cdr(cdr(cdr(arguments))))
+          if (nilp(arguments)
+              || nilp(cdr(arguments))
+              || nilp(cdr(cdr(arguments)))
+              || nilp(cdr(cdr(cdr(arguments))))
               || !nilp(cdr(cdr(cdr(cdr(arguments)))))
               ) {
               PREP_ERROR(err, ERROR_ARGUMENTS
