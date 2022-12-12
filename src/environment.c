@@ -30,8 +30,7 @@ static size_t knuth_multiplicative(unsigned char *symbol_pointer) {
   return ((size_t)symbol_pointer) * 2654435761;
 }
 
-static size_t hash64shift(char *symbol_pointer)
-{
+static size_t hash64shift(char *symbol_pointer) {
   size_t key = (size_t)symbol_pointer;
   key = (~key) + (key << 21); // key = (key << 21) - key - 1;
   key = key ^ (key >> 24);
@@ -57,9 +56,6 @@ static Atom *env_entry(environment env, char *symbol_pointer) {
   Atom *entry = env.data + index;
   if (!nilp(*entry)) {
     return entry;
-  }
-  if (env.parent) {
-    return env_entry(env.parent->value.env, symbol_pointer);
   }
   return entry;
 }
@@ -120,8 +116,15 @@ Error env_get(Atom environment, Atom symbol, Atom *result) {
   }
 # endif /* #ifdef LITE_GFX */
   *result = *env_entry(environment.value.env, symbol.value.symbol);
-  if (nilp(*result) && environment.value.env.parent) {
-    return env_get(*environment.value.env.parent, symbol, result);
+  if (nilp(*result)) {
+    if (environment.value.env.parent) {
+      return env_get(*environment.value.env.parent, symbol, result);
+    }
+    MAKE_ERROR(err, ERROR_NOT_BOUND,
+               symbol,
+               "Symbol not bound in any environment.",
+               NULL);
+    return err;
   }
   return ok;
 }
