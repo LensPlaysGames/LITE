@@ -62,7 +62,7 @@ Error gcol_generic_allocation(Atom *ref, void *payload) {
 }
 
 void gcol_mark(Atom *root) {
-  if (invp(*root) || nilp(*root)) {
+  if (nilp(*root)) {
     return;
   }
   if (root->galloc) {
@@ -83,8 +83,12 @@ void gcol_mark(Atom *root) {
   }
   if (envp(*root)) {
     size_t index = 0;
+    EnvironmentValue *entry;
     while (index < root->value.env->data_capacity) {
-      gcol_mark(root->value.env->data + index);
+      entry = root->value.env->data + index;
+      if (entry->key) {
+        gcol_mark(&entry->value);
+      }
       ++index;
     }
     if (envp(root->value.env->parent)) {
@@ -94,7 +98,7 @@ void gcol_mark(Atom *root) {
 }
 
 void gcol_mark_explicit(Atom *root) {
-  if (invp(*root) || nilp(*root)) {
+  if (nilp(*root)) {
     return;
   }
   if (root->galloc) {
@@ -115,8 +119,12 @@ void gcol_mark_explicit(Atom *root) {
   }
   if (envp(*root)) {
     size_t index = 0;
+    EnvironmentValue *entry;
     while (index < root->value.env->data_capacity) {
-      gcol_mark_explicit(root->value.env->data + index);
+      entry = root->value.env->data + index;
+      if (entry->key) {
+        gcol_mark_explicit(&entry->value);
+      }
       ++index;
     }
     if (envp(root->value.env->parent)) {
@@ -126,7 +134,7 @@ void gcol_mark_explicit(Atom *root) {
 }
 
 void gcol_unmark(Atom *root) {
-  if (invp(*root) || nilp(*root)) {
+  if (nilp(*root)) {
     return;
   }
   if (root->galloc) {
@@ -147,8 +155,12 @@ void gcol_unmark(Atom *root) {
   }
   if (envp(*root)) {
     size_t index = 0;
+    EnvironmentValue *entry;
     while (index < root->value.env->data_capacity) {
-      gcol_unmark(root->value.env->data + index);
+      entry = root->value.env->data + index;
+      if (entry->key) {
+        gcol_unmark(&entry->value);
+      }
       ++index;
     }
     if (envp(root->value.env->parent)) {
@@ -729,6 +741,7 @@ void alist_set(Atom *alist, Atom key, Atom value) {
 
 void print_atom(Atom atom) {
   assert(ATOM_TYPE_MAX == 10);
+  //_Static_assert(ATOM_TYPE_MAX == 10, "print_atom(): Exhaustive handling of atom types");
   switch (atom.type) {
   default:
     printf("#<UNKNOWN>:%d", atom.type);
@@ -758,7 +771,7 @@ void print_atom(Atom atom) {
     size_t index = 0;
     Atom it;
     while (index < atom.value.env->data_capacity) {
-      it = atom.value.env->data[index];
+      it = atom.value.env->data[index].value;
       if (!nilp(it)) {
         print_atom(it);
         putchar(' ');
@@ -799,7 +812,7 @@ void pretty_print_atom(Atom atom) {
     size_t index = 0;
     Atom it;
     while (index < atom.value.env->data_capacity) {
-      it = atom.value.env->data[index];
+      it = atom.value.env->data[index].value;
       if (!nilp(it)) {
         pretty_print_atom(it);
         putchar('\n');
@@ -839,13 +852,15 @@ int format_bufsz(const char *format, ...) {
 }
 
 char *atom_string(Atom atom, char *buffer) {
-  assert(ATOM_TYPE_MAX == 9);
+  assert(ATOM_TYPE_MAX == 10);
+  //_Static_assert(ATOM_TYPE_MAX == 10, "compare_atoms(): Exhaustive handling of atom types");
   char *left;
   char *right;
   size_t rightlen;
   size_t length = buffer ? strlen(buffer) : 0;
   size_t to_add = 0;
   const char *symbol_format  = "%s";
+  const char *integer_format = "%lli";
   const char *string_format  = "\"%s\"";
   const char *lr_format      = "(%s%s)";
   const char *l_format       = "(%s)";
@@ -853,6 +868,7 @@ char *atom_string(Atom atom, char *buffer) {
   const char *closure_format = "#<CLOSURE>:%p";
   const char *macro_format   = "#<MACRO>:%p";
   const char *buffer_format  = "#<BUFFER>:\"%s\":%zu";
+  const char *env_format     = "#<ENV>:%p";
   switch (atom.type) {
   case ATOM_TYPE_NIL:
     to_add = 4;
@@ -874,11 +890,18 @@ char *atom_string(Atom atom, char *buffer) {
     break;
   case ATOM_TYPE_INTEGER:
     // FIXME: Format only works when integer_t is long long int
-    to_add = format_bufsz("%lli", atom.value.integer);
+    to_add = format_bufsz(integer_format, atom.value.integer);
     buffer = realloc(buffer, length+to_add);
     if (!buffer) { return NULL; }
-    snprintf(buffer+length, to_add, "%lli", atom.value.integer);
+    snprintf(buffer+length, to_add, integer_format, atom.value.integer);
     break;
+  case ATOM_TYPE_ENVIRONMENT: {
+    // TODO: Actually print contents.
+    to_add = format_bufsz(env_format, atom.value.env);
+    buffer = realloc(buffer, length+to_add);
+    if (!buffer) { return NULL; }
+    snprintf(buffer+length, to_add, env_format, atom.value.env);
+  } break;
   case ATOM_TYPE_PAIR:
     right = malloc(8);
     if (!right) {
@@ -970,8 +993,8 @@ char *atom_string(Atom atom, char *buffer) {
 
 Atom compare_atoms(Atom a, Atom b) {
   int equal = 0;
-  //assert(ATOM_TYPE_MAX == 10);
-  _Static_assert(ATOM_TYPE_MAX == 10, "compare_atoms(): Exhaustive handling of atom types");
+  assert(ATOM_TYPE_MAX == 10);
+  //_Static_assert(ATOM_TYPE_MAX == 10, "compare_atoms(): Exhaustive handling of atom types");
   if (a.type == b.type) {
     switch (a.type) {
     case ATOM_TYPE_NIL:

@@ -1,5 +1,6 @@
 #include <environment.h>
 
+#include <assert.h>
 #include <stdlib.h>
 
 #ifdef LITE_GFX
@@ -14,7 +15,7 @@
 char user_quit = 0;
 
 Atom env_create(Atom parent, size_t initial_capacity) {
-  environment *env = calloc(1, sizeof(environment));
+  Environment *env = calloc(1, sizeof(*env));
   if (!env) {
     fprintf(stderr, "env_create() could not allocate new environment.");
     exit(9);
@@ -22,17 +23,10 @@ Atom env_create(Atom parent, size_t initial_capacity) {
   env->parent = parent;
   env->data_count = 0;
   env->data_capacity = initial_capacity;
-  env->data = calloc(1, initial_capacity * sizeof(Atom));
+  env->data = calloc(1, initial_capacity * sizeof(*env->data));
   if (!env->data) {
     fprintf(stderr, "env_create() could not allocate new hash table.");
     exit(9);
-  }
-
-  // Set all invalid. This is needed to allow for nil bindings.
-  size_t index = 0;
-  while (index < env->data_capacity) {
-    (env->data + index)->type = ATOM_TYPE_INVALID;
-    ++index;
   }
 
   Atom out;
@@ -62,37 +56,55 @@ static size_t hash64shift(char *symbol_pointer) {
   return key;
 }
 
-static size_t env_hash(environment table, char *symbol_pointer) {
+static size_t env_hash(Environment table, char *symbol_pointer) {
   size_t hash = hash64shift(symbol_pointer);
   //printf("Hash of %s is %zu  pointer=%p\n", symbol_pointer, hash, (void*)symbol_pointer);
   return hash & (table.data_capacity - 1);
 }
 
 /// Return the entry for the given key string.
-static Atom *env_entry(environment env, char *symbol_pointer) {
+static EnvironmentValue *env_entry(Environment env, char *symbol_pointer) {
   if (!symbol_pointer) {
     fprintf(stderr, "Can not get environment entry for NULL key!\n");
     return NULL;
   }
   size_t index = env_hash(env, symbol_pointer);
-  Atom *entry = env.data + index;
-  if (!invp(*entry)) {
-    return entry;
+  EnvironmentValue *entry;
+
+  size_t index_it = index;
+  while (index_it < env.data_capacity) {
+    entry = env.data + index_it;
+    if (entry->key == symbol_pointer) {
+      return entry;
+    }
+    if (entry->key == NULL) {
+      return entry;
+    }
+    ++index_it;
   }
-  return entry;
+
+  index_it = 0;
+  while (index_it < index) {
+    entry = env.data + index_it;
+    if (entry->key == symbol_pointer) {
+      return entry;
+    }
+    if (entry->key == NULL) {
+      return entry;
+    }
+    ++index_it;
+  }
+
+  // TODO: Expand hash table...
+
+  assert(0 && "Environment is completely full...");
+  return NULL;
 }
 
-static void env_insert(environment env, char *symbol_pointer, Atom to_insert) {
-  Atom *entry = env_entry(env, symbol_pointer);
-  if (!invp(*entry)) {
-    printf("OVERWRITING ");
-    print_atom(*entry);
-    printf(" with ");
-    print_atom(to_insert);
-    printf("\n");
-    fflush(stdout);
-  }
-  *entry = to_insert;
+static void env_insert(Environment env, char *symbol_pointer, Atom to_insert) {
+  EnvironmentValue *entry = env_entry(env, symbol_pointer);
+  entry->key = symbol_pointer;
+  entry->value = to_insert;
 }
 
 Error env_set(Atom environment, Atom symbol, Atom value) {
@@ -103,7 +115,7 @@ Error env_set(Atom environment, Atom symbol, Atom value) {
   return ok;
 }
 
-void env_free(environment env) {
+void env_free(Environment env) {
   free(env.data);
 }
 
@@ -117,13 +129,18 @@ Atom env_get_containing(Atom environment, Atom symbol) {
   }
 # endif /* #ifdef LITE_GFX */
 
-  Atom binding = *env_entry(*environment.value.env, symbol.value.symbol);
-  if (invp(binding)) {
+  EnvironmentValue *entry = env_entry(*environment.value.env, symbol.value.symbol);
+
+  // No key means not bound.
+  if (!entry->key) {
+    // Attempt to check parent environment, if it exists.
     if (!nilp(environment.value.env->parent)) {
       return env_get_containing(environment.value.env->parent, symbol);
     }
+    // Symbol not bound, no environment contains it, so return nil.
     return nil;
   }
+
   return environment;
 }
 
@@ -136,13 +153,17 @@ Error env_get(Atom environment, Atom symbol, Atom *result) {
     symbol = make_sym("POPUP-BUFFER");
   }
 # endif /* #ifdef LITE_GFX */
-  *result = *env_entry(*environment.value.env, symbol.value.symbol);
-  if (invp(*result)) {
+
+  EnvironmentValue *entry = env_entry(*environment.value.env, symbol.value.symbol);
+
+  // No key means not bound.
+  if (!entry->key) {
+    // If there is a parent environment, search that.
     if (!nilp(environment.value.env->parent)) {
-      //printf("%s not bound, checking parent...", symbol.value.symbol);
       return env_get(environment.value.env->parent, symbol, result);
     }
 
+    // Otherwise, no binding and no parent means symbol not bound.
     *result = nil;
     MAKE_ERROR(err, ERROR_NOT_BOUND,
                symbol,
@@ -150,6 +171,10 @@ Error env_get(Atom environment, Atom symbol, Atom *result) {
                NULL);
     return err;
   }
+
+  // Got binding, return value.
+  *result = entry->value;
+
   return ok;
 }
 
@@ -159,23 +184,20 @@ int env_non_nil(Atom environment, Atom symbol) {
   if (err.type) {
     return 0;
   }
-  // If not bound, don't return non-nil; that is, it is effectively
-  // nil.
-  if (invp(bind)) {
-    return 0;
-  }
   return !nilp(bind);
 }
 
 int boundp(Atom environment, Atom symbol) {
-  Atom bind = nil;
-  Error err = env_get(environment, symbol, &bind);
-  if (err.type) { return 0; }
-  return !invp(bind);
+  if (!envp(environment) || !symbolp(symbol)) {
+    return 0;
+  }
+  EnvironmentValue *entry = env_entry(*environment.value.env, symbol.value.symbol);
+  // Key must not be NULL for a binding to be valid.
+  return entry->key != NULL;
 }
 
 Atom default_environment(void) {
-  Atom environment = env_create(nil, 2 << 15);
+  Atom environment = env_create(nil, 2 << 12);
   env_set(environment, make_sym("T"), make_sym("T"));
   env_set(environment, make_sym((char *)builtin_quit_lisp_name),
           make_builtin(builtin_quit_lisp,

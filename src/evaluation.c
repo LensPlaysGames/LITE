@@ -66,7 +66,7 @@ Error evaluate_bind_arguments(Atom *stack, Atom *expr, Atom *environment) {
   // Else, bind the arguments into the current stack frame.
   Atom operator = list_get(*stack, 2);
   Atom arguments = list_get(*stack, 4);
-  *environment = env_create(car(operator), 2 << 12);
+  *environment = env_create(car(operator), 2 << 7);
   Atom argument_names = car(cdr(operator));
   body = cdr(cdr(operator));
   list_set(*stack, 1, *environment);
