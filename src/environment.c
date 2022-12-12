@@ -62,18 +62,24 @@ static size_t env_hash(Environment table, char *symbol_pointer) {
   return hash & (table.data_capacity - 1);
 }
 
+static void env_expand(Environment *table);
+
 /// Return the entry for the given key string.
-static EnvironmentValue *env_entry(Environment env, char *symbol_pointer) {
+// TODO: I haven't tested this myself, as I'm not *that* proficient at
+// writing hash tables, but there are (apparently) better ways to do
+// collision avoidance and such.
+// https://www.sebastiansylvan.com/post/robin-hood-hashing-should-be-your-default-hash-table-implementation/
+static EnvironmentValue *env_entry(Environment *env, char *symbol_pointer) {
   if (!symbol_pointer) {
     fprintf(stderr, "Can not get environment entry for NULL key!\n");
     return NULL;
   }
-  size_t index = env_hash(env, symbol_pointer);
+  size_t index = env_hash(*env, symbol_pointer);
   EnvironmentValue *entry;
 
   size_t index_it = index;
-  while (index_it < env.data_capacity) {
-    entry = env.data + index_it;
+  while (index_it < env->data_capacity) {
+    entry = env->data + index_it;
     if (entry->key == symbol_pointer) {
       return entry;
     }
@@ -85,7 +91,7 @@ static EnvironmentValue *env_entry(Environment env, char *symbol_pointer) {
 
   index_it = 0;
   while (index_it < index) {
-    entry = env.data + index_it;
+    entry = env->data + index_it;
     if (entry->key == symbol_pointer) {
       return entry;
     }
@@ -95,20 +101,63 @@ static EnvironmentValue *env_entry(Environment env, char *symbol_pointer) {
     ++index_it;
   }
 
-  // TODO: Expand hash table...
-
-  assert(0 && "Environment is completely full...");
-  return NULL;
+  // Expand and try again.
+  // FIXME: It's probably best to expand BEFORE the hash table is
+  // completely full...
+  env_expand(env);
+  return env_entry(env, symbol_pointer);
 }
 
-static void env_insert(Environment env, char *symbol_pointer, Atom to_insert) {
+static void env_insert(Environment *env, char *symbol_pointer, Atom to_insert) {
   EnvironmentValue *entry = env_entry(env, symbol_pointer);
   entry->key = symbol_pointer;
   entry->value = to_insert;
 }
 
+static void env_expand(Environment *table) {
+  // Create a new, larger hash table.
+  size_t old_capacity = table->data_capacity;
+  size_t new_capacity = table->data_capacity << 1;
+  EnvironmentValue *new_data = calloc(1, new_capacity * sizeof(*new_data));
+  if (!new_data) {
+    fprintf(stderr, "env_create() could not allocate new hash table.");
+    exit(9);
+  }
+
+  EnvironmentValue *old_data = table->data;
+  table->data = new_data;
+
+
+  // Rehash all values from old table into new table. This is needed
+  // because the index where the symbol is stored is a function of the
+  // capacity of the table: when the capacity changes, so does the
+  // mapping of hashes to indices. There aren't really many ways to
+  // avoid this. One would be to not actually get rid of the old table,
+  // and have it implemented as a linked list of tables, but this very
+  // quickly slows down lookup and insertion by quite a bit. This
+  // rehashing method, while expensive, only occurs during expansion,
+  // which very rarely occurs in the first place.
+  EnvironmentValue *entry = old_data;
+  // For every value bound in old table, insert binding into new table.
+  for (size_t i = 0; i < old_capacity; ++i, ++entry) {
+    if (entry->key) {
+      env_insert(table, entry->key, entry->value);
+    }
+  }
+
+  free(old_data);
+
+  // Debug output.
+  size_t old_size = old_capacity * sizeof(*table->data);
+  size_t new_size = old_size << 1;
+  if (!strict_output) {
+    printf("Environment size expanded from %zu to %zu entries (%zu to %zu bytes)\n",
+           old_capacity, new_capacity, old_size, new_size);
+  }
+}
+
 Error env_set(Atom environment, Atom symbol, Atom value) {
-  env_insert(*environment.value.env, symbol.value.symbol, value);
+  env_insert(environment.value.env, symbol.value.symbol, value);
   //printf("Set %s to ", symbol.value.symbol);
   //print_atom(value);
   //putchar('\n');
@@ -129,7 +178,7 @@ Atom env_get_containing(Atom environment, Atom symbol) {
   }
 # endif /* #ifdef LITE_GFX */
 
-  EnvironmentValue *entry = env_entry(*environment.value.env, symbol.value.symbol);
+  EnvironmentValue *entry = env_entry(environment.value.env, symbol.value.symbol);
 
   // No key means not bound.
   if (!entry->key) {
@@ -154,7 +203,7 @@ Error env_get(Atom environment, Atom symbol, Atom *result) {
   }
 # endif /* #ifdef LITE_GFX */
 
-  EnvironmentValue *entry = env_entry(*environment.value.env, symbol.value.symbol);
+  EnvironmentValue *entry = env_entry(environment.value.env, symbol.value.symbol);
 
   // No key means not bound.
   if (!entry->key) {
@@ -191,13 +240,13 @@ int boundp(Atom environment, Atom symbol) {
   if (!envp(environment) || !symbolp(symbol)) {
     return 0;
   }
-  EnvironmentValue *entry = env_entry(*environment.value.env, symbol.value.symbol);
+  EnvironmentValue *entry = env_entry(environment.value.env, symbol.value.symbol);
   // Key must not be NULL for a binding to be valid.
   return entry->key != NULL;
 }
 
 Atom default_environment(void) {
-  Atom environment = env_create(nil, 2 << 12);
+  Atom environment = env_create(nil, 2 << 7);
   env_set(environment, make_sym("T"), make_sym("T"));
   env_set(environment, make_sym((char *)builtin_quit_lisp_name),
           make_builtin(builtin_quit_lisp,
