@@ -1044,7 +1044,7 @@ int builtin_buffer_seek_substring(Atom arguments, Atom *result) {
 }
 
 int copy_impl(Atom *copy, Atom *result) {
-  assert(ATOM_TYPE_MAX == 9);
+  assert(ATOM_TYPE_MAX == 10 && "Exhaustive handling of atom types in copy_impl()");
   switch (copy->type) {
   case ATOM_TYPE_NIL:
     *result = nil;
@@ -1073,6 +1073,9 @@ int copy_impl(Atom *copy, Atom *result) {
   case ATOM_TYPE_BUFFER:
     *result = make_buffer(copy->value.buffer->environment,
                           copy->value.buffer->path);
+    break;
+  case ATOM_TYPE_ENVIRONMENT:
+    *result = make_string("Sorry, unimplemented :(. We do not yet support copying environments.");
     break;
   default:
     break;
@@ -1288,7 +1291,6 @@ const char *const builtin_eq_docstring =
   "\n"
   "Return 'T' iff A and B refer to the same Atomic LISP object.";
 int builtin_eq(Atom arguments, Atom *result) {
-  assert(ATOM_TYPE_MAX == 9);
   BUILTIN_ENSURE_TWO_ARGUMENTS(arguments);
   *result = compare_atoms(car(arguments), car(cdr(arguments)));
   return ERROR_NONE;

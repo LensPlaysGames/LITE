@@ -39,23 +39,25 @@ Error gcol_generic_allocation(Atom *ref, void *payload) {
                , NULL);
     return err;
   }
-  GenericAllocation *galloc = malloc(sizeof(GenericAllocation));
+  GenericAllocation *galloc = calloc(1, sizeof(GenericAllocation));
   if (!galloc) {
     MAKE_ERROR(err, ERROR_MEMORY, *ref
                , "GALLOC: Could not allocate memory for generic allocation."
                , NULL);
     return err;
   }
-  galloc->mark = 0;
+
   galloc->payload = payload;
+
   galloc->next = generic_allocations;
   generic_allocations = galloc;
   generic_allocations_count += 1;
-  galloc->more = NULL;
+
   if (ref->galloc) {
     galloc->more = ref->galloc;
   }
   ref->galloc = galloc;
+
   return ok;
 }
 
@@ -84,6 +86,9 @@ void gcol_mark(Atom *root) {
     while (index < root->value.env->data_capacity) {
       gcol_mark(root->value.env->data + index);
       ++index;
+    }
+    if (envp(root->value.env->parent)) {
+      gcol_mark(&root->value.env->parent);
     }
   }
 }
@@ -114,6 +119,9 @@ void gcol_mark_explicit(Atom *root) {
       gcol_mark_explicit(root->value.env->data + index);
       ++index;
     }
+    if (envp(root->value.env->parent)) {
+      gcol_mark_explicit(&root->value.env->parent);
+    }
   }
 }
 
@@ -142,6 +150,9 @@ void gcol_unmark(Atom *root) {
     while (index < root->value.env->data_capacity) {
       gcol_unmark(root->value.env->data + index);
       ++index;
+    }
+    if (envp(root->value.env->parent)) {
+      gcol_unmark(&root->value.env->parent);
     }
   }
 }
@@ -959,7 +970,8 @@ char *atom_string(Atom atom, char *buffer) {
 
 Atom compare_atoms(Atom a, Atom b) {
   int equal = 0;
-  assert(ATOM_TYPE_MAX == 9);
+  //assert(ATOM_TYPE_MAX == 10);
+  _Static_assert(ATOM_TYPE_MAX == 10, "compare_atoms(): Exhaustive handling of atom types");
   if (a.type == b.type) {
     switch (a.type) {
     case ATOM_TYPE_NIL:
@@ -992,6 +1004,9 @@ Atom compare_atoms(Atom a, Atom b) {
       break;
     default:
       equal = 0;
+      break;
+    case ATOM_TYPE_ENVIRONMENT:
+      equal = (a.value.env == b.value.env);
       break;
     }
   }

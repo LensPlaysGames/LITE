@@ -14,30 +14,32 @@
 char user_quit = 0;
 
 Atom env_create(Atom parent, size_t initial_capacity) {
-  Atom out;
-  out.type = ATOM_TYPE_ENVIRONMENT;
-  out.galloc = 0;
-  out.docstring = NULL;
-  out.value.env = calloc(1, sizeof(*out.value.env));
-  if (!out.value.env) {
+  environment *env = calloc(1, sizeof(environment));
+  if (!env) {
     fprintf(stderr, "env_create() could not allocate new environment.");
     exit(9);
   }
-  out.value.env->parent = parent;
-  out.value.env->data_count = 0;
-  out.value.env->data_capacity = initial_capacity;
-  out.value.env->data = calloc(1, initial_capacity * sizeof(*out.value.env->data));
-  if (!out.value.env) {
+  env->parent = parent;
+  env->data_count = 0;
+  env->data_capacity = initial_capacity;
+  env->data = calloc(1, initial_capacity * sizeof(Atom));
+  if (!env->data) {
     fprintf(stderr, "env_create() could not allocate new hash table.");
     exit(9);
   }
 
   // Set all invalid. This is needed to allow for nil bindings.
   size_t index = 0;
-  while (index < out.value.env->data_capacity) {
-    (out.value.env->data + index)->type = ATOM_TYPE_INVALID;
+  while (index < env->data_capacity) {
+    (env->data + index)->type = ATOM_TYPE_INVALID;
     ++index;
   }
+
+  Atom out;
+  out.type = ATOM_TYPE_ENVIRONMENT;
+  out.galloc = 0;
+  out.docstring = NULL;
+  out.value.env = env;
 
   gcol_generic_allocation(&out, out.value.env->data);
   gcol_generic_allocation(&out, out.value.env);
@@ -119,9 +121,8 @@ Atom env_get_containing(Atom environment, Atom symbol) {
   if (invp(binding)) {
     if (!nilp(environment.value.env->parent)) {
       return env_get_containing(environment.value.env->parent, symbol);
-    } else {
-      return nil;
     }
+    return nil;
   }
   return environment;
 }
@@ -141,6 +142,8 @@ Error env_get(Atom environment, Atom symbol, Atom *result) {
       //printf("%s not bound, checking parent...", symbol.value.symbol);
       return env_get(environment.value.env->parent, symbol, result);
     }
+
+    *result = nil;
     MAKE_ERROR(err, ERROR_NOT_BOUND,
                symbol,
                "Symbol not bound in any environment.",
