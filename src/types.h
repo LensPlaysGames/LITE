@@ -19,12 +19,7 @@ typedef struct BuiltIn {
   BuiltInFunction function;
 } BuiltIn;
 
-typedef struct environment {
-  struct Atom *parent;
-  size_t data_count;
-  size_t data_capacity;
-  struct Atom *data;
-} environment;
+struct environment;
 
 typedef struct Buffer Buffer;
 typedef struct Error Error;
@@ -44,6 +39,7 @@ typedef struct Atom {
     ATOM_TYPE_BUFFER,
     ATOM_TYPE_ENVIRONMENT,
     ATOM_TYPE_MAX,
+    ATOM_TYPE_INVALID = -1,
   } type;
   union AtomValue {
     struct Pair *pair;
@@ -51,7 +47,7 @@ typedef struct Atom {
     Buffer *buffer;
     BuiltIn builtin;
     integer_t integer;
-    environment env;
+    struct environment *env;
   } value;
   char *docstring;
   GenericAllocation *galloc;
@@ -61,8 +57,17 @@ typedef struct Pair {
   Atom atom[2];
 } Pair;
 
-static const Atom nil = { ATOM_TYPE_NIL, { 0 }, NULL, NULL };
+typedef struct environment {
+  struct Atom parent;
+  size_t data_count;
+  size_t data_capacity;
+  struct Atom *data;
+} environment;
 
+static const Atom nil = { ATOM_TYPE_NIL,     { 0 }, NULL, NULL };
+static const Atom inv = { ATOM_TYPE_INVALID, { 0 }, NULL, NULL };
+
+#define invp(a)     ((a).type == ATOM_TYPE_INVALID)
 #define nilp(a)     ((a).type == ATOM_TYPE_NIL)
 #define pairp(a)    ((a).type == ATOM_TYPE_PAIR)
 #define symbolp(a)  ((a).type == ATOM_TYPE_SYMBOL)

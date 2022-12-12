@@ -21,6 +21,7 @@
 #endif
 
 void help(int argc, char **argv) {
+  (void)argc;
   printf("USAGE: `%s [filepath to open] [flags/options] [ -- filepaths to evaluate ]`\n"
          "Flags:\n"
          "    --script ... evaluate the given files and then exit, printing\n"

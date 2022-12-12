@@ -18,11 +18,29 @@ Atom env_create(Atom parent, size_t initial_capacity) {
   out.type = ATOM_TYPE_ENVIRONMENT;
   out.galloc = 0;
   out.docstring = NULL;
-  out.value.env.parent = 0;
-  out.value.env.data_count = 0;
-  out.value.env.data_capacity = initial_capacity;
-  out.value.env.data = calloc(1, initial_capacity * sizeof(*out.value.env.data));
-  gcol_generic_allocation(&out, out.value.env.data);
+  out.value.env = calloc(1, sizeof(*out.value.env));
+  if (!out.value.env) {
+    fprintf(stderr, "env_create() could not allocate new environment.");
+    exit(9);
+  }
+  out.value.env->parent = parent;
+  out.value.env->data_count = 0;
+  out.value.env->data_capacity = initial_capacity;
+  out.value.env->data = calloc(1, initial_capacity * sizeof(*out.value.env->data));
+  if (!out.value.env) {
+    fprintf(stderr, "env_create() could not allocate new hash table.");
+    exit(9);
+  }
+
+  // Set all invalid. This is needed to allow for nil bindings.
+  size_t index = 0;
+  while (index < out.value.env->data_capacity) {
+    (out.value.env->data + index)->type = ATOM_TYPE_INVALID;
+    ++index;
+  }
+
+  gcol_generic_allocation(&out, out.value.env->data);
+  gcol_generic_allocation(&out, out.value.env);
   return out;
 }
 
@@ -43,7 +61,9 @@ static size_t hash64shift(char *symbol_pointer) {
 }
 
 static size_t env_hash(environment table, char *symbol_pointer) {
-  return hash64shift(symbol_pointer) & (table.data_capacity - 1);
+  size_t hash = hash64shift(symbol_pointer);
+  //printf("Hash of %s is %zu  pointer=%p\n", symbol_pointer, hash, (void*)symbol_pointer);
+  return hash & (table.data_capacity - 1);
 }
 
 /// Return the entry for the given key string.
@@ -54,7 +74,7 @@ static Atom *env_entry(environment env, char *symbol_pointer) {
   }
   size_t index = env_hash(env, symbol_pointer);
   Atom *entry = env.data + index;
-  if (!nilp(*entry)) {
+  if (!invp(*entry)) {
     return entry;
   }
   return entry;
@@ -62,7 +82,7 @@ static Atom *env_entry(environment env, char *symbol_pointer) {
 
 static void env_insert(environment env, char *symbol_pointer, Atom to_insert) {
   Atom *entry = env_entry(env, symbol_pointer);
-  if (!nilp(*entry)) {
+  if (!invp(*entry)) {
     printf("OVERWRITING ");
     print_atom(*entry);
     printf(" with ");
@@ -74,10 +94,10 @@ static void env_insert(environment env, char *symbol_pointer, Atom to_insert) {
 }
 
 Error env_set(Atom environment, Atom symbol, Atom value) {
-  env_insert(environment.value.env, symbol.value.symbol, value);
-  printf("Set %s to ", symbol.value.symbol);
-  print_atom(value);
-  putchar('\n');
+  env_insert(*environment.value.env, symbol.value.symbol, value);
+  //printf("Set %s to ", symbol.value.symbol);
+  //print_atom(value);
+  //putchar('\n');
   return ok;
 }
 
@@ -95,10 +115,10 @@ Atom env_get_containing(Atom environment, Atom symbol) {
   }
 # endif /* #ifdef LITE_GFX */
 
-  Atom binding = *env_entry(environment.value.env, symbol.value.symbol);
-  if (nilp(binding)) {
-    if (environment.value.env.parent) {
-      return env_get_containing(*environment.value.env.parent, symbol);
+  Atom binding = *env_entry(*environment.value.env, symbol.value.symbol);
+  if (invp(binding)) {
+    if (!nilp(environment.value.env->parent)) {
+      return env_get_containing(environment.value.env->parent, symbol);
     } else {
       return nil;
     }
@@ -115,10 +135,11 @@ Error env_get(Atom environment, Atom symbol, Atom *result) {
     symbol = make_sym("POPUP-BUFFER");
   }
 # endif /* #ifdef LITE_GFX */
-  *result = *env_entry(environment.value.env, symbol.value.symbol);
-  if (nilp(*result)) {
-    if (environment.value.env.parent) {
-      return env_get(*environment.value.env.parent, symbol, result);
+  *result = *env_entry(*environment.value.env, symbol.value.symbol);
+  if (invp(*result)) {
+    if (!nilp(environment.value.env->parent)) {
+      //printf("%s not bound, checking parent...", symbol.value.symbol);
+      return env_get(environment.value.env->parent, symbol, result);
     }
     MAKE_ERROR(err, ERROR_NOT_BOUND,
                symbol,
@@ -135,12 +156,19 @@ int env_non_nil(Atom environment, Atom symbol) {
   if (err.type) {
     return 0;
   }
+  // If not bound, don't return non-nil; that is, it is effectively
+  // nil.
+  if (invp(bind)) {
+    return 0;
+  }
   return !nilp(bind);
 }
 
 int boundp(Atom environment, Atom symbol) {
   Atom bind = nil;
-  return !(env_get(environment, symbol, &bind).type);
+  Error err = env_get(environment, symbol, &bind);
+  if (err.type) { return 0; }
+  return !invp(bind);
 }
 
 Atom default_environment(void) {
@@ -394,7 +422,7 @@ Atom default_environment(void) {
           make_builtin(builtin_string_length,
                        (char *)builtin_string_length_name,
                        (char *)builtin_string_length_docstring));
-    env_set(environment, make_sym((char *)builtin_string_concat_name),
+  env_set(environment, make_sym((char *)builtin_string_concat_name),
           make_builtin(builtin_string_concat,
                        (char *)builtin_string_concat_name,
                        (char *)builtin_string_concat_docstring));

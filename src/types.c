@@ -60,7 +60,7 @@ Error gcol_generic_allocation(Atom *ref, void *payload) {
 }
 
 void gcol_mark(Atom *root) {
-  if (nilp(*root)) {
+  if (invp(*root) || nilp(*root)) {
     return;
   }
   if (root->galloc) {
@@ -81,15 +81,15 @@ void gcol_mark(Atom *root) {
   }
   if (envp(*root)) {
     size_t index = 0;
-    while (index < root->value.env.data_capacity) {
-      gcol_mark(root->value.env.data + index);
+    while (index < root->value.env->data_capacity) {
+      gcol_mark(root->value.env->data + index);
       ++index;
     }
   }
 }
 
 void gcol_mark_explicit(Atom *root) {
-  if (nilp(*root)) {
+  if (invp(*root) || nilp(*root)) {
     return;
   }
   if (root->galloc) {
@@ -110,15 +110,15 @@ void gcol_mark_explicit(Atom *root) {
   }
   if (envp(*root)) {
     size_t index = 0;
-    while (index < root->value.env.data_capacity) {
-      gcol_mark_explicit(root->value.env.data + index);
+    while (index < root->value.env->data_capacity) {
+      gcol_mark_explicit(root->value.env->data + index);
       ++index;
     }
   }
 }
 
 void gcol_unmark(Atom *root) {
-  if (nilp(*root)) {
+  if (invp(*root) || nilp(*root)) {
     return;
   }
   if (root->galloc) {
@@ -139,8 +139,8 @@ void gcol_unmark(Atom *root) {
   }
   if (envp(*root)) {
     size_t index = 0;
-    while (index < root->value.env.data_capacity) {
-      gcol_unmark(root->value.env.data + index);
+    while (index < root->value.env->data_capacity) {
+      gcol_unmark(root->value.env->data + index);
       ++index;
     }
   }
@@ -746,8 +746,8 @@ void print_atom(Atom atom) {
     putchar('(');
     size_t index = 0;
     Atom it;
-    while (index < atom.value.env.data_capacity) {
-      it = atom.value.env.data[index];
+    while (index < atom.value.env->data_capacity) {
+      it = atom.value.env->data[index];
       if (!nilp(it)) {
         print_atom(it);
         putchar(' ');
@@ -787,8 +787,8 @@ void pretty_print_atom(Atom atom) {
     putchar('(');
     size_t index = 0;
     Atom it;
-    while (index < atom.value.env.data_capacity) {
-      it = atom.value.env.data[index];
+    while (index < atom.value.env->data_capacity) {
+      it = atom.value.env->data[index];
       if (!nilp(it)) {
         pretty_print_atom(it);
         putchar('\n');
