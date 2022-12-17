@@ -1252,7 +1252,7 @@ int builtin_apply(Atom arguments, Atom *result) {
   }
   // Handle closure.
   // Layout: FUNCTION ARGUMENTS . BODY
-  Atom environment = env_create(car(function), 2 << 4);
+  Atom environment = env_create(car(function), 2 << 2);
   Atom argument_names = car(cdr(function));
   Atom body = cdr(cdr(function));
   // Bind arguments into local environment.
