@@ -196,40 +196,33 @@ Here are the different types an Atom may have in LITE LISP:
 
 *** Environment, Variables, and QUOTE
 
-Variables are stored in an /environment/.
-The environment is a key/value dictionary, where the keys
-are a symbol, and the values are atomic LISP objects.
+Variables are stored in an /environment/. An environment is a key/value dictionary, where the keys are a symbol, and the values are atomic LISP objects. When evaluating a symbol, it is first checked if there is a binding in any accessible environment. If so, that value is used in place of the symbol, when evaluated.
 
-To bind a symbol to a value in the local scope, use the ~DEFINE~ special form.
+To bind a symbol to a value in the local environment, use the ~DEFINE~ special form.
 #+begin_src lisp
   (define new-variable 42)
 #+end_src
 
-To bind a symbol to a value in the global scope, use the ~SET~ special form.
+NOTE: ~DEFINE~ will first attempt to find the symbol in any parent environment; if found, it will override that binding's value instead of creating a new one in the immediate environment. This allows for ~DEFINE~ to set the value of parameters, ~LET~ arguments, etc.
+
+To bind a symbol to a value in the global environment, use the ~SET~ special form.
 #+begin_src lisp
   (set new-variable 42)
 #+end_src
 
-# TODO: Explore what is meant by "scope", above.
+~new-variable~ is now a symbol bound in the environment. Following occurences of the bound symbol will be evaluated to the defined value, ~42~.
 
-~new-variable~ is now a symbol bound in the environment.
-Following occurences of the bound symbol will be evaluated to the defined value, ~42~.
-
-Sometimes, it is useful to *not* evaluate a variable.
-This can be done using the ~QUOTE~ operator.
+Sometimes, it is useful to *not* evaluate a variable. This can be done using the ~QUOTE~ operator.
 #+begin_src lisp
   (quote new-variable) ; returns the symbol "new-variable"
 #+end_src
 
-As quoting is a very common necessity in LISP, there is
-a special short-hand for it: a preceding single-quote.
-This short-hand means the following to be equivalent to the ~QUOTE~ just above.
+As quoting is a very common necessity in LISP, there is a special short-hand for it: a preceding single-quote. This short-hand means the following to be equivalent to the ~QUOTE~ just above.
 #+begin_src lisp
   'new-variable ; returns the symbol "new-variable"
 #+end_src
 
-When defining any variable, it is possible to define
-a docstring for it by specifying it as a third argument:
+When defining any variable, it is possible to define a docstring for it by specifying it as a third argument:
 #+begin_src lisp
   (define new-variable 42 "The meaning of life, the universe, and everything.")
 #+end_src
