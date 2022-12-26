@@ -493,9 +493,9 @@ Foreground (FG) and background (BG) are in format of '(R G B A)'."
                (pairp (cdr (cdr (cdr bg))))
                (integerp (car (cdr (cdr (cdr bg))))))
     (error "Invalid argument types in add-text-property-to-window"))
-  (set-window-text-properties window (cons
-                                      (list id offset length fg bg)
-                                      (window-text-properties window)))
+  (set-window-text-properties
+   window (cons (list id offset length fg bg)
+                (window-text-properties window)))
   id)
 
 (defun add-text-property (id offset length fg bg)
