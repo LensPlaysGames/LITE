@@ -296,7 +296,7 @@ static inline SDL_Rect *rect_copy_size(SDL_Rect *dst, SDL_Rect *src) {
 }
 
 static inline void draw_gui_string_into_surface_within_rect
-(GUIString gui_string, SDL_Surface *surface, SDL_Rect *rect) {
+(GUIString gui_string, SDL_Surface *surface, SDL_Rect *rect, char cr_char) {
   if (!gui_string.string || gui_string.string[0] == '\0' || !surface || !rect) {
     return;
   }
@@ -335,9 +335,13 @@ static inline void draw_gui_string_into_surface_within_rect
   SDL_Rect destination = srcrect;
   SDL_Rect destination_copy = destination;
   char got_carriage_return = 0;
+  char skip_carriage_return = 0;
   while (1) {
     if (*string == '\r') {
       got_carriage_return = 1;
+      if (!cr_char) {
+        skip_carriage_return = 1;
+      }
     } else if (*string == '\n' || *string == '\0') {
       // Byte offset of start of line we are currently at the end of.
       // TODO: Add horizontal offset here. If that makes start past
@@ -348,23 +352,30 @@ static inline void draw_gui_string_into_surface_within_rect
       // Render entire line using defaults.
       // Calculate amount of bytes within the current line.
       size_t bytes_to_render = offset - start_of_line_offset;
-      if (got_carriage_return) {
-        // Skip carriage return.
-        // TODO: Don't skip '\r' when we should render it. We could
-        // also just remove it at an earlier stage, like have a flag in
-        // `rope_string` that skips them when building it.
+      if (got_carriage_return && skip_carriage_return) {
+        // FIXME: This very heavily assumes the carriage return is at
+        // the end, just before a linefeed.
         bytes_to_render -= 1;
+        skip_carriage_return = 0;
         got_carriage_return = 0;
+      } else {
+        // Handled below, after line text is allocated and empty lines are skipped.
       }
       char *line_text = allocate_string_span
         (gui_string.string, start_of_line_offset, bytes_to_render);
-      // Skip empty lines.
       if (!line_text) {
         fprintf(stderr,
                 "GFX::SDL2::ERROR: Could not allocate string span for line text.");
         return;
       }
+      // Skip empty lines.
       if (line_text[0] != '\0') {
+        if (got_carriage_return) {
+          // FIXME: This heavily assumes the carriage return is at the
+          // end, just before a linefeed.
+          line_text[bytes_to_render - 1] = cr_char;
+        }
+
         // Use FreeType subpixel LCD rendering, if possible.
 #       if SDL_TTF_VERSION_ATLEAST(2,20,0) && !_WIN32
         SDL_Surface *line_text_surface =
@@ -469,7 +480,7 @@ static inline void draw_gui_string_into_surface_within_rect
         break;
       }
     } else {
-      got_carriage_return = 0;
+      skip_carriage_return = 0;
     }
     if (*string == '\0') {
       break;
@@ -557,9 +568,9 @@ void draw_gui(GUIContext *ctx) {
     rect_window.y = (int)(((float)(window->posy) / 100.0f) * rect_contents.h);
     rect_window.w = (int)(((float)(window->sizex) / 100.0f) * rect_contents.w);
     rect_window.h = (int)(((float)(window->sizey) / 100.0f) * rect_contents.h);
-    draw_gui_string_into_surface_within_rect(window->contents, surface, &rect_window);
+    draw_gui_string_into_surface_within_rect(window->contents, surface, &rect_window, ctx->cr_char);
   }
-  draw_gui_string_into_surface_within_rect(ctx->footline, surface, &rect_footline);
+  draw_gui_string_into_surface_within_rect(ctx->footline, surface, &rect_footline, ctx->cr_char);
 
   if (ctx->reading) {
     SDL_Rect rect_popup;
@@ -578,7 +589,7 @@ void draw_gui(GUIContext *ctx) {
     rect_popup_outline.y -= border_thickness / 2;
     SDL_FillRect(surface, &rect_popup_outline, 0xffffffff);
     SDL_FillRect(surface, &rect_popup, 0);
-    draw_gui_string_into_surface_within_rect(ctx->popup, surface, &rect_popup);
+    draw_gui_string_into_surface_within_rect(ctx->popup, surface, &rect_popup, ctx->cr_char);
   }
 
   // Copy screen surface into a texture.

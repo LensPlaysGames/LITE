@@ -532,6 +532,11 @@ Atom default_environment(void) {
                        (char *)builtin_clipboard_paste_name,
                        (char *)builtin_clipboard_paste_docstring));
 
+  env_set(environment, make_sym((char *)builtin_set_carriage_return_character_name),
+          make_builtin(builtin_set_carriage_return_character,
+                       (char *)builtin_set_carriage_return_character_name,
+                       (char *)builtin_set_carriage_return_character_docstring));
+
   env_set(environment, make_sym((char *)builtin_change_font_name),
           make_builtin(builtin_change_font,
                        (char *)builtin_change_font_name,

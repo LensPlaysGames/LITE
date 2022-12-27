@@ -120,7 +120,8 @@ int main(int argc, char **argv) {
       fprintf(stderr,
               "[WARN]: LITE could not load the standard library,\n"
               "and a large portion of the functionality will be missing.\n"
-              "  Path: %s\n", concat_path);
+              "  Paths:\n%s\n%s\n", concat_path, std_path);
+      err = ok;
     }
   }
   if (err.type) {
@@ -129,8 +130,7 @@ int main(int argc, char **argv) {
   }
   free(concat_path);
 
-  // Evaluate all the arguments as file paths, except for detected
-  // valid arguments.
+  // Evaluate arguments past `--` as LITE LISP source files.
   if (arg_eval_index != -1) {
     for (int i = arg_eval_index; i < argc; ++i) {
       err = evaluate_file(*genv(), argv[i], &result);
@@ -160,29 +160,32 @@ int main(int argc, char **argv) {
     home_path_var = "HOMEPATH";
     home_path = getenv(home_path_var);
   }
+  if (!home_path) {
+    fprintf(stderr,
+            "[WARN]: LITE will attempt to load \".lite\" from the path at the\n"
+            "HOME, APPDATA, USERPROFILE, and HOMEPATH environment variable(s),\n"
+            "but none are set.\n");
+  }
   if (home_path) {
     env_set(*genv(), make_sym("HOMEPATH"), make_string((char *)home_path));
     char *lite_path = string_join(home_path, "/.lite");
-    if (lite_path) {
-      env_set(*genv(), make_sym("LITEPATH"), make_string(lite_path));
-      err = evaluate_file(*genv(), lite_path, &result);
-      free(lite_path);
-      if (err.type == ERROR_FILE) {
-        printf(".lite could not be loaded from \"%s\" (%s)\n",
-               home_path, home_path_var);
-      } else if (err.type) {
-        printf(".lite ");
-        print_error(err);
-      } else {
-        printf(".lite successfully loaded from \"%s\" (%s)\n",
-               home_path, home_path_var);
-      }
+    if (!lite_path) {
+      fprintf(stderr, "Could not create lite_path: allocation failure.\n");
+    }
+    env_set(*genv(), make_sym("LITEPATH"), make_string(lite_path));
+    err = evaluate_file(*genv(), lite_path, &result);
+    free(lite_path);
+    if (err.type == ERROR_FILE) {
+      printf(".lite could not be loaded from \"%s\" (%s)\n",
+             home_path, home_path_var);
+    } else if (err.type) {
+      printf(".lite ");
+      print_error(err);
     } else {
-      printf("Could not create path: allocation failure.\n");
+      printf(".lite successfully loaded from \"%s\" (%s)\n",
+             home_path, home_path_var);
     }
   } else {
-    printf("LITE will attempt to load \".lite\" from the path at"
-           "the HOME environment variable, but it is not set.");
   }
 
   int status = 0;

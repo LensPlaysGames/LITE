@@ -60,6 +60,8 @@ typedef struct GUIContext {
   GUIString footline;
   GUIString popup;
   char reading;
+  /// The character that a carriage return (\r) will be rendered as.
+  char cr_char;
 } GUIContext;
 
 enum CreateGUIReturnValue {

@@ -254,6 +254,10 @@ extern const char *const builtin_clipboard_paste_name;
 extern const char *const builtin_clipboard_paste_docstring;
 int builtin_clipboard_paste(Atom arguments, Atom *result);
 
+extern const char *const builtin_set_carriage_return_character_name;
+extern const char *const builtin_set_carriage_return_character_docstring;
+int builtin_set_carriage_return_character(Atom arguments, Atom *result);
+
 extern const char *const builtin_change_font_name;
 extern const char *const builtin_change_font_docstring;
 int builtin_change_font(Atom arguments, Atom *result);

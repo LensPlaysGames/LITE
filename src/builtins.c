@@ -1733,6 +1733,37 @@ int builtin_clipboard_paste(Atom arguments, Atom *result) {
 }
 
 
+const char *const builtin_set_carriage_return_character_name = "SET-CARRIAGE-RETURN-CHARACTER";
+const char *const builtin_set_carriage_return_character_docstring =
+  "(set-carriage-return-character CHARSTRING)\n"
+  "\n"
+  "When non-nil, use the first character of string as the character to render a carriage return (\\\\r) as.\n"
+  "When nil, do not render carriage return character (make it invisible).";
+int builtin_set_carriage_return_character(Atom arguments, Atom *result) {
+  BUILTIN_ENSURE_ONE_ARGUMENT(arguments);
+  *result = nil;
+
+# ifdef LITE_GFX
+  if (nilp(car(arguments)) || stringp(car(arguments)) || symbolp(car(arguments))) {
+    *result = make_sym("T");
+    gui_ctx()->cr_char = nilp(car(arguments)) ? 0 : car(arguments).value.symbol[0];
+    // Disallow control characters.
+    if (gui_ctx()->cr_char < 32) {
+      gui_ctx()->cr_char = 0;
+    }
+    return ERROR_NONE;
+  }
+  MAKE_ERROR(err, ERROR_TYPE,
+             arguments,
+             "Argument to set-carriage-return-character is of incorrect type!",
+             "Try passing a symbol or string, like \"$\" or '$, or nil to hide carriage return.");
+  print_error(err);
+  return err.type;
+# endif
+
+  return ERROR_NONE;
+}
+
 //const char *const builtin__name = "LISP-SYMBOL";
 //const char *const builtin__docstring =
 //  "(lisp-symbol)\n"
