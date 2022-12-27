@@ -577,8 +577,7 @@ int gui_loop(void) {
     gui_ctx()->popup.string = NULL;
   }
 
-
-  // TODO: Lots of type checking...
+  // TODO: Lots of type checking... windows must be windows.
 
   integer_t index = 0;
   GUIWindow *last_window = gctx->windows;

@@ -20,7 +20,7 @@ Buffer *buffer_create(char *path) {
     print_error(args);
     return NULL;
   }
-  Buffer *buffer = malloc(sizeof(Buffer));
+  Buffer *buffer = calloc(1,sizeof(Buffer));
   if (!buffer) {
     MAKE_ERROR(oom, ERROR_MEMORY, nil
                , "buffer_create: Could not allocate new buffer (out of memory)."
@@ -30,8 +30,7 @@ Buffer *buffer_create(char *path) {
     return NULL;
   }
   buffer->path = path;
-  buffer->point_byte = 0;
-  buffer->mark_byte = 0;
+
   Rope *rope = NULL;
   const SimpleFile file = get_file(buffer->path);
   if (file.flags & SMPL_FILE_FLAG_OK) {
@@ -109,9 +108,9 @@ Error buffer_insert_indexed(Buffer *buffer, size_t byte_index, char* string) {
   } else {
     buffer->point_byte = byte_index + strlen(string) + 1;
   }
-  buffer->rope = new_rope;
   // Clear mark activation bit.
   buffer->mark_byte &= ~BUFFER_MARK_ACTIVATION_BIT;
+  buffer->rope = new_rope;
   return ok;
 }
 
@@ -137,21 +136,27 @@ Error buffer_insert_byte(Buffer *buffer, char byte) {
                , NULL);
     return args;
   }
-  buffer->rope = rope;
   buffer->point_byte += 1;
   // Clear mark activation bit.
   buffer->mark_byte &= ~BUFFER_MARK_ACTIVATION_BIT;
+  buffer->rope = rope;
   return ok;
 }
 
 Error buffer_insert_byte_indexed(Buffer *buffer, size_t byte_index, char byte) {
   if (!buffer) {
     MAKE_ERROR(args, ERROR_ARGUMENTS, nil
-               , "buffer_insert_byte: Buffer must not be NULL."
+               , "buffer_insert_byte_indexed: Buffer must not be NULL."
                , NULL);
     return args;
   }
-  buffer->rope = rope_insert_byte(buffer->rope, byte_index, byte);
+  Rope *rope = rope_insert_byte(buffer->rope, byte_index, byte);
+  if (!rope) {
+    MAKE_ERROR(args, ERROR_ARGUMENTS, nil
+               , "buffer_insert_byte_indexed: Could not insert byte into buffer rope."
+               , NULL);
+    return args;
+  }
   if (byte_index > buffer->rope->weight) {
     buffer->point_byte = buffer->rope->weight;
   } else {
@@ -159,6 +164,7 @@ Error buffer_insert_byte_indexed(Buffer *buffer, size_t byte_index, char byte) {
   }
   // Clear mark activation bit.
   buffer->mark_byte &= ~BUFFER_MARK_ACTIVATION_BIT;
+  buffer->rope = rope;
   return ok;
 }
 Error buffer_prepend_byte(Buffer *buffer, char byte) {
@@ -194,9 +200,9 @@ Error buffer_remove_bytes(Buffer *buffer, size_t count) {
                , NULL);
     return err;
   }
-  buffer->rope = rope;
   // Clear mark activation bit.
   buffer->mark_byte &= ~BUFFER_MARK_ACTIVATION_BIT;
+  buffer->rope = rope;
   return ok;
 }
 
@@ -244,9 +250,9 @@ Error buffer_remove_bytes_forward(Buffer *buffer, size_t count) {
                , NULL);
     return err;
   }
-  buffer->rope = rope;
   // Clear mark activation bit.
   buffer->mark_byte &= ~BUFFER_MARK_ACTIVATION_BIT;
+  buffer->rope = rope;
   return ok;
 }
 
