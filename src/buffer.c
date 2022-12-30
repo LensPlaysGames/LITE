@@ -12,6 +12,93 @@
 #include <types.h>
 #include <utility.h>
 
+
+const char *buf_hst_type_string(BufferHistoryType type) {
+  switch (type) {
+  case BUF_HST_INSERT: return "INSERT";
+  case BUF_HST_REMOVE: return "REMOVE";
+  default: return "INVALID";
+  }
+  return "UNREACHABLE";
+}
+
+void buf_hst_print_node(BufferHistoryNode *node) {
+  if (!node) {
+    printf("\n");
+    return;
+  }
+  buf_hst_print_node(node->next);
+  printf("%s:%zu:%zu:\"%s\"\n",
+         buf_hst_type_string(node->type),
+         node->offset, node->length,
+         node->data);
+}
+
+void buf_hst_create_node(BufferHistoryType type, BufferHistoryNode **head, char *data, size_t offset, size_t length) {
+  BufferHistoryNode *new_node = calloc(1, sizeof *new_node);
+
+  new_node->type   = type;
+  new_node->offset = offset;
+  new_node->length = length;
+  new_node->data   = data;
+
+  new_node->next = *head;
+  *head = new_node;
+}
+
+Error buffer_create_hst_node(Buffer *buffer, BufferHistoryType type, char *data, size_t offset, size_t length) {
+  // If the previous head is of the same type...
+  if (buffer->history.undo && buffer->history.undo->type == type) {
+    // If the cursor is in the correct position.
+    switch (type) {
+    case BUF_HST_INSERT:{
+      // NOTE: Prepend insertion is possible, but it would be counter-intuitive to use.
+      if (buffer->point_byte == buffer->history.undo->offset + buffer->history.undo->length) {
+        // Append insertion.
+        size_t new_length = buffer->history.undo->length + length;
+        char *new_data = malloc(new_length + 1);
+        memcpy(new_data, buffer->history.undo->data, buffer->history.undo->length);
+        memcpy(new_data + buffer->history.undo->length, data, length);
+        new_data[new_length] = '\0';
+        char *old_data = buffer->history.undo->data;
+
+        buffer->history.undo->length = new_length;
+        buffer->history.undo->data = new_data;
+
+        free(old_data);
+        return ok;
+      }
+    } break;
+    case BUF_HST_REMOVE: {
+      // NOTE: Append removal is possible, but it would be counter-intuitive to use.
+      if (buffer->point_byte + length == buffer->history.undo->offset) {
+        // Prepend removal.
+        size_t new_offset = buffer->history.undo->offset - length;
+        size_t new_length = buffer->history.undo->length + length;
+        char *new_data = malloc(new_length + 1);
+        memcpy(new_data, data, length);
+        memcpy(new_data + length, buffer->history.undo->data, buffer->history.undo->length);
+        new_data[new_length] = '\0';
+        char *old_data = buffer->history.undo->data;
+
+        buffer->history.undo->offset = new_offset;
+        buffer->history.undo->length = new_length;
+        buffer->history.undo->data = new_data;
+
+        free(old_data);
+        return ok;
+      }
+    } break;
+    default: {
+      MAKE_ERROR(err, ERROR_GENERIC, nil, "Unhandled buffer history type in buffer_create_hst_node merging.", NULL);
+      return err;
+    } break;
+    }
+  }
+  buf_hst_create_node(type, &buffer->history.undo, data, offset, length);
+  return ok;
+}
+
 Buffer *buffer_create(char *path) {
   if (!path) {
     MAKE_ERROR(args, ERROR_ARGUMENTS, nil
@@ -76,6 +163,10 @@ Error buffer_insert(Buffer *buffer, char* string) {
                , NULL);
     return err;
   }
+
+  char *data = strdup(string);
+  buffer_create_hst_node(buffer, BUF_HST_INSERT, data, buffer->point_byte, strlen(data));
+
   buffer->point_byte += strlen(string);
   // Clear mark activation bit.
   buffer->mark_byte &= ~BUFFER_MARK_ACTIVATION_BIT;
@@ -103,6 +194,10 @@ Error buffer_insert_indexed(Buffer *buffer, size_t byte_index, char* string) {
                , NULL);
     return err;
   }
+
+  char *data = strdup(string);
+  buffer_create_hst_node(buffer, BUF_HST_INSERT, data, byte_index, strlen(data));
+
   if (byte_index > new_rope->weight) {
     buffer->point_byte = new_rope->weight;
   } else {
@@ -136,6 +231,11 @@ Error buffer_insert_byte(Buffer *buffer, char byte) {
                , NULL);
     return args;
   }
+
+  char *data = calloc(1,2);
+  data[0] = byte;
+  buffer_create_hst_node(buffer, BUF_HST_INSERT, data, buffer->point_byte, 1);
+
   buffer->point_byte += 1;
   // Clear mark activation bit.
   buffer->mark_byte &= ~BUFFER_MARK_ACTIVATION_BIT;
@@ -157,6 +257,11 @@ Error buffer_insert_byte_indexed(Buffer *buffer, size_t byte_index, char byte) {
                , NULL);
     return args;
   }
+
+  char *data = calloc(1,2);
+  data[0] = byte;
+  buffer_create_hst_node(buffer, BUF_HST_INSERT, data, byte_index, 1);
+
   if (byte_index > buffer->rope->weight) {
     buffer->point_byte = buffer->rope->weight;
   } else {
@@ -193,6 +298,7 @@ Error buffer_remove_bytes(Buffer *buffer, size_t count) {
     count = buffer->point_byte;
     buffer->point_byte = 0;
   }
+  char *span = rope_span(buffer->rope, buffer->point_byte, count);
   Rope *rope = rope_remove_span(buffer->rope, buffer->point_byte, count);
   if (!rope) {
     MAKE_ERROR(err, ERROR_GENERIC, nil
@@ -200,6 +306,9 @@ Error buffer_remove_bytes(Buffer *buffer, size_t count) {
                , NULL);
     return err;
   }
+
+  buffer_create_hst_node(buffer, BUF_HST_REMOVE, span, buffer->point_byte, count);
+
   // Clear mark activation bit.
   buffer->mark_byte &= ~BUFFER_MARK_ACTIVATION_BIT;
   buffer->rope = rope;
@@ -211,7 +320,7 @@ Error buffer_remove_byte(Buffer *buffer) {
 }
 
 Error buffer_remove_bytes_forward(Buffer *buffer, size_t count) {
-  if (!buffer || !buffer->rope) {
+  if (!buffer) {
     MAKE_ERROR(err, ERROR_ARGUMENTS, nil
                , "Can not remove bytes from NULL buffer."
                , NULL);
@@ -243,6 +352,7 @@ Error buffer_remove_bytes_forward(Buffer *buffer, size_t count) {
       return err;
     }
   }
+  char *span = rope_span(buffer->rope, buffer->point_byte, count);
   Rope *rope = rope_remove_span(buffer->rope, buffer->point_byte, count);
   if (!rope) {
     MAKE_ERROR(err, ERROR_GENERIC, nil
@@ -250,6 +360,9 @@ Error buffer_remove_bytes_forward(Buffer *buffer, size_t count) {
                , NULL);
     return err;
   }
+
+  buffer_create_hst_node(buffer, BUF_HST_REMOVE, span, buffer->point_byte, count);
+
   // Clear mark activation bit.
   buffer->mark_byte &= ~BUFFER_MARK_ACTIVATION_BIT;
   buffer->rope = rope;
@@ -259,6 +372,99 @@ Error buffer_remove_bytes_forward(Buffer *buffer, size_t count) {
 Error buffer_remove_byte_forward(Buffer *buffer) {
   return buffer_remove_bytes_forward(buffer, 1);
 }
+
+
+Error buffer_undo(Buffer *buffer) {
+  BufferHistoryNode **head = &buffer->history.undo;
+
+  // Nothing to do.
+  if (!*head) return ok;
+
+  _Static_assert(BUF_HST_MAX == 3, "Exhaustive handling of buffer history node types in buffer_undo().");
+
+  BufferHistoryNode *node = *head;
+
+  switch (node->type) {
+  case BUF_HST_INSERT: {
+    Rope *new_rope = rope_remove_span(buffer->rope, node->offset, node->length);
+    if (!new_rope) {
+      MAKE_ERROR(err, ERROR_GENERIC, nil, "UNDO Could not remove from buffer's rope.", NULL);
+      return err;
+    }
+    buffer->point_byte = node->offset;
+    buffer->rope = new_rope;
+  } break;
+  case BUF_HST_REMOVE: {
+    // TODO: Use node->length
+    Rope *new_rope = rope_insert(buffer->rope, node->offset, node->data);
+    if (!new_rope) {
+      MAKE_ERROR(err, ERROR_GENERIC, nil, "UNDO Could not insert into buffer's rope.", NULL);
+      return err;
+    }
+    buffer->point_byte = node->offset + node->length;
+    buffer->rope = new_rope;
+  } break;
+  default: {
+    MAKE_ERROR(err, ERROR_GENERIC, nil, "Unhandled buffer history node type", NULL);
+    return err;
+  } break;
+  }
+
+  // Remove node by updating head to head->next;
+  *head = (*head)->next;
+
+  // Add to redo list.
+  node->next = buffer->history.redo;
+  buffer->history.redo = node;
+
+  return ok;
+}
+
+Error buffer_redo(Buffer *buffer) {
+  BufferHistoryNode **head = &buffer->history.redo;
+
+  // Nothing to redo.
+  if (!*head) return ok;
+
+  _Static_assert(BUF_HST_MAX == 3, "Exhaustive handling of buffer history node types in buffer_redo().");
+
+  BufferHistoryNode *node = *head;
+  switch(node->type) {
+    case BUF_HST_INSERT: {
+    // TODO: Use node->length
+    Rope *new_rope = rope_insert(buffer->rope, node->offset, node->data);
+    if (!new_rope) {
+      MAKE_ERROR(err, ERROR_GENERIC, nil, "REDO Could not insert into buffer's rope.", NULL);
+      return err;
+    }
+    buffer->point_byte = node->offset + node->length;
+    buffer->rope = new_rope;
+  } break;
+  case BUF_HST_REMOVE: {
+    Rope *new_rope = rope_remove_span(buffer->rope, node->offset, node->length);
+    if (!new_rope) {
+      MAKE_ERROR(err, ERROR_GENERIC, nil, "REDO Could not remove from buffer's rope.", NULL);
+      return err;
+    }
+    buffer->point_byte = node->offset;
+    buffer->rope = new_rope;
+  } break;
+  default: {
+    MAKE_ERROR(err, ERROR_GENERIC, nil, "Unhandled buffer history node type", NULL);
+    return err;
+  } break;
+  }
+
+  // Remove node by updating head to head->next;
+  *head = (*head)->next;
+
+  // Add to undo list.
+  node->next = buffer->history.undo;
+  buffer->history.undo = node;
+
+  return ok;
+}
+
 
 size_t buffer_mark(Buffer buffer) {
   return buffer.mark_byte &= ~BUFFER_MARK_ACTIVATION_BIT;

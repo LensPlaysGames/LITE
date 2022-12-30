@@ -168,6 +168,14 @@ extern const char *const builtin_buffer_remove_forward_name;
 extern const char *const builtin_buffer_remove_forward_docstring;
 int builtin_buffer_remove_forward(Atom arguments, Atom *result);
 
+extern const char *const builtin_buffer_undo_name;
+extern const char *const builtin_buffer_undo_docstring;
+int builtin_buffer_undo(Atom arguments, Atom *result);
+extern const char *const builtin_buffer_redo_name;
+extern const char *const builtin_buffer_redo_docstring;
+int builtin_buffer_redo(Atom arguments, Atom *result);
+
+
 extern const char *const builtin_buffer_set_point_name;
 extern const char *const builtin_buffer_set_point_docstring;
 int builtin_buffer_set_point(Atom arguments, Atom *result);

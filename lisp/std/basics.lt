@@ -177,6 +177,14 @@ the byte length of the selected region")
     (lambda (count) (buffer-remove-forward current-buffer count))
   "Remove COUNT bytes from current buffer following point.")
 
+(define undo
+    (lambda () (buffer-undo current-buffer))
+  "Perform an undo on the current buffer.")
+
+(define redo
+    (lambda () (buffer-redo current-buffer))
+  "Perform an redo on the current buffer.")
+
 (define set-point
     (lambda (point) (buffer-set-point current-buffer point))
   "Set byte offset of cursor within current buffer to POINT.")

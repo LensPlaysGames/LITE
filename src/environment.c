@@ -442,6 +442,14 @@ Atom default_environment(void) {
           make_builtin(builtin_buffer_remove_forward,
                        (char *)builtin_buffer_remove_forward_name,
                        (char *)builtin_buffer_remove_forward_docstring));
+  env_set(environment, make_sym((char *)builtin_buffer_undo_name),
+          make_builtin(builtin_buffer_undo,
+                       (char *)builtin_buffer_undo_name,
+                       (char *)builtin_buffer_undo_docstring));
+  env_set(environment, make_sym((char *)builtin_buffer_redo_name),
+          make_builtin(builtin_buffer_redo,
+                       (char *)builtin_buffer_redo_name,
+                       (char *)builtin_buffer_redo_docstring));
   env_set(environment, make_sym((char *)builtin_buffer_string_name),
           make_builtin(builtin_buffer_string,
                        (char *)builtin_buffer_string_name,

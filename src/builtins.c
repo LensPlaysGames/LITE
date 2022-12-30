@@ -732,6 +732,39 @@ int builtin_buffer_remove_forward(Atom arguments, Atom *result) {
   return ERROR_NONE;
 }
 
+const char *const builtin_buffer_undo_name = "BUFFER-UNDO";
+const char *const builtin_buffer_undo_docstring =
+  "(buffer-undo BUFFER)";
+int builtin_buffer_undo(Atom arguments, Atom *result) {
+  BUILTIN_ENSURE_ONE_ARGUMENT(arguments);
+  Atom buffer = car(arguments);
+  if (!bufferp(buffer)) {
+    return ERROR_TYPE;
+  }
+  Error err = buffer_undo(buffer.value.buffer);
+  if (err.type) {
+    print_error(err);
+    return err.type;
+  }
+  return ERROR_NONE;
+}
+const char *const builtin_buffer_redo_name = "BUFFER-REDO";
+const char *const builtin_buffer_redo_docstring =
+  "(buffer-redo BUFFER)";
+int builtin_buffer_redo(Atom arguments, Atom *result) {
+  BUILTIN_ENSURE_ONE_ARGUMENT(arguments);
+  Atom buffer = car(arguments);
+  if (!bufferp(buffer)) {
+    return ERROR_TYPE;
+  }
+  Error err = buffer_redo(buffer.value.buffer);
+  if (err.type) {
+    print_error(err);
+    return err.type;
+  }
+  return ERROR_NONE;
+}
+
 const char *const builtin_buffer_set_point_name = "BUFFER-SET-POINT";
 const char *const builtin_buffer_set_point_docstring =
   "(buffer-set-point BUFFER POINT) \n"

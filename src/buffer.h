@@ -14,12 +14,49 @@
 
 #define BUFFER_MARK_ACTIVATION_BIT ((size_t)1 << (SIZE_T_BIT - 1))
 
+typedef enum BufferHistoryType {
+  BUF_HST_INVALID = 0,
+
+  // Insert length bytes from data beginning at offset
+  BUF_HST_INSERT,
+
+  // Insert length bytes from data beginning at offset
+  BUF_HST_REMOVE,
+
+  BUF_HST_MAX
+} BufferHistoryType;
+
+const char *buf_hst_type_string(BufferHistoryType type);
+
+typedef struct BufferHistoryNode {
+  BufferHistoryType type;
+  size_t offset; //> point_byte at time of action.
+  size_t length; //> how many bytes the action applies to.
+  char   *data;  //> data that the action was applied to.
+
+  // FIXME: Use a vector, probably.
+  struct BufferHistoryNode *next;
+} BufferHistoryNode;
+
+void buf_hst_print_node(BufferHistoryNode *node);
+
+typedef struct BufferHistory {
+  BufferHistoryNode *undo;
+  BufferHistoryNode *redo;
+} BufferHistory;
+
+void buf_hst_create_node(BufferHistoryType type, BufferHistoryNode **head, char *data, size_t offset, size_t length);
+
+
+
 typedef struct Buffer {
   Atom environment;
   char *path;
   Rope *rope;
   size_t point_byte;
   size_t mark_byte; // Highest bit denotes activation
+
+  BufferHistory history;
 } Buffer;
 
 /** Open file or create new if one doesn't exist.
@@ -59,6 +96,9 @@ Error buffer_remove_byte(Buffer *buffer);
 /// Remove the given amount of bytes starting at point going forward.
 Error buffer_remove_bytes_forward(Buffer *buffer, size_t count);
 Error buffer_remove_byte_forward(Buffer *buffer);
+
+Error buffer_undo(Buffer *buffer);
+Error buffer_redo(Buffer *buffer);
 
 /** Get BUFFER's mark byte offset.
  *

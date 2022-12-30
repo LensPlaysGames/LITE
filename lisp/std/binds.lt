@@ -162,6 +162,8 @@
     (keymap-push ctrl-keymap "a" '(beginning-of-line))
     (keymap-push ctrl-keymap "e" '(end-of-line))
 
+    (keymap-push ctrl-keymap "z" '(undo))
+    (keymap-push ctrl-keymap "y" '(redo))
     (keymap-push ctrl-keymap "o" '(insert-lf))
     (keymap-push ctrl-shft-keymap "o" '(insert-crlf))
 
