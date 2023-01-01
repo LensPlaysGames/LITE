@@ -112,21 +112,26 @@ int main(int argc, char **argv) {
   char *litedir = getlitedir();
   char *concat_path = string_trijoin(litedir, "/", std_path);
   free(litedir);
-  err = evaluate_file(*genv(), concat_path, &result);
-  if (err.type == ERROR_FILE) {
     // Try loading the path directly.
-    err = evaluate_file(*genv(), std_path, &result);
+  err = evaluate_file(*genv(), std_path, &result);
+  const char *std_actual_path = std_path;
+  if (err.type == ERROR_FILE) {
+    err = evaluate_file(*genv(), concat_path, &result);
+    std_actual_path = concat_path;
     if (err.type == ERROR_FILE) {
       fprintf(stderr,
               "[WARN]: LITE could not load the standard library,\n"
               "and a large portion of the functionality will be missing.\n"
-              "  Paths:\n%s\n%s\n", concat_path, std_path);
+              "  Paths:\n    %s\n    %s\n", concat_path, std_path);
       err = ok;
     }
   }
   if (err.type) {
     print_error(err);
     return 7;
+  }
+  if (!strict_output) {
+    printf("Loaded standard library from \"%s\"\n", std_actual_path);
   }
   free(concat_path);
 

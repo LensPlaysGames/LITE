@@ -469,7 +469,7 @@ Foreground (FG) and background (BG) are in format of '(R G B A)'."
   ;; (id offset length (fg.r fg.g fg.b fg.a) (bg.r bg.g bg.b bg.a))
   ;; Type checking
   ;; TODO: Ensure window is window...
-  (unless (and (integerp id)
+  (unless (and ; (integerp id)
                (integerp offset)
                (integerp length)
 
