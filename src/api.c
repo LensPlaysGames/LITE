@@ -577,16 +577,12 @@ int gui_loop(void) {
     gui_ctx()->popup.string = NULL;
   }
 
-  // TODO: Lots of type checking... windows must be windows.
-
   integer_t index = 0;
   GUIWindow *last_window = gctx->windows;
   for (Atom window_it = window_list; !nilp(window_it); window_it = cdr(window_it), ++index) {
-    GUIWindow *new_gui_window = calloc(1, sizeof(GUIWindow));
-
     Atom window = car(window_it);
     // Expected format:
-    // ((z (posx . posy) (sizex . sizey) (scrollx . scrolly) (contents . properties)))
+    // (z (posx . posy) (sizex . sizey) (scrollx . scrolly) (contents . properties))
     // (z . ((posx . posy) . ((sizex . sizey) . ((scrollx . scrolly) . ((contents . properties) . nil)))))
     // properties:
     // ((id offset length (fg.r fg.g fg.b fg.r) (bg.r bg.g bg.b bg.a)))
@@ -618,6 +614,8 @@ int gui_loop(void) {
           && bufferp(car(car(cdr(cdr(cdr(cdr(window)))))))
           ))
       continue;
+
+    GUIWindow *new_gui_window = calloc(1, sizeof(GUIWindow));
 
     // Set integer values
     new_gui_window->z     = car(window).value.integer;
