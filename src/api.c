@@ -582,13 +582,42 @@ int gui_loop(void) {
   integer_t index = 0;
   GUIWindow *last_window = gctx->windows;
   for (Atom window_it = window_list; !nilp(window_it); window_it = cdr(window_it), ++index) {
-    // Expected format:
-    // ((z (posx . posy) (sizex . sizey) (scrollx . scrolly) (contents . properties)))
-    // properties:
-    // ((id offset length (fg.r fg.g fg.b fg.r) (bg.r bg.g bg.b bg.a)))
     GUIWindow *new_gui_window = calloc(1, sizeof(GUIWindow));
 
     Atom window = car(window_it);
+    // Expected format:
+    // ((z (posx . posy) (sizex . sizey) (scrollx . scrolly) (contents . properties)))
+    // (z . ((posx . posy) . ((sizex . sizey) . ((scrollx . scrolly) . ((contents . properties) . nil)))))
+    // properties:
+    // ((id offset length (fg.r fg.g fg.b fg.r) (bg.r bg.g bg.b bg.a)))
+    if (!(pairp(window)
+          && pairp(cdr(window))
+          && pairp(cdr(cdr(window)))
+          && pairp(cdr(cdr(cdr(window))))
+          && pairp(cdr(cdr(cdr(cdr(window)))))
+          && nilp(cdr(cdr(cdr(cdr(cdr(window))))))
+
+          // (posx . posy)
+          && pairp(car(cdr(window)))
+          && integerp(car(car(cdr(window))))
+          && integerp(cdr(car(cdr(window))))
+
+          // (sizex . sizey)
+          && pairp(car(cdr(cdr(window))))
+          && integerp(car(car(cdr(cdr(window)))))
+          && integerp(cdr(car(cdr(cdr(window)))))
+
+          // (scrollx . scrolly)
+          && pairp(car(cdr(cdr(cdr(window)))))
+          && integerp(car(car(cdr(cdr(cdr(window))))))
+          && integerp(cdr(car(cdr(cdr(cdr(window))))))
+
+          // (contents . properties)
+          && pairp(car(cdr(cdr(cdr(cdr(window))))))
+          // TODO: Allow for windows with contents other than buffers?
+          && bufferp(car(car(cdr(cdr(cdr(cdr(window)))))))
+          ))
+      continue;
 
     // Set integer values
     new_gui_window->z     = car(window).value.integer;
@@ -689,12 +718,14 @@ int gui_loop(void) {
     }
 
     // Add all text properties defined in the window data structure itself.
-    GUIStringProperty *last_property = NULL;
     for (Atom property_it = properties; !nilp(property_it); property_it = cdr(property_it)) {
+      Atom property = car(property_it);
+
       GUIStringProperty *new_property = calloc(1, sizeof(GUIStringProperty));
 
-      Atom property = car(property_it);
-      new_property->id = car(property).value.integer;
+      if (integerp(car(property))) {
+        new_property->id = car(property).value.integer;
+      }
       new_property->offset = car(cdr(property)).value.integer;
       new_property->length = car(cdr(cdr(property))).value.integer;
 
