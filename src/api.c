@@ -745,6 +745,32 @@ int gui_loop(void) {
       add_property(&new_gui_window->contents, new_property);
     }
 
+    Atom property_it = properties;
+    Atom last_prop_it = nil;
+    while (!nilp(property_it)) {
+      Atom property = car(property_it);
+      if (!integerp(car(property))) {
+        if (nilp(last_prop_it)) {
+          // Remove from beginning.
+          // [a b c], last_prop_it=nil, property_it=a
+          cdr(car(cdr(cdr(cdr(cdr(window)))))) = cdr(cdr(car(cdr(cdr(cdr(cdr(window)))))));
+          // [b c], last_prop_it=nil, property_it=a
+          property_it = cdr(property_it);
+          // [b c], last_prop_it=nil, property_it=b
+        } else {
+          // Remove from middle.
+          // [a b c], last_prop_it=a, property_it=b
+          cdr(last_prop_it) = cdr(property_it);
+          // [a c], last_prop_it=a, property_it=b
+          property_it = cdr(property_it);
+          // [a c], last_prop_it=a, property_it=c
+        }
+        continue;
+      }
+      last_prop_it = property_it;
+      property_it = cdr(property_it);
+    }
+
     if (gui_ctx()->reading) {
       gui_ctx()->popup.string = buffer_string(*current_buffer.value.buffer);
     }
