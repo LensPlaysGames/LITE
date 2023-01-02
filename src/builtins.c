@@ -1594,12 +1594,46 @@ static Atom get_active_window() {
   return active_window;
 }
 
+const char *const builtin_scroll_up_name = "SCROLL-UP";
+const char *const builtin_scroll_up_docstring =
+  "(scroll-up)\n"
+  "\n"
+  "";
+int builtin_scroll_up(Atom arguments, Atom *result) {
+  BUILTIN_ENSURE_NO_ARGUMENTS(arguments);
+  (void)result;
+#ifdef LITE_GFX
+  // Use the default offset of one, unless a positive integer value was
+  // given.
+  integer_t offset = 1;
+  if (!nilp(arguments)) {
+    if (!integerp(car(arguments))) {
+      return ERROR_TYPE;
+    }
+    if (car(arguments).value.integer > 0) {
+      offset = car(arguments).value.integer;
+    }
+  }
+  Atom active_window = get_active_window();
+  // Prevent unsigned integer underflow.
+  Atom scrollxy = list_get(active_window, 3);
+  if (offset > cdr(scrollxy).value.integer) {
+    offset = cdr(scrollxy).value.integer;
+  }
+  cdr(scrollxy).value.integer -= offset;
+#else
+  (void)arguments;
+#endif /* #ifdef LITE_GFX */
+  return ERROR_NONE;
+}
+
 const char *const builtin_scroll_down_name = "SCROLL-DOWN";
 const char *const builtin_scroll_down_docstring =
   "(scroll-down)\n"
   "\n"
   "";
 int builtin_scroll_down(Atom arguments, Atom *result) {
+  BUILTIN_ENSURE_NO_ARGUMENTS(arguments);
   (void)result;
 #ifdef LITE_GFX
   // Use the default offset of one, unless a positive integer value was
@@ -1634,12 +1668,13 @@ int builtin_scroll_down(Atom arguments, Atom *result) {
   return ERROR_NONE;
 }
 
-const char *const builtin_scroll_up_name = "SCROLL-UP";
-const char *const builtin_scroll_up_docstring =
-  "(scroll-up)\n"
+const char *const builtin_scroll_left_name = "SCROLL-LEFT";
+const char *const builtin_scroll_left_docstring =
+  "(scroll-left)\n"
   "\n"
   "";
-int builtin_scroll_up(Atom arguments, Atom *result) {
+int builtin_scroll_left(Atom arguments, Atom *result) {
+  BUILTIN_ENSURE_NO_ARGUMENTS(arguments);
   (void)result;
 #ifdef LITE_GFX
   // Use the default offset of one, unless a positive integer value was
@@ -1656,17 +1691,56 @@ int builtin_scroll_up(Atom arguments, Atom *result) {
   Atom active_window = get_active_window();
   // Prevent unsigned integer underflow.
   Atom scrollxy = list_get(active_window, 3);
-  if (offset > cdr(scrollxy).value.integer) {
-    offset = cdr(scrollxy).value.integer;
+  if (offset > car(scrollxy).value.integer) {
+    offset = car(scrollxy).value.integer;
   }
-  cdr(scrollxy).value.integer -= offset;
+  car(scrollxy).value.integer -= offset;
 #else
   (void)arguments;
 #endif /* #ifdef LITE_GFX */
   return ERROR_NONE;
-
 }
 
+const char *const builtin_scroll_right_name = "SCROLL-RIGHT";
+const char *const builtin_scroll_right_docstring =
+  "(scroll-right)\n"
+  "\n"
+  "";
+int builtin_scroll_right(Atom arguments, Atom *result) {
+  BUILTIN_ENSURE_NO_ARGUMENTS(arguments);
+  (void)result;
+#ifdef LITE_GFX
+  // Use the default offset of one, unless a positive integer value was
+  // given.
+  size_t offset = 1;
+  if (!nilp(arguments)) {
+    if (!nilp(cdr(arguments))) {
+      // Too many arguments (more than one).
+      return ERROR_ARGUMENTS;
+    }
+    if (!integerp(car(arguments))) {
+      // Given argument must be an integer.
+      return ERROR_TYPE;
+    }
+    // Only use argument to set offset if it is positive.
+    if (car(arguments).value.integer > 0) {
+      offset = car(arguments).value.integer;
+    }
+  }
+  Atom active_window = get_active_window();
+  // Prevent unsigned integer overflow.
+  Atom scrollxy = list_get(active_window, 3);
+  integer_t old_vertical_offset = cdr(scrollxy).value.integer;
+  car(scrollxy).value.integer += offset;
+  if (car(scrollxy).value.integer < old_vertical_offset) {
+    // Restore vertical offset to what it was before overflow.
+    car(scrollxy).value.integer = old_vertical_offset;
+  }
+#else
+  (void)arguments;
+#endif /* #ifdef LITE_GFX */
+  return ERROR_NONE;
+}
 
 Atom terrible_copy_paste_implementation = { .type      = ATOM_TYPE_STRING,
                                             .value     = { .symbol = "Paste and ye shall recieve." },

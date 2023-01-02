@@ -219,6 +219,8 @@
   (keymap-push alts-keymap "l" '(cycle-active-window  1))
   (keymap-push alts-keymap "j" '(scroll-down))
   (keymap-push alts-keymap "k" '(scroll-up))
+  (keymap-push alts-keymap "," '(scroll-left))
+  (keymap-push alts-keymap "." '(scroll-right))
 
   ;; Update keymap in global environemt from local keymap.
   (keymap-set keymap "ALTS" alts-keymap))

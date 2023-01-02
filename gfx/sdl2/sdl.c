@@ -343,8 +343,12 @@ static inline void draw_gui_string_into_surface_within_rect
       // Byte offset of start of line we are currently at the end of.
       // TODO: Add horizontal offset here. If that makes start past
       // or equal to end, skip line but increment destination height.
-      size_t start_of_line_offset = last_newline_offset + 1;
+      size_t start_of_line_offset = gui_string.horizontal_offset + last_newline_offset + 1;
       size_t line_height = font_height;
+
+      if (start_of_line_offset > offset) {
+        goto at_end_of_line;
+      }
 
       // Render entire line using defaults.
       // Calculate amount of bytes within the current line.
@@ -451,6 +455,8 @@ static inline void draw_gui_string_into_surface_within_rect
         }
       }
       free(line_text);
+
+    at_end_of_line:
 
       destination.y += line_height;
       destination.h -= line_height;

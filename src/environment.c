@@ -575,6 +575,14 @@ Atom default_environment(void) {
           make_builtin(builtin_scroll_down,
                        (char *)builtin_scroll_down_name,
                        (char *)builtin_scroll_down_docstring));
+  env_set(environment, make_sym((char *)builtin_scroll_left_name),
+          make_builtin(builtin_scroll_left,
+                       (char *)builtin_scroll_left_name,
+                       (char *)builtin_scroll_left_docstring));
+  env_set(environment, make_sym((char *)builtin_scroll_right_name),
+          make_builtin(builtin_scroll_right,
+                       (char *)builtin_scroll_right_name,
+                       (char *)builtin_scroll_right_docstring));
 
   env_set(environment, make_sym((char *)"WHILE-RECURSE-LIMIT"), make_int_with_docstring
           (10000,

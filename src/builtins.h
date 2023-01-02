@@ -283,11 +283,17 @@ extern const char *const builtin_change_window_mode_name;
 extern const char *const builtin_change_window_mode_docstring;
 int builtin_change_window_mode(Atom arguments, Atom *result);
 
-extern const char *const builtin_scroll_down_name;
-extern const char *const builtin_scroll_down_docstring;
-int builtin_scroll_down(Atom arguments, Atom *result);
 extern const char *const builtin_scroll_up_name;
 extern const char *const builtin_scroll_up_docstring;
 int builtin_scroll_up(Atom arguments, Atom *result);
+extern const char *const builtin_scroll_down_name;
+extern const char *const builtin_scroll_down_docstring;
+int builtin_scroll_down(Atom arguments, Atom *result);
+extern const char *const builtin_scroll_left_name;
+extern const char *const builtin_scroll_left_docstring;
+int builtin_scroll_left(Atom arguments, Atom *result);
+extern const char *const builtin_scroll_right_name;
+extern const char *const builtin_scroll_right_docstring;
+int builtin_scroll_right(Atom arguments, Atom *result);
 
 #endif /* LITE_BUILTINS_H */

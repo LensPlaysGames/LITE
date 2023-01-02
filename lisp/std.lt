@@ -424,6 +424,8 @@ or, if mark is active and a region is selected, remove the entire region."
 
 (defun set-window-scrollx (window value)
   "Associate the given horizontal scroll VALUE with WINDOW."
+  (unless (integerp value)
+    (error "Can only set window scroll x to value of integer type."))
   (setcar (elt window 3) value))
 
 (defun window-scrolly (window)
@@ -432,7 +434,18 @@ or, if mark is active and a region is selected, remove the entire region."
 
 (defun set-window-scrolly (window value)
   "Associate the given vertical scroll VALUE with WINDOW."
+  (unless (integerp value)
+    (error "Can only set window scroll y to value of integer type."))
   (setcdr (elt window 3) value))
+
+(defun window-scroll-reset (window)
+  "Reset both horizontal and vertical scrolling values of WINDOW."
+  (set-window-scrollx window 0)
+  (set-window-scrolly window 0))
+
+(defun scroll-reset ()
+  "Reset both horizontal and vertical scrolling values of active window."
+  (window-scroll-reset (active-window)))
 
 (defun window-contents (window)
   "Return the contents associated with WINDOW."
