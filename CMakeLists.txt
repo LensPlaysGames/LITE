@@ -77,6 +77,7 @@ if (NOT MSVC)
     PRIVATE
     -Wall
     -Wextra
+    -Wconversion
     -pedantic
   )
 endif()

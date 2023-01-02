@@ -326,6 +326,7 @@ static inline void draw_gui_string_into_surface_within_rect
     string += 1;
     offset += 1;
   }
+
   text_surface = SDL_CreateRGBSurfaceWithFormat
     (0, rect->w, rect->h, 32, SDL_PIXELFORMAT_RGBA32);
   if (!text_surface) { return; }
@@ -334,14 +335,10 @@ static inline void draw_gui_string_into_surface_within_rect
   // must use a copy to prevent clobbering our data.
   SDL_Rect destination = srcrect;
   SDL_Rect destination_copy = destination;
-  char got_carriage_return = 0;
-  char skip_carriage_return = 0;
   while (1) {
-    if (*string == '\r') {
-      got_carriage_return = 1;
-      if (!cr_char) {
-        skip_carriage_return = 1;
-      }
+    // TODO: What to display \r as when cr_char isn't valid?
+    if (*string == '\r' && cr_char >= ' ') {
+      *string = cr_char;
     } else if (*string == '\n' || *string == '\0') {
       // Byte offset of start of line we are currently at the end of.
       // TODO: Add horizontal offset here. If that makes start past
@@ -352,15 +349,6 @@ static inline void draw_gui_string_into_surface_within_rect
       // Render entire line using defaults.
       // Calculate amount of bytes within the current line.
       size_t bytes_to_render = offset - start_of_line_offset;
-      if (got_carriage_return && skip_carriage_return) {
-        // FIXME: This very heavily assumes the carriage return is at
-        // the end, just before a linefeed.
-        bytes_to_render -= 1;
-        skip_carriage_return = 0;
-        got_carriage_return = 0;
-      } else {
-        // Handled below, after line text is allocated and empty lines are skipped.
-      }
       char *line_text = allocate_string_span
         (gui_string.string, start_of_line_offset, bytes_to_render);
       if (!line_text) {
@@ -370,12 +358,6 @@ static inline void draw_gui_string_into_surface_within_rect
       }
       // Skip empty lines.
       if (line_text[0] != '\0') {
-        if (got_carriage_return) {
-          // FIXME: This heavily assumes the carriage return is at the
-          // end, just before a linefeed.
-          line_text[bytes_to_render - 1] = cr_char;
-        }
-
         // Use FreeType subpixel LCD rendering, if possible.
 #       if SDL_TTF_VERSION_ATLEAST(2,20,0) && !_WIN32
         SDL_Surface *line_text_surface =
@@ -479,8 +461,6 @@ static inline void draw_gui_string_into_surface_within_rect
       if (destination.h <= 0) {
         break;
       }
-    } else {
-      skip_carriage_return = 0;
     }
     if (*string == '\0') {
       break;

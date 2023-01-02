@@ -584,8 +584,9 @@ int gui_loop(void) {
     // Expected format:
     // (z (posx . posy) (sizex . sizey) (scrollx . scrolly) (contents . properties))
     // (z . ((posx . posy) . ((sizex . sizey) . ((scrollx . scrolly) . ((contents . properties) . nil)))))
-    // properties:
-    // ((id offset length (fg.r fg.g fg.b fg.r) (bg.r bg.g bg.b bg.a)))
+    // property:
+    // (id offset length (fg.r fg.g fg.b fg.r) (bg.r bg.g bg.b bg.a))
+    // (id . (offset . (length . ((fg.r fg.g fg.b fg.r) . ((bg.r bg.g bg.b bg.a) . nil)))))
     if (!(pairp(window)
           && pairp(cdr(window))
           && pairp(cdr(cdr(window)))
@@ -641,7 +642,6 @@ int gui_loop(void) {
 
     // Set contents
     Atom contents   = car(car(cdr(cdr(cdr(cdr(window))))));
-    Atom properties = cdr(car(cdr(cdr(cdr(cdr(window))))));
     char *contents_string = NULL;
     if (bufferp(contents) && contents.value.buffer) {
       contents_string = buffer_string(*contents.value.buffer);
@@ -716,17 +716,21 @@ int gui_loop(void) {
     }
 
     // Add all text properties defined in the window data structure itself.
+    Atom properties = cdr(car(cdr(cdr(cdr(cdr(window))))));
     for (Atom property_it = properties; !nilp(property_it); property_it = cdr(property_it)) {
       Atom property = car(property_it);
 
       GUIStringProperty *new_property = calloc(1, sizeof(GUIStringProperty));
 
       if (integerp(car(property))) {
-        new_property->id = car(property).value.integer;
+        integer_t id = car(property).value.integer;
+        if (id < 0) id = 0;
+        new_property->id = id;
       }
       new_property->offset = car(cdr(property)).value.integer;
       new_property->length = car(cdr(cdr(property))).value.integer;
 
+      // TODO: better conversion from integer to byte.
       Atom fg = car(cdr(cdr(cdr(property))));
       new_property->fg.r = car(fg).value.integer;
       new_property->fg.g = car(cdr(fg)).value.integer;
@@ -743,6 +747,10 @@ int gui_loop(void) {
       add_property(&new_gui_window->contents, new_property);
     }
 
+    // Remove properties with a non-integer ID from property list of
+    // window. These are known as *once* properties, and are very
+    // useful for dynamic highlighting every redisplay (in conjunction
+    // with `refresh-hook`).
     Atom property_it = properties;
     Atom last_prop_it = nil;
     while (!nilp(property_it)) {
