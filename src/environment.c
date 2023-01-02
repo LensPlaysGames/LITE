@@ -584,6 +584,20 @@ Atom default_environment(void) {
                        (char *)builtin_scroll_right_name,
                        (char *)builtin_scroll_right_docstring));
 
+  env_set(environment, make_sym((char *)"PLATFORM"),
+#         if defined(__FreeBSD__)
+          make_sym((char *)"FREE-BSD")
+#         elif defined(__linux__)
+          make_sym((char *)"LINUX")
+#         elif defined(__unix__)
+          make_sym((char *)"UNIX")
+#         elif defined(_WIN32)
+          make_sym((char *)"WINDOWS")
+#         elif defined(__APPLE__)
+          make_sym((char *)"APPLE")
+#         endif
+          );
+
   env_set(environment, make_sym((char *)"WHILE-RECURSE-LIMIT"), make_int_with_docstring
           (10000,
            "This is the maximum amount of times a while loop may loop.\n"
