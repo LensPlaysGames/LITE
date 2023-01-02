@@ -1761,6 +1761,7 @@ int builtin_clipboard_cut(Atom arguments, Atom *result) {
     return ERROR_TYPE;
   }
   if (buffer_mark_active(*buffer.value.buffer)) {
+    // TODO: STRIP CARRIAGE RETURN FROM BEFORE EVERY NEWLINE ON WINDOWS IFF 'CLIPBOARD--STRIP-CR' IS NON-NIL.
     char *region = buffer_region(*buffer.value.buffer);
     Error err = buffer_remove_region(buffer.value.buffer);
     if (err.type) {

@@ -283,6 +283,8 @@ extern const char *const builtin_change_window_mode_name;
 extern const char *const builtin_change_window_mode_docstring;
 int builtin_change_window_mode(Atom arguments, Atom *result);
 
+// TODO: These should be implemented in LISP; they have no need for
+// being written in C.
 extern const char *const builtin_scroll_up_name;
 extern const char *const builtin_scroll_up_docstring;
 int builtin_scroll_up(Atom arguments, Atom *result);
