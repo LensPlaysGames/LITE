@@ -1,0 +1,60 @@
+;; Run like `lite --script -- rule110.lt`
+
+;; Any non-negative number.
+(define rowcount 128)
+
+;; NOTE: must be less than amount of bits in an integer
+;; representation (64, usually).
+(define colcount 63)
+
+(let ((state 1)
+      (newstate 0)
+      (row rowcount))
+  (while (> row 0)
+    ;; Display current state
+    (define col 0)
+    (while (< col colcount)
+      (if (= 0 (bitand state (bitshl 1 col)))
+          (prins " ")
+          (prins "*"))
+      (define col (+ 1 col)))
+    (prins "\\n")
+
+    ;; Calculate new state from current state
+    (define newstate state)
+    (define col 1)
+    (while (< col (- colcount 1))
+      (let ((lbit (bitand state (bitshl 1 (+ col 1))))
+            (mbit (bitand state (bitshl 1 col)))
+            (rbit (bitand state (bitshl 1 (- col 1)))))
+        (if (= lbit 0)
+            ;; 0xx
+            (if (= mbit 0)
+                ;; 00x
+                (if (> rbit 0)
+                    ;; 001
+                    (define newstate (bitor newstate (bitshl 1 col)))
+                    ;; 000
+                    (define newstate (bitand newstate (bitnot (bitshl 1 col)))))
+                ;; 011 and 010 result in 1
+                (define newstate (bitor newstate (bitshl 1 col))))
+            ;; 1xx
+            (if (= mbit 0)
+                ;; 10x
+                (if (> rbit 0)
+                    ;; 101
+                    (define newstate (bitor newstate (bitshl 1 col)))
+                    ;; 100
+                    (define newstate (bitand newstate (bitnot (bitshl 1 col)))))
+                ;; 11x
+                (if (> rbit 0)
+                    ;; 111
+                    (define newstate (bitand newstate (bitnot (bitshl 1 col))))
+                    ;; 110
+                    (define newstate (bitor newstate (bitshl 1 col)))))))
+      (define col (+ col 1)))
+
+    ;; Update current state from newly calculated state
+    (define state newstate)
+    (define row (- row 1)))
+  )
