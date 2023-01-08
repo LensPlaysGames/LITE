@@ -84,13 +84,26 @@ int main(int argc, char **argv) {
   Atom result = nil;
   handle_arguments(argc, argv);
 
-  Atom initial_buffer = nil;
+  Atom initial_buffer;
+
+  initial_buffer = nil;
   if (arg_file_index == -1) {
     // TODO: Don't panic when default file isn't found. Also maybe
     // have default file included XD.
-    initial_buffer = initialize_buffer_or_panic("LITE_SHINES_UPON_US.txt");
+    const char *const default_path = "LITE_SHINES_UPON_US.txt";
+    if (file_exists(default_path)) {
+      initial_buffer = initialize_buffer_or_panic(default_path);
+    } else {
+      fprintf(stderr, "File does not exist: %s\n", default_path);
+      return 1;
+    }
   } else {
-    initial_buffer = initialize_buffer_or_panic(argv[arg_file_index]);
+    if (file_exists(argv[arg_file_index])) {
+      initial_buffer = initialize_buffer_or_panic(argv[arg_file_index]);
+    } else {
+      fprintf(stderr, "File does not exist: %s\n", argv[arg_file_index]);
+      return 1;
+    }
   }
   env_set(*genv(), make_sym("CURRENT-BUFFER"), initial_buffer);
 
