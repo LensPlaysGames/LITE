@@ -311,6 +311,7 @@ Error parse_expr(const char *source, const char **end, Atom *result) {
       PREP_ERROR(err, ERROR_SYNTAX, *result,
                  "Extraneous closing parenthesis.",
                  NULL);
+      print_error(err);
       return err;
     case '(':
       if (list) {
@@ -355,7 +356,7 @@ Error parse_expr(const char *source, const char **end, Atom *result) {
         break;
       }
       else if (token[0] == ')') {
-        *end += 1;
+        *end = end_copy;
         if (!stack) { return ok; }
         working_list = stack->working_list;
         working_result = working_list;
