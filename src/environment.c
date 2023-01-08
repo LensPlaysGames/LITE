@@ -126,7 +126,7 @@ static void env_expand(Environment *table) {
 
   EnvironmentValue *old_data = table->data;
   table->data = new_data;
-
+  table->data_capacity = new_capacity;
 
   // Rehash all values from old table into new table. This is needed
   // because the index where the symbol is stored is a function of the
