@@ -26,7 +26,7 @@ void free_file(SimpleFile file);
 size_t file_size(FILE *file);
 
 /// @return Boolean-like value: 1 if file at path exists, 0 otherwise.
-char file_exists(char *path);
+char file_exists(const char *path);
 
 /// Returns a heap-allocated buffer containing the
 /// contents of the file found at the given path.

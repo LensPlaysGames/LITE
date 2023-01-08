@@ -27,9 +27,11 @@ size_t file_size(FILE *file) {
     return 0;
   }
   fseek(file, 0, SEEK_END);
-  size_t length = ftell(file);
+  long length = ftell(file);
   fseek(file, 0, SEEK_SET);
-  return length;
+  if (length < 0)
+    return 0;
+  return (size_t)length;
 }
 
 /// Returns a heap-allocated buffer containing the
@@ -218,7 +220,7 @@ Error evaluate_file(Atom environment, const char *path, Atom *result) {
   return ok;
 }
 
-char file_exists(char *path) {
+char file_exists(const char *path) {
   FILE *f = fopen(path, "r");
   if (f) {
     fclose(f);

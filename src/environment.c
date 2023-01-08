@@ -255,8 +255,10 @@ int boundp(Atom environment, Atom symbol) {
 Atom default_environment(void) {
   Atom environment = env_create(nil, 2 << 7);
   env_set(environment, make_sym("T"), make_sym("T"));
+
   defbuiltin(quit_lisp);
   defbuiltin(docstring);
+
   defbuiltin(car);
   defbuiltin(cdr);
   defbuiltin(cons);
