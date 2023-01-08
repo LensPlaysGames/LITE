@@ -59,6 +59,14 @@ builtin(multiply);
 builtin(divide);
 builtin(remainder);
 
+// BITWISE
+
+builtin(bitand);
+builtin(bitor);
+builtin(bitxor);
+builtin(bitnot);
+builtin(bitshl);
+builtin(bitshr);
 
 // BUFFERS
 

@@ -455,6 +455,101 @@ int builtin_remainder(Atom arguments, Atom *result) {
   return ERROR_NONE;
 }
 
+const char *const builtin_bitand_name = "BITAND";
+const char *const builtin_bitand_docstring =
+  "(bitand LHS RHS)\n"
+  "\n"
+  "Given two integers, return their bitwise and as if they were two's-complement.";
+int builtin_bitand(Atom arguments, Atom *result) {
+  TWO_ARGS(arguments);
+  Atom lhs = car(arguments);
+  Atom rhs = car(cdr(arguments));
+  if (!integerp(lhs) || !integerp(rhs)) {
+    return ERROR_TYPE;
+  }
+  *result = make_int(lhs.value.integer & rhs.value.integer);
+  return ERROR_NONE;
+}
+
+const char *const builtin_bitor_name = "BITOR";
+const char *const builtin_bitor_docstring =
+  "(bitor LHS RHS)\n"
+  "\n"
+  "Given two integers, return their bitwise or as if they were two's-complement.";
+int builtin_bitor(Atom arguments, Atom *result) {
+  TWO_ARGS(arguments);
+  Atom lhs = car(arguments);
+  Atom rhs = car(cdr(arguments));
+  if (!integerp(lhs) || !integerp(rhs)) {
+    return ERROR_TYPE;
+  }
+  *result = make_int(lhs.value.integer | rhs.value.integer);
+  return ERROR_NONE;
+}
+
+const char *const builtin_bitxor_name = "BITXOR";
+const char *const builtin_bitxor_docstring =
+  "(bitxor LHS RHS)\n"
+  "\n"
+  "Given two integers, return their bitwise exlusive or as if they were two's-complement.";
+int builtin_bitxor(Atom arguments, Atom *result) {
+  TWO_ARGS(arguments);
+  Atom lhs = car(arguments);
+  Atom rhs = car(cdr(arguments));
+  if (!integerp(lhs) || !integerp(rhs)) {
+    return ERROR_TYPE;
+  }
+  *result = make_int(lhs.value.integer ^ rhs.value.integer);
+  return ERROR_NONE;
+}
+
+const char *const builtin_bitnot_name = "BITNOT";
+const char *const builtin_bitnot_docstring =
+  "(bitnot OPERAND)\n"
+  "\n"
+  "Given an integer, return the bitwise NOT as if it was two's complement.";
+int builtin_bitnot(Atom arguments, Atom *result) {
+  ONE_ARG(arguments);
+  Atom op = car(arguments);
+  if (!integerp(op)) {
+    return ERROR_TYPE;
+  }
+  *result = make_int(~op.value.integer);
+  return ERROR_NONE;
+}
+
+const char *const builtin_bitshl_name = "BITSHL";
+const char *const builtin_bitshl_docstring =
+  "(bitshl LHS RHS)\n"
+  "\n"
+  "Given two integers, return LHS shifted to the left by RHS bits.";
+int builtin_bitshl(Atom arguments, Atom *result) {
+  TWO_ARGS(arguments);
+  Atom lhs = car(arguments);
+  Atom rhs = car(cdr(arguments));
+  if (!integerp(lhs) || !integerp(rhs)) {
+    return ERROR_TYPE;
+  }
+  *result = make_int(lhs.value.integer << rhs.value.integer);
+  return ERROR_NONE;
+}
+
+const char *const builtin_bitshr_name = "BITSHR";
+const char *const builtin_bitshr_docstring =
+  "(bitshr LHS RHS)\n"
+  "\n"
+  "Given two integers, return LHS shifted to the right by RHS bits.";
+int builtin_bitshr(Atom arguments, Atom *result) {
+  TWO_ARGS(arguments);
+  Atom lhs = car(arguments);
+  Atom rhs = car(cdr(arguments));
+  if (!integerp(lhs) || !integerp(rhs)) {
+    return ERROR_TYPE;
+  }
+  *result = make_int(lhs.value.integer >> rhs.value.integer);
+  return ERROR_NONE;
+}
+
 const char *const builtin_buffer_toggle_mark_name = "BUFFER-TOGGLE-MARK";
 const char *const builtin_buffer_toggle_mark_docstring =
   "(buffer-toggle-mark BUFFER)\n\nToggle mark activation on the given buffer.";

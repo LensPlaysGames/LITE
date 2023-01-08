@@ -281,6 +281,12 @@ Atom default_environment(void) {
   defbuiltin(divide);
   defbuiltin(remainder);
 
+  defbuiltin(bitand);
+  defbuiltin(bitor);
+  defbuiltin(bitxor);
+  defbuiltin(bitnot);
+  defbuiltin(bitshl);
+  defbuiltin(bitshr);
 
   defbuiltin(not);
   defbuiltin(eq);
