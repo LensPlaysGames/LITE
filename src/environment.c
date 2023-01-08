@@ -281,8 +281,9 @@ Atom default_environment(void) {
   defbuiltin(divide);
   defbuiltin(remainder);
 
-  defbuiltin(not);
 
+  defbuiltin(not);
+  defbuiltin(eq);
   defbuiltin(numeq);
   defbuiltin(numnoteq);
   defbuiltin(numlt);
@@ -290,12 +291,7 @@ Atom default_environment(void) {
   defbuiltin(numgt);
   defbuiltin(numgt_or_eq);
 
-  defbuiltin(eq);
-
   defbuiltin(copy);
-
-  defbuiltin(save);
-
   defbuiltin(apply);
 
   defbuiltin(print);
@@ -328,6 +324,7 @@ Atom default_environment(void) {
   defbuiltin(buffer_seek_byte);
   defbuiltin(buffer_seek_past_byte);
   defbuiltin(buffer_seek_substring);
+  defbuiltin(save);
 
   defbuiltin(read_prompted);
   defbuiltin(finish_read);
@@ -418,6 +415,9 @@ including data output at each iteration of the loop."));
 
   return environment;
 }
+
+#undef defbuiltin
+
 
 static Atom global_environment = { ATOM_TYPE_NIL, { 0 }, NULL, NULL };
 Atom *genv(void) {

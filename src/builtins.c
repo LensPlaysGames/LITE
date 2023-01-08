@@ -22,19 +22,19 @@
 #  include <gui.h>
 #endif
 
-#define BUILTIN_ENSURE_NO_ARGUMENTS(builtin_args) do {  \
+#define NO_ARGS(builtin_args) do {  \
     if (!nilp(builtin_args)) {                          \
       return ERROR_ARGUMENTS;                           \
     }                                                   \
   } while (0);
 
-#define BUILTIN_ENSURE_ONE_ARGUMENT(builtin_args) do {      \
+#define ONE_ARG(builtin_args) do {      \
     if (nilp(builtin_args) || !nilp(cdr(builtin_args))) {   \
       return ERROR_ARGUMENTS;                               \
     }                                                       \
   } while (0);
 
-#define BUILTIN_ENSURE_TWO_ARGUMENTS(builtin_args) do { \
+#define TWO_ARGS(builtin_args) do { \
     if (nilp(builtin_args)                              \
         || nilp(cdr(builtin_args))                      \
         || !nilp(cdr(cdr(builtin_args))))               \
@@ -43,7 +43,7 @@
       }                                                 \
   } while (0);
 
-#define BUILTIN_ENSURE_THREE_ARGUMENTS(builtin_args) do {   \
+#define THREE_ARGS(builtin_args) do {   \
     if (nilp(builtin_args)                                  \
         || nilp(cdr(builtin_args))                          \
         || nilp(cdr(cdr(builtin_args)))                     \
@@ -53,7 +53,7 @@
       }                                                     \
   } while (0);
 
-#define BUILTIN_ENSURE_FOUR_ARGUMENTS(builtin_args) do {    \
+#define FOUR_ARGS(builtin_args) do {    \
     if (nilp(builtin_args)                                  \
         || nilp(cdr(builtin_args))                          \
         || nilp(cdr(cdr(builtin_args)))                     \
@@ -71,7 +71,7 @@ const char *const builtin_quit_lisp_docstring =
   "Stop all evaluation of LISP, and exit all prompts.\n"
   "If you did something on accident, call this.";
 int builtin_quit_lisp(Atom arguments, Atom *result) {
-  BUILTIN_ENSURE_NO_ARGUMENTS(arguments);
+  NO_ARGS(arguments);
   user_quit = 1;
   *result = nil;
   return ERROR_NONE;
@@ -83,7 +83,7 @@ const char *const builtin_docstring_docstring =
   "\n"
   "Return the docstring of SYMBOL within ENVIRONMENT as a string.";
 int builtin_docstring(Atom arguments, Atom *result) {
-  BUILTIN_ENSURE_TWO_ARGUMENTS(arguments);
+  TWO_ARGS(arguments);
 
   Atom atom = car(arguments);
   Atom environment = car(cdr(arguments));
@@ -145,7 +145,7 @@ int builtin_docstring(Atom arguments, Atom *result) {
 }
 
 int typep(Atom arguments, enum AtomType type, Atom *result) {
-  BUILTIN_ENSURE_ONE_ARGUMENT(arguments);
+  ONE_ARG(arguments);
   *result = car(arguments).type == type ? make_sym("T") : nil;
   return ERROR_NONE;
 }
@@ -241,7 +241,7 @@ const char *const builtin_not_docstring =
   "\n"
   "Given ARG is nil, return 'T', otherwise return nil.";
 int builtin_not(Atom arguments, Atom *result) {
-  BUILTIN_ENSURE_ONE_ARGUMENT(arguments);
+  ONE_ARG(arguments);
   *result = nilp(car(arguments)) ? make_sym("T") : nil;
   return ERROR_NONE;
 }
@@ -256,7 +256,7 @@ const char *const builtin_car_docstring =
   "This was in reference to the machine instructions used to implement\n"
   "LISP originally, in the 1950s.";
 int builtin_car(Atom arguments, Atom *result) {
-  BUILTIN_ENSURE_ONE_ARGUMENT(arguments);
+  ONE_ARG(arguments);
   if (nilp(car(arguments))) {
     *result = nil;
   } else if (car(arguments).type != ATOM_TYPE_PAIR) {
@@ -277,7 +277,7 @@ const char *const builtin_cdr_docstring =
   "This was in reference to the machine instructions used to implement\n"
   "LISP originally, in the 1950s.";
 int builtin_cdr(Atom arguments, Atom *result) {
-  BUILTIN_ENSURE_ONE_ARGUMENT(arguments);
+  ONE_ARG(arguments);
   if (nilp(car(arguments))) {
     *result = nil;
   } else if (car(arguments).type != ATOM_TYPE_PAIR) {
@@ -294,7 +294,7 @@ const char *const builtin_cons_docstring =
   "\n"
   "Return a new pair, with LEFT and RIGHT on each side, respectively.";
 int builtin_cons(Atom arguments, Atom *result) {
-  BUILTIN_ENSURE_TWO_ARGUMENTS(arguments);
+  TWO_ARGS(arguments);
   *result = cons(car(arguments), car(cdr(arguments)));
   return ERROR_NONE;
 }
@@ -305,7 +305,7 @@ const char *const builtin_setcar_docstring =
   "\n"
   "Set the left side of PAIR to the given VALUE.";
 int builtin_setcar(Atom arguments, Atom *result) {
-  BUILTIN_ENSURE_TWO_ARGUMENTS(arguments);
+  TWO_ARGS(arguments);
   if (!pairp(car(arguments))) {
     return ERROR_TYPE;
   }
@@ -320,7 +320,7 @@ const char *const builtin_setcdr_docstring =
   "\n"
   "Set the right side of PAIR to the given VALUE.";
 int builtin_setcdr(Atom arguments, Atom *result) {
-  BUILTIN_ENSURE_TWO_ARGUMENTS(arguments);
+  TWO_ARGS(arguments);
   if (!pairp(car(arguments))) {
     return ERROR_TYPE;
   }
@@ -335,7 +335,7 @@ const char *const builtin_member_docstring =
   "\n"
   "Return non-nil iff ELEMENT is an element of LIST.";
 int builtin_member(Atom arguments, Atom *result) {
-  BUILTIN_ENSURE_TWO_ARGUMENTS(arguments);
+  TWO_ARGS(arguments);
   Atom key = car(arguments);
   Atom list = car(cdr(arguments));
   *result = nil;
@@ -353,7 +353,7 @@ const char *const builtin_length_docstring =
   "Return the length of SEQUENCE, if it is a string, symbol, or list.\n"
   "Otherwise, return nil.\n";
 int builtin_length(Atom arguments, Atom *result) {
-  BUILTIN_ENSURE_ONE_ARGUMENT(arguments);
+  ONE_ARG(arguments);
   Atom arg = car(arguments);
   size_t size = 0;
   if (pairp(arg)) {
@@ -363,6 +363,7 @@ int builtin_length(Atom arguments, Atom *result) {
   } else if (symbolp(arg) || stringp(arg)) {
     size = strlen(arg.value.symbol);
   } else {
+    // TODO: Type error?
     *result = nil;
     return ERROR_NONE;
   }
@@ -376,7 +377,7 @@ const char *const builtin_add_docstring =
   "\n"
   "Add two integer numbers A and B together, and return the computed result.";
 int builtin_add(Atom arguments, Atom *result) {
-  BUILTIN_ENSURE_TWO_ARGUMENTS(arguments);
+  TWO_ARGS(arguments);
   Atom lhs = car(arguments);
   Atom rhs = car(cdr(arguments));
   if (lhs.type != ATOM_TYPE_INTEGER || rhs.type != ATOM_TYPE_INTEGER) {
@@ -392,7 +393,7 @@ const char *const builtin_subtract_docstring =
   "\n"
   "Subtract integer B from integer A and return the computed result.";
 int builtin_subtract(Atom arguments, Atom *result) {
-  BUILTIN_ENSURE_TWO_ARGUMENTS(arguments);
+  TWO_ARGS(arguments);
   Atom lhs = car(arguments);
   Atom rhs = car(cdr(arguments));
   if (lhs.type != ATOM_TYPE_INTEGER || rhs.type != ATOM_TYPE_INTEGER) {
@@ -408,7 +409,7 @@ const char *const builtin_multiply_docstring =
   "\n"
   "Multiply integer numbers A and B together and return the computed result.";
 int builtin_multiply(Atom arguments, Atom *result) {
-  BUILTIN_ENSURE_TWO_ARGUMENTS(arguments);
+  TWO_ARGS(arguments);
   Atom lhs = car(arguments);
   Atom rhs = car(cdr(arguments));
   if (lhs.type != ATOM_TYPE_INTEGER || rhs.type != ATOM_TYPE_INTEGER) {
@@ -425,7 +426,7 @@ const char *const builtin_divide_docstring =
   "Divide integer B out of integer A and return the computed result.\n"
   "`(/ 6 3)` == \"6 / 3\" == 2";
 int builtin_divide(Atom arguments, Atom *result) {
-  BUILTIN_ENSURE_TWO_ARGUMENTS(arguments);
+  TWO_ARGS(arguments);
   Atom lhs = car(arguments);
   Atom rhs = car(cdr(arguments));
   if (lhs.type != ATOM_TYPE_INTEGER || rhs.type != ATOM_TYPE_INTEGER) {
@@ -444,7 +445,7 @@ const char *const builtin_remainder_docstring =
   "\n"
   "Return the remainder left when N is divided by M.";
 int builtin_remainder(Atom arguments, Atom *result) {
-  BUILTIN_ENSURE_TWO_ARGUMENTS(arguments);
+  TWO_ARGS(arguments);
   Atom n = car(arguments);
   Atom m = car(cdr(arguments));
   if (!integerp(n) || !integerp(m)) {
@@ -458,7 +459,7 @@ const char *const builtin_buffer_toggle_mark_name = "BUFFER-TOGGLE-MARK";
 const char *const builtin_buffer_toggle_mark_docstring =
   "(buffer-toggle-mark BUFFER)\n\nToggle mark activation on the given buffer.";
 int builtin_buffer_toggle_mark(Atom arguments, Atom *result) {
-  BUILTIN_ENSURE_ONE_ARGUMENT(arguments);
+  ONE_ARG(arguments);
   Atom buffer = car(arguments);
   if (!bufferp(buffer) || !buffer.value.buffer) {
     return ERROR_TYPE;
@@ -477,7 +478,7 @@ const char *const builtin_buffer_set_mark_activation_docstring =
   "\n"
   "Set activation state of mark in BUFFER based on STATE being non-nil or not.";
 int builtin_buffer_set_mark_activation(Atom arguments, Atom *result) {
-  BUILTIN_ENSURE_TWO_ARGUMENTS(arguments);
+  TWO_ARGS(arguments);
   Atom buffer = car(arguments);
   Atom state = car(cdr(arguments));
   if (!bufferp(buffer) || !buffer.value.buffer) {
@@ -496,7 +497,7 @@ const char *const builtin_buffer_set_mark_name = "BUFFER-SET-MARK";
 const char *const builtin_buffer_set_mark_docstring =
   "(buffer-set-mark BUFFER MARK)\n\nSet marked byte in BUFFER to MARK.";
 int builtin_buffer_set_mark(Atom arguments, Atom *result) {
-  BUILTIN_ENSURE_TWO_ARGUMENTS(arguments);
+  TWO_ARGS(arguments);
   Atom buffer = car(arguments);
   Atom mark = car(cdr(arguments));
   if (!bufferp(buffer) || !buffer.value.buffer || !integerp(mark)) {
@@ -514,7 +515,7 @@ const char *const builtin_buffer_mark_name = "BUFFER-MARK";
 const char *const builtin_buffer_mark_docstring =
   "(buffer-mark BUFFER)\n\nReturn byte offset of mark in BUFFER.";
 int builtin_buffer_mark(Atom arguments, Atom *result) {
-  BUILTIN_ENSURE_ONE_ARGUMENT(arguments);
+  ONE_ARG(arguments);
   Atom buffer = car(arguments);
   if (!bufferp(buffer) || !buffer.value.buffer) {
     return ERROR_TYPE;
@@ -529,7 +530,7 @@ const char *const builtin_buffer_mark_activated_docstring =
   "\n"
   "Return T iff mark is active in BUFFER. Otherwise, return nil.";
 int builtin_buffer_mark_activated(Atom arguments, Atom *result) {
-  BUILTIN_ENSURE_ONE_ARGUMENT(arguments);
+  ONE_ARG(arguments);
   Atom buffer = car(arguments);
   if (!bufferp(buffer) || !buffer.value.buffer) {
     return ERROR_TYPE;
@@ -545,7 +546,7 @@ const char *const builtin_buffer_region_name = "BUFFER-REGION";
 const char *const builtin_buffer_region_docstring =
   "(buffer-region BUFFER)\n\nReturn the region between mark and point in BUFFER.";
 int builtin_buffer_region(Atom arguments, Atom *result) {
-  BUILTIN_ENSURE_ONE_ARGUMENT(arguments);
+  ONE_ARG(arguments);
   Atom buffer = car(arguments);
   if (!bufferp(buffer) || !buffer.value.buffer) {
     return ERROR_TYPE;
@@ -564,7 +565,7 @@ const char *const builtin_buffer_region_length_docstring =
   "Get byte difference between mark and point within BUFFER; "
   "the byte length of the selected region";
 int builtin_buffer_region_length(Atom arguments, Atom *result) {
-  BUILTIN_ENSURE_ONE_ARGUMENT(arguments);
+  ONE_ARG(arguments);
   Atom buffer = car(arguments);
   if (!bufferp(buffer) || !buffer.value.buffer) {
     return ERROR_TYPE;
@@ -581,7 +582,7 @@ const char *const builtin_open_buffer_docstring =
   "2. Try PATH relative to current buffer path.\n"
   "3. Try PATH relative to current working directory.";
 int builtin_open_buffer(Atom arguments, Atom *result) {
-  BUILTIN_ENSURE_ONE_ARGUMENT(arguments);
+  ONE_ARG(arguments);
   Atom path = car(arguments);
   if (!stringp(path) || !path.value.symbol) {
     return ERROR_TYPE;
@@ -648,7 +649,7 @@ const char *const builtin_buffer_path_name = "BUFFER-PATH";
 const char *const builtin_buffer_path_docstring =
   "(buffer-path BUFFER)\n\nReturn buffer's path as a string.";
 int builtin_buffer_path(Atom arguments, Atom *result) {
-  BUILTIN_ENSURE_ONE_ARGUMENT(arguments);
+  ONE_ARG(arguments);
   Atom buffer = car(arguments);
   if (!bufferp(buffer)) {
     return ERROR_TYPE;
@@ -661,7 +662,7 @@ const char *const builtin_buffer_table_name = "BUF";
 const char *const builtin_buffer_table_docstring =
   "(buf)\n\nReturn the LISP buffer table.";
 int builtin_buffer_table(Atom arguments, Atom *result) {
-  BUILTIN_ENSURE_NO_ARGUMENTS(arguments);
+  NO_ARGS(arguments);
   *result = *buf_table();
   return ERROR_NONE;
 }
@@ -672,7 +673,7 @@ const char *const builtin_buffer_insert_docstring =
   "\n"
   "Insert STRING into BUFFER at point.";
 int builtin_buffer_insert(Atom arguments, Atom *result) {
-  BUILTIN_ENSURE_TWO_ARGUMENTS(arguments);
+  TWO_ARGS(arguments);
   Atom buffer = car(arguments);
   Atom string = car(cdr(arguments));
   if (!bufferp(buffer) || !stringp(string)) {
@@ -694,7 +695,7 @@ const char *const builtin_buffer_remove_docstring =
   "\n"
   "Backspace COUNT bytes from BUFFER at point.";
 int builtin_buffer_remove(Atom arguments, Atom *result) {
-  BUILTIN_ENSURE_TWO_ARGUMENTS(arguments);
+  TWO_ARGS(arguments);
   Atom buffer = car(arguments);
   Atom count = car(cdr(arguments));
   if (!bufferp(buffer) || !integerp(count)) {
@@ -716,7 +717,7 @@ const char *const builtin_buffer_remove_forward_docstring =
   "\n"
   "Remove COUNT bytes from BUFFER following point.";
 int builtin_buffer_remove_forward(Atom arguments, Atom *result) {
-  BUILTIN_ENSURE_TWO_ARGUMENTS(arguments);
+  TWO_ARGS(arguments);
   Atom buffer = car(arguments);
   Atom count = car(cdr(arguments));
   if (!bufferp(buffer) || !integerp(count)) {
@@ -736,7 +737,7 @@ const char *const builtin_buffer_undo_name = "BUFFER-UNDO";
 const char *const builtin_buffer_undo_docstring =
   "(buffer-undo BUFFER)";
 int builtin_buffer_undo(Atom arguments, Atom *result) {
-  BUILTIN_ENSURE_ONE_ARGUMENT(arguments);
+  ONE_ARG(arguments);
   Atom buffer = car(arguments);
   if (!bufferp(buffer)) {
     return ERROR_TYPE;
@@ -752,7 +753,7 @@ const char *const builtin_buffer_redo_name = "BUFFER-REDO";
 const char *const builtin_buffer_redo_docstring =
   "(buffer-redo BUFFER)";
 int builtin_buffer_redo(Atom arguments, Atom *result) {
-  BUILTIN_ENSURE_ONE_ARGUMENT(arguments);
+  ONE_ARG(arguments);
   Atom buffer = car(arguments);
   if (!bufferp(buffer)) {
     return ERROR_TYPE;
@@ -771,7 +772,7 @@ const char *const builtin_buffer_set_point_docstring =
   "\n"
   "Set byte offset of cursor within BUFFER to POINT.";
 int builtin_buffer_set_point(Atom arguments, Atom *result) {
-  BUILTIN_ENSURE_TWO_ARGUMENTS(arguments);
+  TWO_ARGS(arguments);
   Atom buffer = car(arguments);
   Atom point = car(cdr(arguments));
   if (!bufferp(buffer) || !integerp(point)) {
@@ -796,7 +797,7 @@ const char *const builtin_buffer_point_docstring =
   "\n"
   "Get byte offset of cursor (point) within BUFFER.";
 int builtin_buffer_point (Atom arguments, Atom *result) {
-  BUILTIN_ENSURE_ONE_ARGUMENT(arguments);
+  ONE_ARG(arguments);
   Atom buffer = car(arguments);
   if (!bufferp(buffer)) {
     return ERROR_TYPE;
@@ -811,7 +812,7 @@ const char *const builtin_buffer_index_docstring =
   "\n"
   "Get character from BUFFER at INDEX";
 int builtin_buffer_index (Atom arguments, Atom *result) {
-  BUILTIN_ENSURE_TWO_ARGUMENTS(arguments);
+  TWO_ARGS(arguments);
   Atom buffer = car(arguments);
   Atom index = car(cdr(arguments));
   if (!bufferp(buffer) || !integerp(index)) {
@@ -832,7 +833,7 @@ const char *const builtin_buffer_string_docstring =
   "Get the contents of BUFFER as a string. "
   "Be careful with large files.";
 int builtin_buffer_string(Atom arguments, Atom *result) {
-  BUILTIN_ENSURE_ONE_ARGUMENT(arguments);
+  ONE_ARG(arguments);
   Atom buffer = car(arguments);
   if (!bufferp(buffer) || !buffer.value.buffer) {
     return ERROR_TYPE;
@@ -850,7 +851,7 @@ const char *const builtin_buffer_lines_docstring =
   "\n"
   "Get LINE-COUNT lines starting at START-LINE within BUFFER.";
 int builtin_buffer_lines (Atom arguments, Atom *result) {
-  BUILTIN_ENSURE_THREE_ARGUMENTS(arguments);
+  THREE_ARGS(arguments);
   Atom buffer = car(arguments);
   if (!bufferp(buffer) || !buffer.value.buffer) {
     return ERROR_TYPE;
@@ -878,7 +879,7 @@ const char *const builtin_buffer_line_docstring =
   "\n"
   "Get line LINE-NUMBER from BUFFER contents as string.";
 int builtin_buffer_line  (Atom arguments, Atom *result) {
-  BUILTIN_ENSURE_TWO_ARGUMENTS(arguments);
+  TWO_ARGS(arguments);
   Atom buffer = car(arguments);
   if (!bufferp(buffer) || !buffer.value.buffer) {
     return ERROR_TYPE;
@@ -900,7 +901,7 @@ const char *const builtin_buffer_current_line_docstring =
   "\n"
   "Get line surrounding point in BUFFER as string.";
 int builtin_buffer_current_line(Atom arguments, Atom *result) {
-  BUILTIN_ENSURE_ONE_ARGUMENT(arguments);
+  ONE_ARG(arguments);
   Atom buffer = car(arguments);
   if (!bufferp(buffer) || !buffer.value.buffer) {
     return ERROR_TYPE;
@@ -917,7 +918,7 @@ const char *const builtin_numeq_docstring =
   "\n"
   "Return 'T' iff the two given arguments have the same integer value.";
 int builtin_numeq(Atom arguments, Atom *result) {
-  BUILTIN_ENSURE_TWO_ARGUMENTS(arguments);
+  TWO_ARGS(arguments);
   Atom lhs = car(arguments);
   Atom rhs = car(cdr(arguments));
   if (lhs.type != ATOM_TYPE_INTEGER || rhs.type != ATOM_TYPE_INTEGER) {
@@ -933,7 +934,7 @@ const char *const builtin_numnoteq_docstring =
   "\n"
   "Return 'T' iff the two given arguments *do not* have the same integer value.";
 int builtin_numnoteq(Atom arguments, Atom *result) {
-  BUILTIN_ENSURE_TWO_ARGUMENTS(arguments);
+  TWO_ARGS(arguments);
   Atom lhs = car(arguments);
   Atom rhs = car(cdr(arguments));
   if (lhs.type != ATOM_TYPE_INTEGER || rhs.type != ATOM_TYPE_INTEGER) {
@@ -949,7 +950,7 @@ const char *const builtin_numlt_docstring =
   "\n"
   "Return 'T' iff integer A is less than integer B.";
 int builtin_numlt(Atom arguments, Atom *result) {
-  BUILTIN_ENSURE_TWO_ARGUMENTS(arguments);
+  TWO_ARGS(arguments);
   Atom lhs = car(arguments);
   Atom rhs = car(cdr(arguments));
   if (lhs.type != ATOM_TYPE_INTEGER || rhs.type != ATOM_TYPE_INTEGER) {
@@ -965,7 +966,7 @@ const char *const builtin_numlt_or_eq_docstring =
   "\n"
   "Return 'T' iff integer A is less than or equal to integer B.";
 int builtin_numlt_or_eq(Atom arguments, Atom *result) {
-  BUILTIN_ENSURE_TWO_ARGUMENTS(arguments);
+  TWO_ARGS(arguments);
   Atom lhs = car(arguments);
   Atom rhs = car(cdr(arguments));
   if (lhs.type != ATOM_TYPE_INTEGER || rhs.type != ATOM_TYPE_INTEGER) {
@@ -981,7 +982,7 @@ const char *const builtin_numgt_docstring =
   "\n"
   "Return 'T' iff integer A is greater than integer B.";
 int builtin_numgt(Atom arguments, Atom *result) {
-  BUILTIN_ENSURE_TWO_ARGUMENTS(arguments);
+  TWO_ARGS(arguments);
   Atom lhs = car(arguments);
   Atom rhs = car(cdr(arguments));
   if (lhs.type != ATOM_TYPE_INTEGER || rhs.type != ATOM_TYPE_INTEGER) {
@@ -997,7 +998,7 @@ const char *const builtin_numgt_or_eq_docstring =
   "\n"
   "Return 'T' iff integer A is greater than or equal to integer B.";
 int builtin_numgt_or_eq(Atom arguments, Atom *result) {
-  BUILTIN_ENSURE_TWO_ARGUMENTS(arguments);
+  TWO_ARGS(arguments);
   Atom lhs = car(arguments);
   Atom rhs = car(cdr(arguments));
   if (lhs.type != ATOM_TYPE_INTEGER || rhs.type != ATOM_TYPE_INTEGER) {
@@ -1015,7 +1016,7 @@ const char *const builtin_buffer_seek_byte_docstring =
   "If no matching bytes are found, don't move point_byte.\n"
   "Returns the amount of bytes buffer's point was moved.";
 int builtin_buffer_seek_byte(Atom arguments, Atom *result) {
-  BUILTIN_ENSURE_THREE_ARGUMENTS(arguments);
+  THREE_ARGS(arguments);
   Atom buffer = car(arguments);
   Atom bytes = car(cdr(arguments));
   Atom direction = car(cdr(cdr(arguments)));
@@ -1038,7 +1039,7 @@ const char *const builtin_buffer_seek_past_byte_docstring =
   "Returns the amount of bytes BUFFER's point was moved.\n"
   "When DIRECTION is negative, seek backwards.";
 int builtin_buffer_seek_past_byte(Atom arguments, Atom *result) {
-  BUILTIN_ENSURE_THREE_ARGUMENTS(arguments);
+  THREE_ARGS(arguments);
   Atom buffer = car(arguments);
   Atom bytes = car(cdr(arguments));
   Atom direction = car(cdr(cdr(arguments)));
@@ -1061,7 +1062,7 @@ const char *const builtin_buffer_seek_substring_docstring =
   "If no matching substring is found, don't move point_byte.\n"
   "When direction is negative, search backwards. Otherwise, search forwards.";
 int builtin_buffer_seek_substring(Atom arguments, Atom *result) {
-  BUILTIN_ENSURE_THREE_ARGUMENTS(arguments);
+  THREE_ARGS(arguments);
   Atom buffer = car(arguments);
   Atom substring = car(cdr(arguments));
   Atom direction = car(cdr(cdr(arguments)));
@@ -1122,7 +1123,7 @@ const char *const builtin_copy_docstring =
   "\n"
   "Return a deep copy of ATOM.";
 int builtin_copy(Atom arguments, Atom *result) {
-  BUILTIN_ENSURE_ONE_ARGUMENT(arguments);
+  ONE_ARG(arguments);
   return copy_impl(&car(arguments), result);
 }
 
@@ -1132,7 +1133,7 @@ const char *const builtin_string_length_docstring =
   "\n"
   "Return the length of STRING.";
 int builtin_string_length(Atom arguments, Atom *result) {
-  BUILTIN_ENSURE_ONE_ARGUMENT(arguments);
+  ONE_ARG(arguments);
   Atom string = car(arguments);
   if (!stringp(string)) { return ERROR_TYPE; }
   size_t length = strlen(string.value.symbol);
@@ -1146,7 +1147,7 @@ const char *const builtin_string_concat_docstring =
   "\n"
   "Return a new string consisting of STRING-A followed by STRING-B.";
 int builtin_string_concat(Atom arguments, Atom *result) {
-  BUILTIN_ENSURE_TWO_ARGUMENTS(arguments);
+  TWO_ARGS(arguments);
   Atom string_a = car(arguments);
   Atom string_b = car(cdr(arguments));
   if (!stringp(string_a) || !stringp(string_b)) {
@@ -1167,7 +1168,7 @@ const char *const builtin_evaluate_string_docstring =
   "\n"
   "Evaluate STRING as a LITE LISP expression.";
 int builtin_evaluate_string(Atom arguments, Atom *result) {
-  BUILTIN_ENSURE_ONE_ARGUMENT(arguments);
+  ONE_ARG(arguments);
   Atom input = car(arguments);
   if (!stringp(input) || !input.value.symbol) {
     return ERROR_TYPE;
@@ -1199,7 +1200,7 @@ const char *const builtin_evaluate_file_docstring =
   "2. Try PATH relative to current buffer and current buffer parent.\n"
   "3. Try PATH relative to current working directory.";
 int builtin_evaluate_file(Atom arguments, Atom *result) {
-  BUILTIN_ENSURE_ONE_ARGUMENT(arguments);
+  ONE_ARG(arguments);
 
   Atom filepath = car(arguments);
   if (!stringp(filepath)) { return ERROR_TYPE; }
@@ -1250,7 +1251,7 @@ const char *const builtin_save_docstring =
   "\n"
   "Save the given BUFFER to a file.";
 int builtin_save(Atom arguments, Atom *result) {
-  BUILTIN_ENSURE_ONE_ARGUMENT(arguments);
+  ONE_ARG(arguments);
   Atom buffer = car(arguments);
   if (!bufferp(buffer) || !buffer.value.buffer) {
     return ERROR_TYPE;
@@ -1270,7 +1271,7 @@ const char *const builtin_apply_docstring =
   "\n"
   "Call FUNCTION with the given ARGUMENTS and return the result.";
 int builtin_apply(Atom arguments, Atom *result) {
-  BUILTIN_ENSURE_TWO_ARGUMENTS(arguments);
+  TWO_ARGS(arguments);
   Atom function;
   function = car(arguments);
   arguments = car(cdr(arguments));
@@ -1324,7 +1325,7 @@ const char *const builtin_eq_docstring =
   "\n"
   "Return 'T' iff A and B refer to the same Atomic LISP object.";
 int builtin_eq(Atom arguments, Atom *result) {
-  BUILTIN_ENSURE_TWO_ARGUMENTS(arguments);
+  TWO_ARGS(arguments);
   *result = compare_atoms(car(arguments), car(cdr(arguments)));
   return ERROR_NONE;
 }
@@ -1335,7 +1336,7 @@ const char *const builtin_symbol_table_docstring =
   "\n"
   "Return a copy of the global symbol table at the time of calling.";
 int builtin_symbol_table(Atom arguments, Atom *result) {
-  BUILTIN_ENSURE_NO_ARGUMENTS(arguments);
+  NO_ARGS(arguments);
   *result = symbol_table();
   return ERROR_NONE;
 }
@@ -1346,7 +1347,7 @@ const char *const builtin_print_docstring =
   "\n"
   "Print the given ARG to standard out.";
 int builtin_print(Atom arguments, Atom *result) {
-  BUILTIN_ENSURE_ONE_ARGUMENT(arguments);
+  ONE_ARG(arguments);
   print_atom(car(arguments));
   fputc('\n', stdout);
   fflush(stdout);
@@ -1360,7 +1361,7 @@ const char *const builtin_prins_docstring =
   "\n"
   "Print the given STRING to standard out.";
 int builtin_prins(Atom arguments, Atom *result) {
-  BUILTIN_ENSURE_ONE_ARGUMENT(arguments);
+  ONE_ARG(arguments);
   Atom string = car(arguments);
   if (!stringp(string)) {
     return ERROR_TYPE;
@@ -1378,7 +1379,7 @@ const char *const builtin_read_prompted_docstring =
   "Show the user a PROMPT and return user response as a string.";
 // TODO: There has to be better ways to do this...
 int builtin_read_prompted(Atom arguments, Atom *result) {
-  BUILTIN_ENSURE_ONE_ARGUMENT(arguments);
+  ONE_ARG(arguments);
   Atom prompt = car(arguments);
   if (!stringp(prompt)) {
     return ERROR_TYPE;
@@ -1467,7 +1468,7 @@ const char *const builtin_finish_read_docstring =
   "\n"
   "When reading, complete the read and return the string.";
 int builtin_finish_read(Atom arguments, Atom *result) {
-  BUILTIN_ENSURE_NO_ARGUMENTS(arguments);
+  NO_ARGS(arguments);
 #ifdef LITE_GFX
   gui_ctx()->reading = 0;
 #endif /* #ifdef LITE_GFX */
@@ -1482,7 +1483,7 @@ const char *const builtin_change_font_docstring =
   "Attempt to change font to FONT-FILENAME with POINT-SIZE.";
 int builtin_change_font(Atom arguments, Atom *result) {
 #ifdef LITE_GFX
-  BUILTIN_ENSURE_TWO_ARGUMENTS(arguments);
+  TWO_ARGS(arguments);
   Atom font_path = car(arguments);
   if (!stringp(font_path)) {
     return ERROR_TYPE;
@@ -1506,7 +1507,7 @@ const char *const builtin_change_font_size_docstring =
   "Attempt to change the current font's size to POINT-SIZE.";
 int builtin_change_font_size(Atom arguments, Atom *result) {
 #ifdef LITE_GFX
-  BUILTIN_ENSURE_ONE_ARGUMENT(arguments);
+  ONE_ARG(arguments);
   Atom font_size = car(arguments);
   if (!integerp(font_size)) {
     return ERROR_TYPE;
@@ -1526,7 +1527,7 @@ const char *const builtin_window_size_docstring =
   "Return a pair containing the graphical window's size.";
 int builtin_window_size(Atom arguments, Atom *result) {
 #ifdef LITE_GFX
-  BUILTIN_ENSURE_NO_ARGUMENTS(arguments);
+  NO_ARGS(arguments);
   size_t width = 0;
   size_t height = 0;
   window_size(&width, &height);
@@ -1542,7 +1543,7 @@ const char *const builtin_change_window_size_docstring =
   "Attempt to change size of window to WIDTH by HEIGHT.";
 int builtin_change_window_size(Atom arguments, Atom *result) {
 #ifdef LITE_GFX
-  BUILTIN_ENSURE_TWO_ARGUMENTS(arguments);
+  TWO_ARGS(arguments);
   Atom width = car(arguments);
   Atom height = car(cdr(arguments));
   if (!integerp(width) || !integerp(height)) {
@@ -1562,7 +1563,7 @@ const char *const builtin_change_window_mode_docstring =
   "If N is 1, set window mode to fullscreen. Otherwise, set it to windowed.";
 int builtin_change_window_mode(Atom arguments, Atom *result) {
 #ifdef LITE_GFX
-  BUILTIN_ENSURE_ONE_ARGUMENT(arguments);
+  ONE_ARG(arguments);
   Atom n = car(arguments);
   if (!integerp(n)) {
     return ERROR_TYPE;
@@ -1600,7 +1601,7 @@ const char *const builtin_scroll_up_docstring =
   "\n"
   "";
 int builtin_scroll_up(Atom arguments, Atom *result) {
-  BUILTIN_ENSURE_NO_ARGUMENTS(arguments);
+  NO_ARGS(arguments);
   (void)result;
 #ifdef LITE_GFX
   // Use the default offset of one, unless a positive integer value was
@@ -1633,7 +1634,7 @@ const char *const builtin_scroll_down_docstring =
   "\n"
   "";
 int builtin_scroll_down(Atom arguments, Atom *result) {
-  BUILTIN_ENSURE_NO_ARGUMENTS(arguments);
+  NO_ARGS(arguments);
   (void)result;
 #ifdef LITE_GFX
   // Use the default offset of one, unless a positive integer value was
@@ -1674,7 +1675,7 @@ const char *const builtin_scroll_left_docstring =
   "\n"
   "";
 int builtin_scroll_left(Atom arguments, Atom *result) {
-  BUILTIN_ENSURE_NO_ARGUMENTS(arguments);
+  NO_ARGS(arguments);
   (void)result;
 #ifdef LITE_GFX
   // Use the default offset of one, unless a positive integer value was
@@ -1707,7 +1708,7 @@ const char *const builtin_scroll_right_docstring =
   "\n"
   "";
 int builtin_scroll_right(Atom arguments, Atom *result) {
-  BUILTIN_ENSURE_NO_ARGUMENTS(arguments);
+  NO_ARGS(arguments);
   (void)result;
 #ifdef LITE_GFX
   // Use the default offset of one, unless a positive integer value was
@@ -1754,7 +1755,7 @@ const char *const builtin_clipboard_cut_docstring =
   "Cut the selected region from BUFFER, if active.\n"
   "The selected region will be removed and placed in the copy and paste buffer.";
 int builtin_clipboard_cut(Atom arguments, Atom *result) {
-  BUILTIN_ENSURE_ONE_ARGUMENT(arguments);
+  ONE_ARG(arguments);
   *result = nil;
   Atom buffer = car(arguments);
   if (!bufferp(buffer) || !buffer.value.buffer) {
@@ -1784,7 +1785,7 @@ const char *const builtin_clipboard_copy_docstring =
   "\n"
   "Copy the selected region from BUFFER, if active.";
 int builtin_clipboard_copy(Atom arguments, Atom *result) {
-  BUILTIN_ENSURE_ONE_ARGUMENT(arguments);
+  ONE_ARG(arguments);
   *result = nil;
   Atom buffer = car(arguments);
   if (!bufferp(buffer) || !buffer.value.buffer) {
@@ -1809,7 +1810,7 @@ const char *const builtin_clipboard_paste_docstring =
   "\n"
   "Insert the most-recently clipboarded string into the current buffer at point.";
 int builtin_clipboard_paste(Atom arguments, Atom *result) {
-  BUILTIN_ENSURE_ONE_ARGUMENT(arguments);
+  ONE_ARG(arguments);
   Atom buffer = car(arguments);
   if (!bufferp(buffer) || !buffer.value.buffer) {
     return ERROR_TYPE;
@@ -1848,7 +1849,7 @@ const char *const builtin_set_carriage_return_character_docstring =
   "When non-nil, use the first character of string as the character to render a carriage return (\\\\r) as.\n"
   "When nil, do not render carriage return character (make it invisible).";
 int builtin_set_carriage_return_character(Atom arguments, Atom *result) {
-  BUILTIN_ENSURE_ONE_ARGUMENT(arguments);
+  ONE_ARG(arguments);
   *result = nil;
 
 # ifdef LITE_GFX
@@ -1872,11 +1873,13 @@ int builtin_set_carriage_return_character(Atom arguments, Atom *result) {
   return ERROR_NONE;
 }
 
-//const char *const builtin__name = "LISP-SYMBOL";
-//const char *const builtin__docstring =
-//  "(lisp-symbol)\n"
-//  "\n"
-//  "";
-//int builtin_(Atom arguments, Atom *result) {
-//  return ERROR_TODO;
-//}
+/*
+const char *const builtin__name = "LISP-SYMBOL";
+const char *const builtin__docstring =
+  "(lisp-symbol)\n"
+  "\n"
+  "";
+int builtin_(Atom arguments, Atom *result) {
+  return ERROR_TODO;
+}
+*/
