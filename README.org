@@ -227,7 +227,7 @@ When defining any variable, it is possible to define a docstring for it by speci
   (define new-variable 42 "The meaning of life, the universe, and everything.")
 #+end_src
 
-The docstring may be accessed like so:
+The docstring may be accessed with a builtin, like so:
 #+begin_src lisp
   (docstring new-variable)
 #+end_src
@@ -420,16 +420,34 @@ Here is a list of all of the special forms currently in LITE LISP.
 
   ~(DEFINE SYMBOL VALUE [DOCSTRING])~
 
-  ~DEFINE~ binds within the local environment, while ~set~ binds within
-  the global environment.
+  ~(SET    SYMBOL VALUE [DOCSTRING])~
+
+  ~DEFINE~ first checks all parent environments for a binding of the
+  symbol, and will override that one if it finds it. If ~SYMBOL~ is not
+  bound in any parent environment, ~DEFINE~ binds it in the *local*
+  environment. That is, the environment ~DEFINE~ was called from.
+
+  ~SET~ only operates on the global environment. This environment is
+  the top level environment that is carried between evaluations,
+  whereas local environments tend to go away after evaluation
+  completes.
 
 - LAMBDA :: Create a closure from the given expected arguments and body.
 
   ~(LAMBDA ARGS BODY)~
 
-  This closure can then be placed in the operator position, and any
-  further elements in the list will be bound to the argument symbols
-  given in the lambda definition while the body is evaluated.
+  This is an expression which returns a closure. A closure is just like
+  a function, except that it retains a pointer to the environment that
+  it was created within, allowing any variable accesses to be resolved
+  as expected.
+
+  This closure can be placed directly in the operator position and
+  called. Any arguments following the operator position are arguments
+  to the given operator. An error will be reported if the number of
+  arguments does not match, unless making use of an improper list to
+  gather all remaining arguments into one.
+
+  ~((identity (x) x) 42)~
 
 - IF :: A conditional expression.
 
@@ -457,16 +475,42 @@ Here is a list of all of the special forms currently in LITE LISP.
   evaluated, and the value returned from the macro is evaluated,
   then that return value is the result.
 
-- DOCSTRING :: Return the docstring of any given atom, if it exists.
+  ~(MACRO SYMBOL ARGS DOCSTRING BODY)~
+
+  One of the most useful features of macros is quasiquoting, which is
+  just a fancy word meaning evaluating only some arguments while
+  passing others through quoted. See the section on macros for more
+  details.
 
 - EVALUATE :: Return the result of the given argument after evaluating it.
 
-  This is mostly used in macros to evaluate certain arguments.
+  This is mostly used in macros to evaluate certain arguments more than once.
 
 - ENV :: Return the current environment.
 
+  The first element (car (env)) is the parent environment. If the
+  parent environment is ~nil~, that indicates the environment is the
+  global environment.
+
+  NOTE: This is a copy of the environment. Changes to it are *not*
+  reflected in the environment itself.
+
 - ERROR :: Print the given message to standard out after an error indicator.
   Returns the given message. Halts evaluation.
+
+- QUIT-COMPLETELY :: Exit LITE entirely. Shut down the program.
+
+  Return STATUS code from program, or ~0~ if one isn't given.
+
+  ~(QUIT-COMPLETELY [STATUS])~
+
+  Default binding: ~CTRL-ALT-Q~
+
+- AND :: Return nil as soon as one of the arguments evaluates to nil.
+  Otherwise return ~T~.
+
+- OR :: Return ~T~ as soon as one of the arguments evaluates non-nil.
+  Otherwise return nil.
 
 
 *** Structures

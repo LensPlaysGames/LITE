@@ -302,7 +302,6 @@ Atom make_int(integer_t value) {
   a.value.integer = value;
   return a;
 }
-
 Atom make_int_with_docstring(integer_t value, char *docstring) {
   Atom a = nil;
   a.type = ATOM_TYPE_INTEGER;

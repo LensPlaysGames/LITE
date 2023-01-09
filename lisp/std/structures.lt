@@ -50,6 +50,10 @@ Like 'LET', but for a structure's members."
 (defmacro access (symbol . body)
   "Bind member identifiers to member values from structure bound to SYMBOL
 while evaluating BODY. Like 'LET', but for a structure's members."
+  ;; NOTE: `evaluate` is required here because we need two levels of
+  ;; indirection. We want to evaluate the symbol `SYMBOL` into it's
+  ;; value (the argument passed). However, the argument passed is also
+  ;; a symbol. So we need to also evaluate that, hence the need for this.
   `(access-impl ,(evaluate symbol) ,@body))
 
 (defmacro get-member (symbol member-id)

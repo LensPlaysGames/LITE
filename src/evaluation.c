@@ -622,17 +622,6 @@ Error evaluate_expression(Atom expr, Atom environment, Atom *result) {
           gcol_generic_allocation(&macro, macro.docstring);
           (void)env_set(environment, name, macro);
           *result = name;
-        } else if (strcmp(operator.value.symbol, "EVAL-SIMPLE") == 0) {
-          const char *usage_evaluate = "Usage: (EVAL-SIMPLE <expression>)";
-          if (nilp(arguments) || !nilp(cdr(arguments))) {
-            PREP_ERROR(err, ERROR_ARGUMENTS
-                       , arguments
-                       , "EVAL-SIMPLE: Only a single expression is accepted."
-                       , usage_evaluate);
-            return err;
-          }
-          expr = car(arguments);
-          continue;
         } else if (strcmp(operator.value.symbol, "EVALUATE") == 0) {
           const char *usage_evaluate = "Usage: (EVALUATE <expression>)";
           if (nilp(arguments) || !nilp(cdr(arguments))) {
@@ -685,13 +674,6 @@ Error evaluate_expression(Atom expr, Atom environment, Atom *result) {
           break;
         } else if (strcmp(operator.value.symbol, "QUIT-COMPLETELY") == 0) {
           const char *usage_error = "Usage: (QUIT-COMPLETELY status)";
-          if (nilp(arguments) || !nilp(cdr(arguments))) {
-            PREP_ERROR(err, ERROR_ARGUMENTS
-                       , arguments
-                       , "ERROR: Only a single integer argument is accepted."
-                       , usage_error);
-            return err;
-          }
           Atom status = nil;
           if (pairp(arguments)) {
             status = car(arguments);

@@ -521,8 +521,23 @@ Bind a symbol to a given atomic value within the LISP environment.
   \end{tabular}
 \end{center}
 
-\noindent
-DEFINE binds within the local environment, while SET binds within the global environment.
+\begin{center}
+  \begin{tabular}{c}
+    \texttt{(SET    SYMBOL VALUE [DOCSTRING])}
+  \end{tabular}
+\end{center}
+
+\begin{itemize}
+\item[DEFINE] First checks all parent environments for a binding of the
+  symbol, and will override that one if it finds it. If SYMBOL is not
+  bound in any parent environment, DEFINE binds it in the \textbf{local}
+  environment. That is, the environment DEFINE was called from.
+
+\item[SET] Only operates on the global environment. This environment is
+  the top level environment that is carried between evaluations,
+  whereas local environments tend to go away after evaluation
+  completes.
+\end{itemize}
 
 \vspace{1em}
 
@@ -539,7 +554,16 @@ Create a closure from the given expected arguments and body.
 \end{center}
 
 \noindent
-This closure can then be placed in the operator position, and any further elements in the list will be bound to the argument symbols given in the lambda definition while the body is evaluated.
+This is an expression which returns a closure. A closure is just like a function, except that it retains a pointer to the environment that it was created within, allowing any variable accesses to be resolved as expected.
+
+\noindent
+This closure can be placed directly in the operator position and called. Any arguments following the operator position are arguments to the given operator. An error will be reported if the number of arguments does not match, unless making use of an improper list to gather all remaining arguments into one.
+
+\begin{center}
+  \begin{tabular}{c}
+    \texttt{((identity (x) x) 42)}
+  \end{tabular}
+\end{center}
 
 \vspace{1em}
 
@@ -595,13 +619,14 @@ Evaluate a sequence of expressions, returning the result of the last expression.
 \noindent
 Create a closure, except the passed arguments are not evaluated---the value returned is evaluated, then that return value is the result.
 
-\vspace{1em}
-
-\section{DOCSTRING}
-%\filbreak\vspace{1em}\noindent\hspace{-1em}\textbf{\emph{DOCSTRING}}
-
 \noindent
-Return the docstring of any given atom, if it exists within the given environment.
+One of the most useful features of macros is quasiquoting, which is just a fancy word meaning evaluating only some arguments while passing others through quoted. See the section on macros for more details.
+
+\begin{center}
+  \begin{tabular}{c}
+    \texttt{(MACRO SYMBOL ARGS DOCSTRING BODY)}
+  \end{tabular}
+\end{center}
 
 \vspace{1em}
 
@@ -609,7 +634,7 @@ Return the docstring of any given atom, if it exists within the given environmen
 %\filbreak\vspace{1em}\noindent\hspace{-1em}\textbf{\emph{EVALUATE}}
 
 \noindent
-Return the result of the given argument after evaluating it. This is often used in macros to evaluate certain arguments within an UNQUOTE, but not others.
+Return the result of the given argument after evaluating it. This is often used in macros to evaluate certain arguments within an UNQUOTE (more than one layer of evaluation needed).
 
 \vspace{1em}
 
@@ -618,6 +643,9 @@ Return the result of the given argument after evaluating it. This is often used 
 
 \noindent
 Return the current environment.
+
+\noindent
+The CAR of an environment refers to the parent environment. If the parent environment is nil, the environment is the global environment.
 
 \vspace{1em}
 
@@ -630,10 +658,28 @@ Print the given message to standard out after an error indicator. Returns the gi
 \vspace{1em}
 
 \section{QUIT-COMPLETLY}
-%\filbreak\vspace{1em}\noindent\hspace{-1em}\textbf{\emph{ERROR}}
+%\filbreak\vspace{1em}\noindent\hspace{-1em}\textbf{\emph{QUIT-COMPLETELY}}
 
 \noindent
 Exits the program with the given status code integer (0 if none given) using the exit function from libc.
+
+Default binding: \texttt{CTRL-ALT-q}
+
+\vspace{1em}
+
+\section{AND}
+%\filbreak\vspace{1em}\noindent\hspace{-1em}\textbf{\emph{AND}}
+
+\noindent
+Return nil as soon as one of the arguments evaluates to nil. Otherwise return T.
+
+\vspace{1em}
+
+\section{OR}
+%\filbreak\vspace{1em}\noindent\hspace{-1em}\textbf{\emph{OR}}
+
+\noindent
+Return T as soon as one of the arguments evaluates non-nil. Otherwise return nil.
 
 \vspace{1em}
 
