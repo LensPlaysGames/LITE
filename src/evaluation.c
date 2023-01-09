@@ -726,9 +726,12 @@ Error evaluate_expression(Atom expr, Atom environment, Atom *result) {
         if (needs_explicit) {
           FOR_ALL_GCOL_THINGS(gcol_mark_explicit);
         }
-        err.type = (*operator.value.builtin.function)(arguments, result);
+        err = (*operator.value.builtin.function)(arguments, result);
         if (needs_explicit) {
           FOR_ALL_GCOL_THINGS(gcol_unmark);
+        }
+        if (err.type) {
+          return err;
         }
       } else {
         // Evaluate operator before application.

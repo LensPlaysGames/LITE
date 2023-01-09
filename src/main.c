@@ -215,6 +215,8 @@ int main(int argc, char **argv) {
   enter_repl(*genv());
 # endif
 
+  fflush(stdout);
+
   exit_safe(status);
   return status;
 }

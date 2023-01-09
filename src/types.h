@@ -10,9 +10,11 @@
 /// output log (i.e. symbol table expansion, garbage collection, etc).
 extern bool strict_output;
 
+struct Error;
+
 struct Atom;
 /// All C functions that are to be called from LISP will have this prototype.
-typedef int (*BuiltInFunction)(struct Atom arguments, struct Atom *result);
+typedef struct Error (*BuiltInFunction)(struct Atom arguments, struct Atom *result);
 
 typedef struct BuiltIn {
   char *name;

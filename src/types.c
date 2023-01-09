@@ -850,7 +850,7 @@ int format_bufsz(const char *format, ...) {
 }
 
 char *atom_string(Atom atom, char *buffer) {
-  assert(ATOM_TYPE_MAX == 10);
+  assert(ATOM_TYPE_MAX == 10 && "compare_atoms(): Exhaustive handling of atom types");
   //_Static_assert(ATOM_TYPE_MAX == 10, "compare_atoms(): Exhaustive handling of atom types");
   char *left;
   char *right;
@@ -860,7 +860,7 @@ char *atom_string(Atom atom, char *buffer) {
   const char *symbol_format  = "%s";
   const char *integer_format = "%lli";
   const char *string_format  = "\"%s\"";
-  const char *lr_format      = "(%s%s)";
+  const char *lr_format      = "(%s %s)";
   const char *l_format       = "(%s)";
   const char *builtin_format = "#<BUILTIN>:%s";
   const char *closure_format = "#<CLOSURE>:%p";
@@ -944,7 +944,7 @@ char *atom_string(Atom atom, char *buffer) {
         break;
       }
     }
-    if (left && right) {
+    if (left && right && right[0] != '\0') {
       to_add = format_bufsz(lr_format, left, right);
       buffer = realloc(buffer, length+to_add);
       if (!buffer) { return NULL; }

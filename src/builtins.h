@@ -1,10 +1,12 @@
 #ifndef LITE_BUILTINS_H
 #define LITE_BUILTINS_H
 
+struct Error;
+
 #define builtin(name)                                  \
   extern const char *const builtin_##name##_name;      \
   extern const char *const builtin_##name##_docstring; \
-  int builtin_##name(Atom arguments, Atom *result)
+  struct Error builtin_##name(Atom arguments, Atom *result)
 
 
 struct Atom;
