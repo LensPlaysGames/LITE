@@ -767,13 +767,12 @@ void print_atom(Atom atom) {
     break;
   case ATOM_TYPE_ENVIRONMENT: {
     putchar('(');
-    size_t index = 0;
-    Atom it;
-    while (index < atom.value.env->data_capacity) {
-      it = atom.value.env->data[index].value;
-      if (!nilp(it)) {
-        print_atom(it);
-        putchar(' ');
+    EnvironmentValue *entry = atom.value.env->data;
+    for (size_t index = 0; index++ < atom.value.env->data_capacity; ++index, ++entry) {
+      if (entry->key) {
+        printf("%s -> ", entry->key);
+        print_atom(entry->value);
+        printf(",\n");
       }
     }
     putchar(')');
