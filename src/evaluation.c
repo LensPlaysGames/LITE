@@ -709,6 +709,12 @@ Error evaluate_expression(Atom expr, Atom environment, Atom *result) {
       } else if (builtinp(operator)) {
         PREP_ERROR(err, ERROR_NONE, operator, NULL, NULL);
         //printf("expr: ");pretty_print_atom(expr);putchar('\n');
+
+        // Builtins that require access to the environment get it added here.
+        if (operator.value.builtin.function == builtin_docstring) {
+          arguments = cons(environment, arguments);
+        }
+
         // TODO: This is horrible, but the code is unusable slow otherwise.
         // Explicitly mark call stack in gcol for recursively
         // evaluating builtins.

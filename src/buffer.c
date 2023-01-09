@@ -1,5 +1,6 @@
 #include <buffer.h>
 
+#include <assert.h>
 #include <environment.h>
 #include <error.h>
 #include <errno.h>
@@ -380,7 +381,7 @@ Error buffer_undo(Buffer *buffer) {
   // Nothing to do.
   if (!*head) return ok;
 
-  _Static_assert(BUF_HST_MAX == 3, "Exhaustive handling of buffer history node types in buffer_undo().");
+  assert(BUF_HST_MAX == 3 && "Exhaustive handling of buffer history node types in buffer_undo().");
 
   BufferHistoryNode *node = *head;
 
@@ -426,7 +427,7 @@ Error buffer_redo(Buffer *buffer) {
   // Nothing to redo.
   if (!*head) return ok;
 
-  _Static_assert(BUF_HST_MAX == 3, "Exhaustive handling of buffer history node types in buffer_redo().");
+  assert(BUF_HST_MAX == 3 && "Exhaustive handling of buffer history node types in buffer_redo().");
 
   BufferHistoryNode *node = *head;
   switch(node->type) {

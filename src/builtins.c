@@ -79,24 +79,26 @@ int builtin_quit_lisp(Atom arguments, Atom *result) {
 
 const char *const builtin_docstring_name = "DOCSTRING";
 const char *const builtin_docstring_docstring =
-  "(docstring SYMBOL ENVIRONMENT)\n"
+  "(docstring SYMBOL)\n"
   "\n"
   "Return the docstring of SYMBOL within ENVIRONMENT as a string.";
 int builtin_docstring(Atom arguments, Atom *result) {
   TWO_ARGS(arguments);
 
-  Atom atom = car(arguments);
-  Atom environment = car(cdr(arguments));
+  Atom environment = car(arguments);
+  Atom atom = car(cdr(arguments));
 
-  if (!pairp(environment)) {
+  if (!envp(environment)) {
     return ERROR_TYPE;
   }
 
   if (symbolp(atom)) {
     Atom symbol_in = atom;
     Error err = env_get(environment, symbol_in, &atom);
-    print_error(err);
-    if (err.type) { return err.type; }
+    if (err.type) {
+      print_error(err);
+      return err.type;
+    }
   }
 
   // If atom is of type closure, show closure signature (arguments).
@@ -117,10 +119,9 @@ int builtin_docstring(Atom arguments, Atom *result) {
           strcat(newdoc, signature);
           strcat(newdoc, "\n\n");
           strcat(newdoc, atom.docstring);
-          docstring = newdoc;
         } else {
-          // Could not allocate buffer for new docstring,
-          // free allocated memory and use regular docstring.
+          // Could not allocate buffer for new docstring, so just use
+          // the regular docstring.
           newdoc = (char *)atom.docstring;
         }
         free(signature);
@@ -133,7 +134,6 @@ int builtin_docstring(Atom arguments, Atom *result) {
   if (docstring) {
     *result = make_string(docstring);
     free(docstring);
-    docstring = NULL;
   } else {
     if (atom.docstring) {
       *result = make_string(atom.docstring);
