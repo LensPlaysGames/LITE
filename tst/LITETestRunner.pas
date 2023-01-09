@@ -67,6 +67,7 @@ begin
       proc.Options := proc.Options + [poUsePipes,poWaitOnExit];
       proc.Executable := LITEExe;
       proc.Parameters.Add('--script');
+      proc.Parameters.Add('--');
       proc.Parameters.Add(path);
       proc.CurrentDirectory := LITERoot;
       proc.Execute;
