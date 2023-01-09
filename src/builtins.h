@@ -25,6 +25,7 @@ builtin(closurep);
 builtin(macrop);
 builtin(stringp);
 builtin(bufferp);
+builtin(envp);
 
 // PAIRS
 

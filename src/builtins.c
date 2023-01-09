@@ -144,7 +144,7 @@ int builtin_docstring(Atom arguments, Atom *result) {
   return ERROR_NONE;
 }
 
-int typep(Atom arguments, enum AtomType type, Atom *result) {
+static int typep(Atom arguments, enum AtomType type, Atom *result) {
   ONE_ARG(arguments);
   *result = car(arguments).type == type ? make_sym("T") : nil;
   return ERROR_NONE;
@@ -234,6 +234,16 @@ const char *const builtin_bufferp_docstring =
 int builtin_bufferp(Atom arguments, Atom *result) {
   return typep(arguments, ATOM_TYPE_BUFFER, result);
 }
+
+const char *const builtin_envp_name = "ENVP";
+const char *const builtin_envp_docstring =
+  "(envp ARG)\n"
+  "\n"
+  "Return 'T' iff ARG has a type of 'ENVIRONMENT', otherwise return nil.";
+int builtin_envp(Atom arguments, Atom *result) {
+  return typep(arguments, ATOM_TYPE_ENVIRONMENT, result);
+}
+
 
 const char *const builtin_not_name = "!";
 const char *const builtin_not_docstring =
@@ -1440,7 +1450,7 @@ const char *const builtin_print_name = "PRINT";
 const char *const builtin_print_docstring =
   "(print ARG)\n"
   "\n"
-  "Print the given ARG to standard out.";
+  "Print the given ARG to standard out followed by newline.";
 int builtin_print(Atom arguments, Atom *result) {
   ONE_ARG(arguments);
   print_atom(car(arguments));
@@ -1454,11 +1464,11 @@ const char *const builtin_prins_name = "PRINS";
 const char *const builtin_prins_docstring =
   "(prins STRING)\n"
   "\n"
-  "Print the given STRING to standard out.";
+  "Print the given STRING (or symbol) to standard out.";
 int builtin_prins(Atom arguments, Atom *result) {
   ONE_ARG(arguments);
   Atom string = car(arguments);
-  if (!stringp(string)) {
+  if (!stringp(string) && !symbolp(string)) {
     return ERROR_TYPE;
   }
   fputs(string.value.symbol, stdout);

@@ -120,7 +120,7 @@ static void env_expand(Environment *table) {
   size_t new_capacity = table->data_capacity << 1;
   EnvironmentValue *new_data = calloc(1, new_capacity * sizeof(*new_data));
   if (!new_data) {
-    fprintf(stderr, "env_create() could not allocate new hash table.");
+    fprintf(stderr, "env_expand() could not allocate new hash table.");
     exit(9);
   }
 
@@ -274,6 +274,7 @@ Atom default_environment(void) {
   defbuiltin(macrop);
   defbuiltin(stringp);
   defbuiltin(bufferp);
+  defbuiltin(envp);
 
   defbuiltin(add);
   defbuiltin(subtract);
