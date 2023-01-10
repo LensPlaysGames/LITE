@@ -164,6 +164,8 @@ Otherwise, return nil."
    ;; Get byte at point as 1-length string then first byte of string as integer.
    (string-index (byte-at-point current-buffer) 0)))
 
+;; TODO: Make these return current-buffer to be consistent with other navigation functions.
+
 (defun utf8-forward-char ()
   "Increment point of `CURRENT-BUFFER` by one utf8 codepoint."
   (forward-bytes 1)
@@ -177,7 +179,7 @@ Otherwise, return nil."
     (utf8-backward-char)))
 
 (defun utf8-remove-char ()
-  "Remove the bytes representing the next utf8 codepoint point of `CURRENT-BUFFER` starting at point."
+  "Remove the bytes representing the utf8 codepoint point of `CURRENT-BUFFER` ending just before point."
   (remove 1)
   (when (utf8-point-at-continuation-byte-p)
     (utf8-remove-char)))

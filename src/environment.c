@@ -308,6 +308,13 @@ Atom default_environment(void) {
 
   defbuiltin(symbol_table);
 
+  defbuiltin(env_set);
+  defbuiltin(env_set_direct);
+  defbuiltin(env_get);
+  defbuiltin(env_get_direct);
+  defbuiltin(env_parent);
+  defbuiltin(env_bindings);
+
   defbuiltin(buffer_toggle_mark);
   defbuiltin(buffer_set_mark_activation);
   defbuiltin(buffer_set_mark);

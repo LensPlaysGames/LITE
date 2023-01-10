@@ -71,6 +71,15 @@ builtin(bitnot);
 builtin(bitshl);
 builtin(bitshr);
 
+// ENVIRONMENTS
+
+builtin(env_set);
+builtin(env_set_direct);
+builtin(env_get);
+builtin(env_get_direct);
+builtin(env_parent);
+builtin(env_bindings);
+
 // BUFFERS
 
 builtin(buffer_toggle_mark);
