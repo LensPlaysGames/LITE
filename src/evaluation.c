@@ -647,11 +647,6 @@ Error evaluate_expression(Atom expr, Atom environment, Atom *result) {
                        , usage_env);
             return err;
           }
-          // TODO: Rewrite to return a normal lisp sort of environment,
-          // instead of the actual environment atom itself, which has
-          // no ways of being accessed (currently) from LITE LISP. We
-          // could also keep this but write env-* builtins to cover the
-          // bases, much like buffer-* builtins.
           *result = environment;
         } else if (strcmp(operator.value.symbol, "ERROR") == 0) {
           const char *usage_error = "Usage: (ERROR \"message\")";

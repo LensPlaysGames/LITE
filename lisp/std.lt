@@ -30,56 +30,58 @@ Quits evaluating all LISP up until the very top level (minimum needed)."
 ;; by writing a function that converts from an atom of environment type
 ;; to a list of bindings, or something.
 
-;;(defmacro env-foreach (current-env callback)
-;;  "Call CALLBACK on each and every binding within all environments reachable from CURRENT-ENV.
-;;CALLBACK is called like with a single argument: a pair with car of symbol key and cdr of value."
-;;  `(let ((iterator ,current-env))
-;;     (while (! (nilp iterator))
-;;       (dolist (item (cdr iterator) t)
-;;         (,callback item))
-;;       (define iterator (car iterator))
-;;       )))
+(defmacro env-foreach (current-env callback)
+  "Call CALLBACK on each and every binding within all environments reachable from CURRENT-ENV.
+CALLBACK is called like with a single argument: a pair with car of symbol key and cdr of value."
+  `(let ((iterator ,current-env))
+     (while (! (nilp iterator))
+       (dolist (item (env-bindings iterator) t)
+         (,callback item))
+       (define iterator (env-parent iterator))
+       )))
 
-;;(defun list-functions ()
-;;  "List all of the functions currently defined in the environment."
-;;  (env-foreach (env) (lambda (item)
-;;                       (when (or (builtinp (cdr item))
-;;                                 (closurep (cdr item)))
-;;                         (print (car item))))))
+(defun list-functions ()
+  "List all of the functions currently defined in the environment."
+  (env-set-direct (env) 'outstr "")
+  (env-foreach (env) (lambda (item)
+                       (when (or (builtinp (cdr item))
+                                 (closurep (cdr item)))
+                         (define outstr (string-concat (string-concat outstr "\\n")
+                                                       (to-string (car item)))))))
+  outstr)
 
-;;(defun list-closures ()
-;;  "List all of the functions currently defined in the environment."
-;;  (env-foreach (env) (lambda (item)
-;;                       (when (closurep (cdr item))
-;;                         (print (car item))))))
+(defun list-closures ()
+  "List all of the functions currently defined in the environment."
+  (env-set-direct (env) 'outstr "")
+  (env-foreach (env) (lambda (item)
+                       (when (closurep (cdr item))
+                         (define outstr (string-concat (string-concat outstr "\\n")
+                                                       (to-string (car item)))))))
+  outstr)
 
-;;(defun list-builtins ()
-;;  "List all of the builtins currently defined in the environment."
-;;  (env-foreach (env) (lambda (item)
-;;                       (when (builtinp (cdr item))
-;;                         (print (car item))))))
+(defun list-builtins ()
+  "List all of the functions currently defined in the environment."
+  (env-set-direct (env) 'outstr "")
+  (env-foreach (env) (lambda (item)
+                       (when (builtinp (cdr item))
+                         (define outstr (string-concat (string-concat outstr "\\n")
+                                                       (to-string (car item)))))))
+  outstr)
 
-;; TODO: There is some serious jank going on with `DOCSTRING` right now...
-;;(defun all-functions ()
-;;  "List all of the functions currently defined in the environment,
-;;and print out their respective docstrings."
-;;  (env-foreach (env) (lambda (item)
-;;                       (when (or (builtinp (cdr item))
-;;                                 (closurep (cdr item)))
-;;                         (prins (car item))
-;;                         (prins "\\n")
-;;                         (let ((docstr (docstring (car item))))
-;;                           (prins docstr)
-;;                           (prins "\\n\\n\\n"))
-;;                         ))))
-
-;;(defun print-environment ()
-;;  "Print the value of the current environment to standard out."
-;;  (let ((env-it (env)))
-;;    (while env-it
-;;      (print (car env-it))
-;;      (define env-it (cdr env-it)))))
-
+(defun all-functions ()
+  "List all of the functions currently defined in the environment,
+and print out their respective docstrings."
+  (env-foreach (env) (lambda (item)
+                       (when (or (builtinp (cdr item))
+                                 (closurep (cdr item)))
+                         (prins (car item))
+                         (prins "\\n")
+                         (let ((docstr (docstring (car item))))
+                           (when docstr
+                             (prins docstr)
+                             (prins "\\n")))
+                         (prins "\\n\\n")
+                         ))))
 
 (defmacro save-point-and-mark (buffer . body)
   "Evaluate body, then restore point and mark state of BUFFER.

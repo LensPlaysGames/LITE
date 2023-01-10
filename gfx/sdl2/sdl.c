@@ -60,6 +60,10 @@ static inline char *allocate_string_span
   if (!out) {
     return NULL;
   }
+  size_t len = strlen(string);
+  if (length > len) {
+    length = len;
+  }
   memcpy(out, string + offset, length);
   out[length] = '\0';
   return out;
