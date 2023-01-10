@@ -162,7 +162,7 @@ Error evaluate_return_value(Atom *stack, Atom *expr, Atom *environment, Atom *re
       return evaluate_bind_arguments(stack, expr, environment);
     }
   } else if (symbolp(operator)) {
-    char define_locality = -1;
+    int define_locality = -1;
     if ((define_locality = strcmp(operator.value.symbol, "DEFINE")) == 0
         || (define_locality = !strcmp(operator.value.symbol, "SET")) != 0) {
       // Here is where env_set is called, since
@@ -378,8 +378,9 @@ Error evaluate_expression(Atom expr, Atom environment, Atom *result) {
       if (!integerp(pair_allocations_threshold) || pair_allocations_threshold.value.integer <= 0) {
         pair_allocations_threshold = make_int(gcol_pair_allocations_threshold_default);
       }
-      integer_t pairs_in_use = pair_allocations_count - pair_allocations_freed;
-      if (pairs_in_use >= pair_allocations_threshold.value.integer) {
+      size_t pairs_in_use = pair_allocations_count - pair_allocations_freed;
+      // TODO: Error on overflow
+      if (pairs_in_use >= (size_t)pair_allocations_threshold.value.integer) {
         should_gcol = 1;
       }
     }

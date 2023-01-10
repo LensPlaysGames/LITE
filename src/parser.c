@@ -70,7 +70,7 @@ Error parse_simple(const char *beg, const char *end, Atom *result) {
     return ok;
   }
   // NIL or SYMBOL
-  buffer = malloc(end - beg + 1);
+  buffer = malloc((size_t)(end - beg) + 1);
   if (!buffer) {
     MAKE_ERROR(err, ERROR_MEMORY, nil,
                "Could not allocate buffer to read symbol.",
@@ -79,7 +79,7 @@ Error parse_simple(const char *beg, const char *end, Atom *result) {
   }
   p = buffer;
   while (beg != end) {
-    *p++ = toupper(*beg);
+    *p++ = (char)toupper(*beg);
     ++beg;
   }
   *p = '\0';
@@ -130,7 +130,7 @@ Error parse_string(const char *beg, const char **end, Atom *result) {
   }
   // Closing quote is eaten here.
   *end = p + 1;
-  size_t string_length = *end - beg - 2;
+  size_t string_length = (size_t)(*end - beg) - 2;
   // Allocate memory for string contents.
   char *contents = malloc(string_length + 1);
   if (!contents) {

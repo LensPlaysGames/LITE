@@ -619,13 +619,13 @@ int gui_loop(void) {
     GUIWindow *new_gui_window = calloc(1, sizeof(GUIWindow));
 
     // Set integer values
-    new_gui_window->z     = car(window).value.integer;
-    new_gui_window->posx  = car(car(cdr(window))).value.integer;
-    new_gui_window->posy  = cdr(car(cdr(window))).value.integer;
-    new_gui_window->sizex = car(car(cdr(cdr(window)))).value.integer;
-    new_gui_window->sizey = cdr(car(cdr(cdr(window)))).value.integer;
-    new_gui_window->contents.horizontal_offset = car(car(cdr(cdr(cdr(window))))).value.integer;
-    new_gui_window->contents.vertical_offset   = cdr(car(cdr(cdr(cdr(window))))).value.integer;
+    new_gui_window->z     = (uint8_t)car(window).value.integer;
+    new_gui_window->posx  = (uint8_t)car(car(cdr(window))).value.integer;
+    new_gui_window->posy  = (uint8_t)cdr(car(cdr(window))).value.integer;
+    new_gui_window->sizex = (uint8_t)car(car(cdr(cdr(window)))).value.integer;
+    new_gui_window->sizey = (uint8_t)cdr(car(cdr(cdr(window)))).value.integer;
+    new_gui_window->contents.horizontal_offset = (size_t)car(car(cdr(cdr(cdr(window))))).value.integer;
+    new_gui_window->contents.vertical_offset   = (size_t)cdr(car(cdr(cdr(cdr(window))))).value.integer;
 
     if (new_gui_window->posx > 100) {
       new_gui_window->posx = 100;
@@ -725,23 +725,26 @@ int gui_loop(void) {
       if (integerp(car(property))) {
         integer_t id = car(property).value.integer;
         if (id < 0) id = 0;
-        new_property->id = id;
+        new_property->id = (size_t)id;
       }
-      new_property->offset = car(cdr(property)).value.integer;
-      new_property->length = car(cdr(cdr(property))).value.integer;
 
-      // TODO: better conversion from integer to byte.
+      // TODO/FIXME: Do we need to handle negatives everywhere here? Is
+      // cast enough?
+
+      new_property->offset = (size_t)car(cdr(property)).value.integer;
+      new_property->length = (size_t)car(cdr(cdr(property))).value.integer;
+
       Atom fg = car(cdr(cdr(cdr(property))));
-      new_property->fg.r = car(fg).value.integer;
-      new_property->fg.g = car(cdr(fg)).value.integer;
-      new_property->fg.b = car(cdr(cdr(fg))).value.integer;
-      new_property->fg.a = car(cdr(cdr(cdr(fg)))).value.integer;
+      new_property->fg.r = (uint8_t)car(fg).value.integer;
+      new_property->fg.g = (uint8_t)car(cdr(fg)).value.integer;
+      new_property->fg.b = (uint8_t)car(cdr(cdr(fg))).value.integer;
+      new_property->fg.a = (uint8_t)car(cdr(cdr(cdr(fg)))).value.integer;
 
       Atom bg = car(cdr(cdr(cdr(cdr(property)))));
-      new_property->bg.r = car(bg).value.integer;
-      new_property->bg.g = car(cdr(bg)).value.integer;
-      new_property->bg.b = car(cdr(cdr(bg))).value.integer;
-      new_property->bg.a = car(cdr(cdr(cdr(bg)))).value.integer;
+      new_property->bg.r = (uint8_t)car(bg).value.integer;
+      new_property->bg.g = (uint8_t)car(cdr(bg)).value.integer;
+      new_property->bg.b = (uint8_t)car(cdr(cdr(bg))).value.integer;
+      new_property->bg.a = (uint8_t)car(cdr(cdr(cdr(bg)))).value.integer;
 
       // Add new property to list.
       add_property(&new_gui_window->contents, new_property);

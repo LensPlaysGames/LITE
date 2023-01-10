@@ -40,9 +40,11 @@ Atom env_create(Atom parent, size_t initial_capacity) {
   return out;
 }
 
+/*
 static size_t knuth_multiplicative(unsigned char *symbol_pointer) {
   return ((size_t)symbol_pointer) * 2654435761;
 }
+*/
 
 static size_t hash64shift(char *symbol_pointer) {
   size_t key = (size_t)symbol_pointer;

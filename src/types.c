@@ -5,9 +5,11 @@
 #include <builtins.h>
 #include <error.h>
 #include <file_io.h>
+#include <inttypes.h>
 #include <stdarg.h>
 #include <stddef.h>
 #include <stdio.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -235,28 +237,28 @@ void gcol_generic(void) {
   }
 }
 
-void gcol() {
+void gcol(void) {
   gcol_generic();
   gcol_cons();
 }
 
-void print_gcol_data() {
-  int pair_allocations_in_use =
+void print_gcol_data(void) {
+  size_t pair_allocations_in_use =
     pair_allocations_count - pair_allocations_freed;
-  if (pair_allocations_in_use < 0) {
+  if (pair_allocations_in_use > pair_allocations_count) {
     printf("ERROR: More pair allocations freed than allocated.\n");
   }
-  int generic_allocations_in_use =
+  size_t generic_allocations_in_use =
     generic_allocations_count - generic_allocations_freed;
-  if (generic_allocations_in_use < 0) {
+  if (generic_allocations_in_use > generic_allocations_count) {
     printf("ERROR: More generic allocations freed than allocated.\n");
   }
   printf("Pair Allocations Total:     %zu\n"
          "Pair Allocations Freed:     %zu\n"
-         "Pair Allocations In Use:    %i (%zu bytes)\n"
+         "Pair Allocations In Use:    %zu (%zu bytes)\n"
          "Generic Allocations Total:  %zu\n"
          "Generic Allocations Freed:  %zu\n"
-         "Generic Allocations In Use: %i (%zu bytes)\n"
+         "Generic Allocations In Use: %zu (%zu bytes)\n"
          , pair_allocations_count
          , pair_allocations_freed
          , pair_allocations_in_use
@@ -342,7 +344,7 @@ static void symbol_table_expand(SymbolTable *table);
 
 static size_t sdbm(unsigned char *str) {
   size_t hash = 0;
-  int c;
+  unsigned char c;
 
   while ((c = *str++)) {
     hash = c + (hash << 6) + (hash << 16) - hash;
@@ -350,6 +352,7 @@ static size_t sdbm(unsigned char *str) {
   return hash;
 }
 
+/*
 static size_t djb2(unsigned char *str) {
   size_t hash = 5381;
   int c;
@@ -358,6 +361,7 @@ static size_t djb2(unsigned char *str) {
   }
   return hash;
 }
+*/
 
 static size_t symbol_table_hash(SymbolTable table, char *key) {
   // NOTE: I've gotten less collisions using SDBM than with DJB2.
@@ -841,12 +845,12 @@ void pretty_print_atom(Atom atom) {
   }
 }
 
-int format_bufsz(const char *format, ...) {
+size_t format_bufsz(const char *format, ...) {
   va_list args;
   va_start(args, format);
   int result = vsnprintf(NULL, 0, format, args);
   va_end(args);
-  return result + 1;
+  return (size_t)result + 1;
 }
 
 char *atom_string(Atom atom, char *buffer) {

@@ -967,7 +967,7 @@ char *rope_lines(Rope *rope, size_t start_line, size_t count) {
     }
     it++;
   }
-  size_t length = it - beg;
+  size_t length = (size_t)(it - beg);
   char *lines = malloc(length + 1);
   if (!lines) {
     free(string);

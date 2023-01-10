@@ -16,7 +16,7 @@ static char user_input[MAX_INPUT_BUFSZ];
 /// a single line of input from the user.
 char* readline(char *prompt) {
   char *line = NULL;
-  unsigned line_length = 0;
+  size_t line_length = 0;
   fputs(prompt, stdout);
   fgets(user_input, MAX_INPUT_BUFSZ, stdin);
   line_length = strlen(user_input);

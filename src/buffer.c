@@ -512,7 +512,7 @@ Error buffer_set_mark(Buffer *buffer, size_t mark) {
                NULL);
     return err;
   }
-  int mark_active = buffer_mark_active(*buffer);
+  size_t mark_active = buffer_mark_active(*buffer);
   buffer->mark_byte = mark & ~BUFFER_MARK_ACTIVATION_BIT;
   if (mark_active) {
     buffer->mark_byte |= BUFFER_MARK_ACTIVATION_BIT;
@@ -590,12 +590,12 @@ size_t buffer_seek_until_byte
       }
     }
   } else {
-    for (long long i = buffer->point_byte - 1;
+    for (long long i = (long long)buffer->point_byte - 1;
          i >= 0 && i <= (long long)buffer->point_byte;
          --i) {
-      if (strchr(control_string, rope_index(buffer->rope, i))) {
-        size_t offset = buffer->point_byte - i;
-        buffer->point_byte = i;
+           if (strchr(control_string, rope_index(buffer->rope, (size_t)i))) {
+        size_t offset = buffer->point_byte - (size_t)i;
+        buffer->point_byte = (size_t)i;
         return offset;
       }
     }
@@ -612,19 +612,19 @@ size_t buffer_seek_while_byte
     for (size_t i = buffer->point_byte + 1;
          i >= buffer->point_byte && i < buffer->rope->weight;
          ++i) {
-      if (strchr(control_string, rope_index(buffer->rope, i)) == NULL) {
+        if (strchr(control_string, rope_index(buffer->rope, (size_t)i)) == NULL) {
         size_t offset = i - buffer->point_byte;
         buffer->point_byte = i;
         return offset;
       }
     }
   } else {
-    for (long long i = buffer->point_byte - 1;
+    for (long long i = (long long)buffer->point_byte - 1;
          i >= 0 && i <= (long long)buffer->point_byte;
          --i) {
-      if (strchr(control_string, rope_index(buffer->rope, i)) == NULL) {
-        size_t offset = buffer->point_byte - i;
-        buffer->point_byte = i;
+        if (strchr(control_string, rope_index(buffer->rope, (size_t)i)) == NULL) {
+        size_t offset = buffer->point_byte - (size_t)i;
+        buffer->point_byte = (size_t)i;
         return offset;
       }
     }
@@ -659,7 +659,7 @@ size_t buffer_seek_until_substr
       }
     }
   } else {
-    for (long long i = buffer->point_byte - 1; i >= 0 && i <= (long long)buffer->point_byte; --i) {
+    for (long long i = (long long)buffer->point_byte - 1; i >= 0 && i <= (long long)buffer->point_byte; --i) {
       string = allocated_string + i;
       size_t bytes_left = strnlen(string, substring_length + 1);
       if (bytes_left <= substring_length) {
@@ -667,8 +667,8 @@ size_t buffer_seek_until_substr
         return 0;
       }
       if (memcmp(string, substring, substring_length) == 0) {
-        size_t offset = buffer->point_byte - i;
-        buffer->point_byte = i;
+        size_t offset = buffer->point_byte - (size_t)i;
+        buffer->point_byte = (size_t)i;
         free(allocated_string);
         return offset;
       }
@@ -720,7 +720,7 @@ char *buffer_current_line(Buffer buffer) {
     end += 1;
   }
   end += 1;
-  line_length = end - beg;
+  line_length = (size_t)(end - beg);
   current_line = malloc(line_length + 1);
   if (!current_line) {
     free(contents);
@@ -794,7 +794,7 @@ Error buffer_save(Buffer buffer) {
   size_t bytes = fwrite(contents, 1, file_size, file);
   free(contents);
   contents = NULL;
-  uint8_t close_status = fclose(file);
+  int close_status = fclose(file);
   if (close_status != 0) {
     printf("Failure to save buffer at \"%s\" -- bad close\n"
            "errno=%d\n", buffer.path, errno);

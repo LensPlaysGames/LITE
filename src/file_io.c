@@ -121,7 +121,7 @@ SimpleFile get_file(char *path) {
   }
   smpl.contents = buffer;
   fclose(file);
-  smpl.flags &= ~SMPL_FILE_FLAG_INVALID;
+  smpl.flags &= SMPL_FILE_FLAG_INVALID;
   smpl.flags |= SMPL_FILE_FLAG_OK;
   return smpl;
 }

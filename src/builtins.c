@@ -405,7 +405,7 @@ Error builtin_length(Atom arguments, Atom *result) {
     *result = nil;
     return ok;
   }
-  *result = make_int(size);
+  *result = make_int((integer_t)size);
   return ok;
 }
 
@@ -703,7 +703,7 @@ Error builtin_buffer_set_mark(Atom arguments, Atom *result) {
                NULL);
     return err_type;
   }
-  buffer_set_mark(buffer.value.buffer, mark.value.integer);
+  buffer_set_mark(buffer.value.buffer, (size_t)mark.value.integer);
   *result = nil;
   if (buffer_mark_active(*buffer.value.buffer)) {
     *result = make_sym("T");
@@ -724,7 +724,7 @@ Error builtin_buffer_mark(Atom arguments, Atom *result) {
                NULL);
     return err_type;
   }
-  *result = make_int(buffer_mark(*buffer.value.buffer));
+  *result = make_int((integer_t)buffer_mark(*buffer.value.buffer));
   return ok;
 }
 
@@ -792,7 +792,7 @@ Error builtin_buffer_region_length(Atom arguments, Atom *result) {
                NULL);
     return err_type;
   }
-  *result = make_int(buffer_region_length(*buffer.value.buffer));
+  *result = make_int((integer_t)buffer_region_length(*buffer.value.buffer));
   return ok;
 }
 
@@ -951,8 +951,7 @@ Error builtin_buffer_remove(Atom arguments, Atom *result) {
                NULL);
     return err_type;
   }
-  Error err = buffer_remove_bytes(buffer.value.buffer
-                                  , count.value.integer);
+  Error err = buffer_remove_bytes(buffer.value.buffer, (size_t)count.value.integer);
   if (err.type) {
     return err;
   }
@@ -983,8 +982,7 @@ Error builtin_buffer_remove_forward(Atom arguments, Atom *result) {
                NULL);
     return err_type;
   }
-  Error err = buffer_remove_bytes_forward(buffer.value.buffer
-                                          , count.value.integer);
+  Error err = buffer_remove_bytes_forward(buffer.value.buffer, (size_t)count.value.integer);
   if (err.type) {
     return err;
   }
@@ -996,6 +994,7 @@ const char *const builtin_buffer_undo_name = "BUFFER-UNDO";
 const char *const builtin_buffer_undo_docstring =
   "(buffer-undo BUFFER)";
 Error builtin_buffer_undo(Atom arguments, Atom *result) {
+  (void)result;
   ONE_ARG(arguments);
   Atom buffer = car(arguments);
   if (!bufferp(buffer)) {
@@ -1015,6 +1014,7 @@ const char *const builtin_buffer_redo_name = "BUFFER-REDO";
 const char *const builtin_buffer_redo_docstring =
   "(buffer-redo BUFFER)";
 Error builtin_buffer_redo(Atom arguments, Atom *result) {
+  (void)result;
   ONE_ARG(arguments);
   Atom buffer = car(arguments);
   if (!bufferp(buffer)) {
@@ -1059,7 +1059,7 @@ Error builtin_buffer_set_point(Atom arguments, Atom *result) {
     if (point.value.integer > (integer_t)buffer.value.buffer->rope->weight) {
       new_point_byte = buffer.value.buffer->rope->weight;
     } else {
-      new_point_byte = point.value.integer;
+      new_point_byte = (size_t)point.value.integer;
     }
   }
   buffer.value.buffer->point_byte = new_point_byte;
@@ -1082,7 +1082,7 @@ Error builtin_buffer_point (Atom arguments, Atom *result) {
                NULL);
     return err_type;
   }
-  *result = make_int(buffer.value.buffer->point_byte);
+  *result = make_int((integer_t)buffer.value.buffer->point_byte);
   return ok;
 }
 
@@ -1111,7 +1111,7 @@ Error builtin_buffer_index (Atom arguments, Atom *result) {
   }
   char one_byte_string[2];
   one_byte_string[0] = rope_index(buffer.value.buffer->rope
-                                  , index.value.integer);
+                                  , (size_t)index.value.integer);
   one_byte_string[1] = '\0';
   *result = make_string(&one_byte_string[0]);
   return ok;
@@ -1178,8 +1178,8 @@ Error builtin_buffer_lines (Atom arguments, Atom *result) {
   }
   char *lines = buffer_lines
     (*buffer.value.buffer
-     , start_line.value.integer
-     , line_count.value.integer);
+     , (size_t)start_line.value.integer
+     , (size_t)line_count.value.integer);
   *result = make_string(lines);
   free(lines);
   return ok;
@@ -1208,7 +1208,7 @@ Error builtin_buffer_line  (Atom arguments, Atom *result) {
                NULL);
     return err_type;
   }
-  char *line = buffer_line(*buffer.value.buffer, line_count.value.integer);
+  char *line = buffer_line(*buffer.value.buffer, (size_t)line_count.value.integer);
   *result = make_string(line);
   free(line);
   return ok;
@@ -1391,8 +1391,8 @@ Error builtin_buffer_seek_byte(Atom arguments, Atom *result) {
   size_t bytes_moved = buffer_seek_until_byte
     (buffer.value.buffer,
      (char *)bytes.value.symbol,
-     direction.value.integer);
-  *result = make_int(bytes_moved);
+     (char)direction.value.integer);
+  *result = make_int((integer_t)bytes_moved);
   return ok;
 }
 
@@ -1432,8 +1432,8 @@ Error builtin_buffer_seek_past_byte(Atom arguments, Atom *result) {
   size_t bytes_moved = buffer_seek_while_byte
     (buffer.value.buffer,
      (char *)bytes.value.symbol,
-     direction.value.integer);
-  *result = make_int(bytes_moved);
+     (char)direction.value.integer);
+  *result = make_int((integer_t)bytes_moved);
   return ok;
 }
 
@@ -1473,8 +1473,8 @@ Error builtin_buffer_seek_substring(Atom arguments, Atom *result) {
   size_t bytes_moved = buffer_seek_until_substr
     (buffer.value.buffer,
      (char *)substring.value.symbol,
-     direction.value.integer);
-  *result = make_int(bytes_moved);
+     (char)direction.value.integer);
+  *result = make_int((integer_t)bytes_moved);
   return ok;
 }
 
@@ -1548,10 +1548,7 @@ Error builtin_string_length(Atom arguments, Atom *result) {
     return err;
   }
   size_t length = strlen(string.value.symbol);
-  if (length < 0) {
-    length = 0;
-  }
-  *result = make_int(length);
+  *result = make_int((integer_t)length);
   return ok;
 }
 
@@ -1949,7 +1946,7 @@ Error builtin_change_font(Atom arguments, Atom *result) {
     return err_type;
   }
   *result = nil;
-  if (change_font(font_path.value.symbol, font_size.value.integer) == 0) {
+  if (change_font(font_path.value.symbol, (size_t)font_size.value.integer) == 0) {
     *result = make_sym("T");
   }
 #endif
@@ -1973,7 +1970,7 @@ Error builtin_change_font_size(Atom arguments, Atom *result) {
     return err_type;
   }
   *result = nil;
-  if (change_font_size(font_size.value.integer) == 0) {
+  if (change_font_size((size_t)font_size.value.integer) == 0) {
     *result = make_sym("T");
   }
 #endif
@@ -1991,7 +1988,7 @@ Error builtin_window_size(Atom arguments, Atom *result) {
   size_t width = 0;
   size_t height = 0;
   window_size(&width, &height);
-  *result = cons(make_int(width), make_int(height));
+  *result = cons(make_int((integer_t)width), make_int((integer_t)height));
 #endif
   return ok;
 }
@@ -2014,7 +2011,7 @@ Error builtin_change_window_size(Atom arguments, Atom *result) {
     return err_type;
   }
   *result = make_sym("T");
-  change_window_size(width.value.integer, height.value.integer);
+  change_window_size((size_t)width.value.integer, (size_t)height.value.integer);
 #endif
   return ok;
 }
@@ -2026,6 +2023,7 @@ const char *const builtin_change_window_mode_docstring =
   "\n"
   "If N is 1, set window mode to fullscreen. Otherwise, set it to windowed.";
 Error builtin_change_window_mode(Atom arguments, Atom *result) {
+  (void)result;
 #ifdef LITE_GFX
   ONE_ARG(arguments);
   Atom n = car(arguments);
@@ -2059,7 +2057,7 @@ static Atom get_active_window(void) {
     active_window_index = make_int(0);
   }
 
-  Atom active_window = list_get_safe(window_list, active_window_index.value.integer);
+  Atom active_window = list_get_safe(window_list, (int)active_window_index.value.integer);
   return active_window;
 }
 
@@ -2109,7 +2107,7 @@ Error builtin_scroll_down(Atom arguments, Atom *result) {
 #ifdef LITE_GFX
   // Use the default offset of one, unless a positive integer value was
   // given.
-  size_t offset = 1;
+  integer_t offset = 1;
   if (!nilp(arguments)) {
     if (!nilp(cdr(arguments))) {
       // Too many arguments (more than one).
@@ -2191,7 +2189,7 @@ Error builtin_scroll_right(Atom arguments, Atom *result) {
 #ifdef LITE_GFX
   // Use the default offset of one, unless a positive integer value was
   // given.
-  size_t offset = 1;
+  integer_t offset = 1;
   if (!nilp(arguments)) {
     if (!nilp(cdr(arguments))) {
       // Too many arguments (more than one).
