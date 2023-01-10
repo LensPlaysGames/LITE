@@ -72,6 +72,7 @@ CALLBACK is called like with a single argument: a pair with car of symbol key an
   "List all of the functions currently defined in the environment,
 and print out their respective docstrings."
   (env-set-direct (env) 'outstr "")
+  ;; TODO: Build list then sort?
   (env-foreach (env) (lambda (item)
                        (when (or (builtinp (cdr item))
                                  (closurep (cdr item)))
@@ -84,6 +85,11 @@ and print out their respective docstrings."
                          (define outstr (string-concat outstr "\\n\\n"))
                          )))
   outstr)
+
+(defun print-functions ()
+  "List all of the functions currently defined in the environment,
+and print out their respective docstrings."
+  (prins (all-functions)))
 
 (defmacro save-point-and-mark (buffer . body)
   "Evaluate body, then restore point and mark state of BUFFER.
