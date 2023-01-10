@@ -1572,6 +1572,55 @@ Error builtin_string_length(Atom arguments, Atom *result) {
   return ok;
 }
 
+const char *const builtin_substring_name = "SUBSTRING";
+const char *const builtin_substring_docstring =
+  "(substring STRING OFFSET LENGTH)\n"
+  "\n"
+  "Return a new string with contents initialised with LENGTH bytes from string starting at OFFSET.";
+Error builtin_substring(Atom arguments, Atom *result) {
+  THREE_ARGS(arguments);
+  Atom string = car(arguments);
+  Atom offset = car(cdr(arguments));
+  Atom length = car(cdr(cdr(arguments)));
+  if (!stringp(string)) {
+    MAKE_ERROR(err, ERROR_TYPE,
+               arguments,
+               "SUBSTRING requires that the first argument be a string",
+               NULL);
+    return err;
+  }
+  if (!integerp(offset)) {
+    MAKE_ERROR(err, ERROR_TYPE,
+               arguments,
+               "SUBSTRING requires that the second argument be an integer",
+               NULL);
+    return err;
+  }
+  if (!integerp(length)) {
+    MAKE_ERROR(err, ERROR_TYPE,
+               arguments,
+               "SUBSTRING requires that the third argument be an integer",
+               NULL);
+    return err;
+  }
+  if (length.value.integer <= 0) {
+    *result = make_string("");
+    return ok;
+  }
+  size_t string_length = strlen(string.value.symbol);
+  if (offset.value.integer >= (integer_t)string_length) {
+    *result = make_string("");
+    return ok;
+  }
+
+  char *str = malloc(length.value.integer + 1);
+  snprintf(str, length.value.integer + 1, "%s", string.value.symbol + offset.value.integer);
+  str[length.value.integer] = '\0';
+  *result = make_string(str);
+  free(str);
+  return ok;
+}
+
 const char *const builtin_string_concat_name = "STRING-CONCAT";
 const char *const builtin_string_concat_docstring =
   "(string-concat STRING-A STRING-B)\n"
