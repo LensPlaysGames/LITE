@@ -1532,17 +1532,36 @@ Error builtin_copy(Atom arguments, Atom *result) {
   return copy_impl(&car(arguments), result);
 }
 
+const char *const builtin_to_symbol_name = "TO-SYMBOL";
+const char *const builtin_to_symbol_docstring =
+  "(to-symbol ATOM)\n"
+  "\n"
+  "Return the symbol representation of ATOM, if possible. Otherwise nil.";
+Error builtin_to_symbol(Atom arguments, Atom *result) {
+  ONE_ARG(arguments);
+  Atom arg = car(arguments);
+  if (symbolp(arg) || stringp(arg)) {
+    *result = make_sym(arg.value.symbol);
+  } else if (integerp(arg)) {
+    char *tmp = atom_string(arg, NULL);
+    *result = make_sym(tmp);
+    free(tmp);
+  } else {
+    *result = nil;
+  }
+  return ok;
+}
+
+
 const char *const builtin_to_string_name = "TO-STRING";
 const char *const builtin_to_string_docstring =
-  "(TO-STRING ATOM)\n"
+  "(to-string ATOM)\n"
   "\n"
   "Return the string representation of ATOM.";
 Error builtin_to_string(Atom arguments, Atom *result) {
   ONE_ARG(arguments);
   Atom arg = car(arguments);
-  if (symbolp(arg)) {
-    *result = make_sym(arg.value.symbol);
-  } if (stringp(arg)) {
+  if (symbolp(arg) || stringp(arg)) {
     *result = make_string(arg.value.symbol);
   } else {
     char *tmp = atom_string(arg, NULL);
@@ -1998,7 +2017,8 @@ Error builtin_read_prompted(Atom arguments, Atom *result) {
 
   char *input = readline((char *)prompt.value.symbol);
   if (!input) {
-    return ERROR_MEMORY;
+    MAKE_ERROR(oom, ERROR_MEMORY, nil, NULL, NULL);
+    return oom;
   }
   size_t input_length = strlen(input);
   // Trim newline byte(s) from end of input, if present.

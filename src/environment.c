@@ -338,6 +338,8 @@ Atom default_environment(void) {
   defbuiltin(read_prompted);
   defbuiltin(finish_read);
 
+  defbuiltin(to_symbol);
+
   defbuiltin(to_string);
   defbuiltin(substring);
   defbuiltin(string_length);

@@ -109,6 +109,8 @@ builtin(save);
 
 // STRINGS
 
+builtin(to_symbol);
+
 builtin(to_string);
 builtin(substring);
 
