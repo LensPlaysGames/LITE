@@ -679,6 +679,17 @@ int gui_loop(void) {
 
       cursor_property->offset = current_buffer.value.buffer->point_byte;
       cursor_property->length = 1;
+      // TODO: Make this a user-configurable option.
+      // Extend cursor property to include all utf8 continuation bytes
+      char byte = rope_index(current_buffer.value.buffer->rope,
+                             current_buffer.value.buffer->point_byte + cursor_property->length);
+
+      // byte & 0b10000000 && !(byte & 0b01000000)
+      while (byte & 128 && !(byte & 64)) {
+        cursor_property->length++;
+        byte = rope_index(current_buffer.value.buffer->rope,
+                          current_buffer.value.buffer->point_byte + cursor_property->length);
+      }
 
       if (gui_ctx()->reading) {
         add_property(&gui_ctx()->popup, cursor_property);
