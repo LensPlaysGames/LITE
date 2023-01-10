@@ -919,6 +919,7 @@ char *atom_string(Atom atom, char *buffer) {
         if (!new_right) {
           break;
         }
+        // Skip one space (one byte) and make room for null terminator (one byte)
         size_t new_rightlen = rightlen + strlen(new_right) + 2;
         right = realloc(right, new_rightlen);
         if (!right) {
@@ -935,14 +936,15 @@ char *atom_string(Atom atom, char *buffer) {
         if (!new_right) {
           break;
         }
-        size_t new_rightlen = rightlen + strlen(new_right) + 2;
+        // Skip " . " (three bytes) and make room for null terminator (one byte)
+        size_t new_rightlen = rightlen + strlen(new_right) + 4;
         right = realloc(right, new_rightlen);
         if (!right) {
           printf("could not reallocate string for right side of pair.\n");
           break;
         }
         rightlen = new_rightlen;
-        strcat(right, ". ");
+        strcat(right, " . ");
         strcat(right, new_right);
         free(new_right);
         break;
