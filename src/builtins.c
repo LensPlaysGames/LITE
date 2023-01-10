@@ -1532,6 +1532,26 @@ Error builtin_copy(Atom arguments, Atom *result) {
   return copy_impl(&car(arguments), result);
 }
 
+const char *const builtin_to_string_name = "TO-STRING";
+const char *const builtin_to_string_docstring =
+  "(TO-STRING ATOM)\n"
+  "\n"
+  "Return the string representation of ATOM.";
+Error builtin_to_string(Atom arguments, Atom *result) {
+  ONE_ARG(arguments);
+  Atom arg = car(arguments);
+  if (symbolp(arg)) {
+    *result = make_sym(arg.value.symbol);
+  } if (stringp(arg)) {
+    *result = make_string(arg.value.symbol);
+  } else {
+    char *tmp = atom_string(arg, NULL);
+    *result = make_string(tmp);
+    free(tmp);
+  }
+  return ok;
+}
+
 const char *const builtin_string_length_name = "STRING-LENGTH";
 const char *const builtin_string_length_docstring =
   "(string-length STRING)\n"

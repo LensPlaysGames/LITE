@@ -109,6 +109,7 @@ builtin(save);
 
 // STRINGS
 
+builtin(to_string);
 
 builtin(string_length);
 builtin(string_concat);
