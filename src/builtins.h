@@ -112,6 +112,8 @@ builtin(save);
 
 builtin(string_length);
 builtin(string_concat);
+builtin(string_index);
+
 
 // OTHER
 

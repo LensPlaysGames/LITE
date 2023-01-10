@@ -340,6 +340,8 @@ Atom default_environment(void) {
 
   defbuiltin(string_length);
   defbuiltin(string_concat);
+  defbuiltin(string_index);
+
 
   defbuiltin(evaluate_string);
   defbuiltin(evaluate_file);

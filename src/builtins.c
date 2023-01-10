@@ -22,53 +22,53 @@
 #  include <gui.h>
 #endif
 
-#define ARG_ERR(args) do {                             \
-    MAKE_ERROR(arg_error, ERROR_ARGUMENTS,             \
-              (args), "Invalid arguments",             \
-              "Consult the docstring of the builtin"); \
-    return arg_error;                                  \
+#define ARG_ERR(args) do {                              \
+    MAKE_ERROR(arg_error, ERROR_ARGUMENTS,              \
+               (args), "Invalid arguments",             \
+               "Consult the docstring of the builtin"); \
+    return arg_error;                                   \
   } while (0)
 
-#define NO_ARGS(builtin_args) do { \
-    if (!nilp(builtin_args)) {     \
-      ARG_ERR((builtin_args));     \
-    }                              \
+#define NO_ARGS(builtin_args) do {              \
+    if (!nilp(builtin_args)) {                  \
+      ARG_ERR((builtin_args));                  \
+    }                                           \
   } while (0)
 
-#define ONE_ARG(builtin_args) do {                        \
-    if (nilp(builtin_args) || !nilp(cdr(builtin_args))) { \
-      ARG_ERR((builtin_args));                            \
-    }                                                     \
+#define ONE_ARG(builtin_args) do {                          \
+    if (nilp(builtin_args) || !nilp(cdr(builtin_args))) {   \
+      ARG_ERR((builtin_args));                              \
+    }                                                       \
   } while (0)
 
-#define TWO_ARGS(builtin_args) do {       \
-    if (nilp(builtin_args)                \
-        || nilp(cdr(builtin_args))        \
-        || !nilp(cdr(cdr(builtin_args)))) \
-      {                                   \
-        ARG_ERR((builtin_args));          \
-      }                                   \
+#define TWO_ARGS(builtin_args) do {             \
+    if (nilp(builtin_args)                      \
+        || nilp(cdr(builtin_args))              \
+        || !nilp(cdr(cdr(builtin_args))))       \
+      {                                         \
+        ARG_ERR((builtin_args));                \
+      }                                         \
   } while (0)
 
-#define THREE_ARGS(builtin_args) do {          \
-    if (nilp(builtin_args)                     \
-        || nilp(cdr(builtin_args))             \
-        || nilp(cdr(cdr(builtin_args)))        \
-        || !nilp(cdr(cdr(cdr(builtin_args))))) \
-      {                                        \
-        ARG_ERR((builtin_args));               \
-      }                                        \
+#define THREE_ARGS(builtin_args) do {           \
+    if (nilp(builtin_args)                      \
+        || nilp(cdr(builtin_args))              \
+        || nilp(cdr(cdr(builtin_args)))         \
+        || !nilp(cdr(cdr(cdr(builtin_args)))))  \
+      {                                         \
+        ARG_ERR((builtin_args));                \
+      }                                         \
   } while (0)
 
-#define FOUR_ARGS(builtin_args) do {                 \
-    if (nilp(builtin_args)                           \
-        || nilp(cdr(builtin_args))                   \
-        || nilp(cdr(cdr(builtin_args)))              \
-        || nilp(cdr(cdr(cdr(builtin_args))))         \
-        || !nilp(cdr(cdr(cdr(cdr(builtin_args))))))  \
-      {                                              \
-        ARG_ERR((builtin_args));                     \
-      }                                              \
+#define FOUR_ARGS(builtin_args) do {                \
+    if (nilp(builtin_args)                          \
+        || nilp(cdr(builtin_args))                  \
+        || nilp(cdr(cdr(builtin_args)))             \
+        || nilp(cdr(cdr(cdr(builtin_args))))        \
+        || !nilp(cdr(cdr(cdr(cdr(builtin_args)))))) \
+      {                                             \
+        ARG_ERR((builtin_args));                    \
+      }                                             \
   } while (0)
 
 const char *const builtin_quit_lisp_name = "QUIT-LISP";
@@ -1574,6 +1574,48 @@ Error builtin_string_concat(Atom arguments, Atom *result) {
   string[string_length] = '\0';
   *result = make_string(string);
   free(string);
+  return ok;
+}
+
+const char *const builtin_string_index_name = "STRING-INDEX";
+const char *const builtin_string_index_docstring =
+  "(string-index string index)\n"
+  "\n"
+  "Return an integer initialised by the byte at INDEX into STRING.";
+Error builtin_string_index(Atom arguments, Atom *result) {
+  TWO_ARGS(arguments);
+  Atom string = car(arguments);
+  Atom index = car(cdr(arguments));
+  if (!stringp(string)) {
+    MAKE_ERROR(err, ERROR_TYPE,
+               arguments,
+               "STRING-INDEX requires that the first argument be a string",
+               NULL);
+    return err;
+  }
+  if (!integerp(index)) {
+    MAKE_ERROR(err, ERROR_TYPE,
+               arguments,
+               "STRING-INDEX requires that the second argument be a positive integer",
+               NULL);
+    return err;
+  }
+
+  // NOTE: This cast is fine as long as strings are less than about 9
+  // billion bytes long. I hope, dearly, we never encounter problems.
+  integer_t string_length = (integer_t)strlen(string.value.symbol);
+  if (index.value.integer >= (integer_t)string_length) {
+    // clamp index to maximum end of string
+    index.value.integer = string_length - 1;
+  } else if (index.value.integer < 0) {
+    // clamp index negatively (-1 gets last element and so on)
+    if (index.value.integer < -(string_length - 1)) {
+      index.value.integer = -(string_length - 1);
+    }
+    // inverse negative index
+    index.value.integer = string_length + index.value.integer;
+  }
+  *result = make_int((integer_t)string.value.symbol[index.value.integer]);
   return ok;
 }
 
