@@ -86,9 +86,10 @@ Error builtin_quit_lisp(Atom arguments, Atom *result) {
 
 const char *const builtin_docstring_name = "DOCSTRING";
 const char *const builtin_docstring_docstring =
-  "(docstring SYMBOL)\n"
+  "(docstring ARG)\n"
   "\n"
-  "Return the docstring of SYMBOL within ENVIRONMENT as a string.";
+  "Return the docstring of ARG as a string.\n"
+  "If ARG is a symbol, first get it's value from the current environment.";
 Error builtin_docstring(Atom arguments, Atom *result) {
   TWO_ARGS(arguments);
 
@@ -103,9 +104,9 @@ Error builtin_docstring(Atom arguments, Atom *result) {
     return err_type;
   }
 
+  //Atom symbol_in = symbolp(atom) ? atom : nil;
   if (symbolp(atom)) {
-    Atom symbol_in = atom;
-    Error err = env_get(environment, symbol_in, &atom);
+    Error err = env_get(environment, atom, &atom);
     if (err.type) {
       return err;
     }
@@ -115,17 +116,33 @@ Error builtin_docstring(Atom arguments, Atom *result) {
   // FIXME: The docstring could be set to this value instead of
   // creating this new string each time the docstring is fetched.
   // This is absolutely horrid code... OML.
+  // TODO: The code references was removed. It was really bad, and
+  // causing a lot of bugs, so I removed it. We really should
+  // automatically add the signature of something to it's docstring,
+  // but I am not really sure if it should be here.
   char *docstring = NULL;
+  /*
+  static const char argstring[7] = "ARGS: \0";
   if (closurep(atom) || macrop(atom)) {
     // Prepend docstring with closure signature.
-    char *signature = atom_string(car(cdr(atom)), NULL);
+    Atom signature_atom = car(cdr(atom));
+    // Prepend signature with operator symbol, if possible (it's just arguments).
+    if (symbolp(symbol_in)) {
+      signature_atom = cons(symbol_in, signature_atom);
+    }
+    char *signature = atom_string(signature_atom, NULL);
+    if (!symbolp(symbol_in)) {
+      char *old_signature = signature;
+      signature = string_join(argstring, signature);
+      free(old_signature);
+    }
     size_t siglen = 0;
     if (signature && (siglen = strlen(signature)) != 0) {
       if (atom.docstring) {
-        size_t newlen = strlen(atom.docstring) + siglen + 10;
-        char *newdoc = (char *)malloc(newlen);
+        // Skip two newlines (two bytes) and make room for null terminator (one byte)
+        size_t newlen = strlen(atom.docstring) + siglen + 3;
+        char *newdoc = malloc(newlen);
         if (newdoc) {
-          memcpy(newdoc, "ARGS: \0", 7);
           strcat(newdoc, signature);
           strcat(newdoc, "\n\n");
           strcat(newdoc, atom.docstring);
@@ -141,6 +158,7 @@ Error builtin_docstring(Atom arguments, Atom *result) {
       }
     }
   }
+  */
   if (docstring) {
     *result = make_string(docstring);
     free(docstring);
