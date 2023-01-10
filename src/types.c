@@ -864,7 +864,7 @@ char *atom_string(Atom atom, char *buffer) {
   const char *symbol_format  = "%s";
   const char *integer_format = "%lli";
   const char *string_format  = "\"%s\"";
-  const char *lr_format      = "(%s %s)";
+  const char *lr_format      = "(%s%s)";
   const char *l_format       = "(%s)";
   const char *builtin_format = "#<BUILTIN>:%s";
   const char *closure_format = "#<CLOSURE>:%p";
