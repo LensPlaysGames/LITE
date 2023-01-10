@@ -656,7 +656,7 @@ Error builtin_bitshr(Atom arguments, Atom *result) {
 
 const char *const builtin_env_set_name = "ENV-SET";
 const char *const builtin_env_set_docstring =
-  "(env-set ENV SYMBOL VALUE)\n."
+  "(env-set ENV SYMBOL VALUE)\n"
   "\n"
   "Bind SYMBOL to VALUE in ENV if SYMBOL is not bound in any environment accessible from ENV.\n"
   "Otherwise, overwrite value of that binding.";
@@ -695,7 +695,7 @@ Error builtin_env_set(Atom arguments, Atom *result) {
 
 const char *const builtin_env_set_direct_name = "ENV-SET-DIRECT";
 const char *const builtin_env_set_direct_docstring =
-  "(env-set-direct ENV SYMBOL VALUE)\n."
+  "(env-set-direct ENV SYMBOL VALUE)\n"
   "\n"
   "Bind SYMBOL to VALUE in ENV unconditionally.\n";
 Error builtin_env_set_direct(Atom arguments, Atom *result) {
@@ -728,7 +728,7 @@ Error builtin_env_set_direct(Atom arguments, Atom *result) {
 
 const char *const builtin_env_get_name = "ENV-GET";
 const char *const builtin_env_get_docstring =
-  "(env-get ENV SYMBOL)\n."
+  "(env-get ENV SYMBOL)\n"
   "\n"
   "Return VALUE bound to SYMBOL in ENV or any environment accessible from it.\n"
   "Otherwise, return the symbol 'NOT-BOUND'";
@@ -741,14 +741,14 @@ Error builtin_env_get(Atom arguments, Atom *result) {
   if (!envp(env)) {
     MAKE_ERROR(err_type, ERROR_TYPE,
                arguments,
-               "ENV-SET requires the first argument to be an environment",
+               "ENV-GET requires the first argument to be an environment",
                NULL);
     return err_type;
   }
   if (!symbolp(sym)) {
     MAKE_ERROR(err_type, ERROR_TYPE,
                arguments,
-               "ENV-SET requires the second argument to be a symbol",
+               "ENV-GET requires the second argument to be a symbol",
                NULL);
     return err_type;
   }
@@ -769,7 +769,7 @@ Error builtin_env_get(Atom arguments, Atom *result) {
 
 const char *const builtin_env_get_direct_name = "ENV-GET-DIRECT";
 const char *const builtin_env_get_direct_docstring =
-  "(env-get-direct ENV SYMBOL)\n."
+  "(env-get-direct ENV SYMBOL)\n"
   "\n"
   "Return VALUE bound to SYMBOL in ENV, otherwise, return the symbol 'NOT-BOUND'.";
 Error builtin_env_get_direct(Atom arguments, Atom *result) {
@@ -781,14 +781,14 @@ Error builtin_env_get_direct(Atom arguments, Atom *result) {
   if (!envp(env)) {
     MAKE_ERROR(err_type, ERROR_TYPE,
                arguments,
-               "ENV-SET requires the first argument to be an environment",
+               "ENV-GET-DIRECT requires the first argument to be an environment",
                NULL);
     return err_type;
   }
   if (!symbolp(sym)) {
     MAKE_ERROR(err_type, ERROR_TYPE,
                arguments,
-               "ENV-SET requires the second argument to be a symbol",
+               "ENV-GET-DIRECT requires the second argument to be a symbol",
                NULL);
     return err_type;
   }
@@ -803,7 +803,7 @@ Error builtin_env_get_direct(Atom arguments, Atom *result) {
 
 const char *const builtin_env_parent_name = "ENV-PARENT";
 const char *const builtin_env_parent_docstring =
-  "(env-parent ENV)\n."
+  "(env-parent ENV)\n"
   "\n"
   "Return parent environment of ENV, or nil if no parent environment exists.";
 Error builtin_env_parent(Atom arguments, Atom *result) {
@@ -825,7 +825,7 @@ Error builtin_env_parent(Atom arguments, Atom *result) {
 
 const char *const builtin_env_bindings_name = "ENV-BINDINGS";
 const char *const builtin_env_bindings_docstring =
-  "(env-bindings ENV)\n."
+  "(env-bindings ENV)\n"
   "\n"
   "Return alist representation of bindings within ENV.";
 Error builtin_env_bindings(Atom arguments, Atom *result) {
