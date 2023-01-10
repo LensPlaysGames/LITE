@@ -51,10 +51,19 @@ CALLBACK is called like with a single argument: a pair with car of symbol key an
   outstr)
 
 (defun list-closures ()
-  "List all of the functions currently defined in the environment."
+  "List all of the closures currently defined in the environment."
   (env-set-direct (env) 'outstr "")
   (env-foreach (env) (lambda (item)
                        (when (closurep (cdr item))
+                         (define outstr (string-concat (string-concat outstr "\\n")
+                                                       (to-string (car item)))))))
+  outstr)
+
+(defun list-macros ()
+  "List all of the macros currently defined in the environment."
+  (env-set-direct (env) 'outstr "")
+  (env-foreach (env) (lambda (item)
+                       (when (macrop (cdr item))
                          (define outstr (string-concat (string-concat outstr "\\n")
                                                        (to-string (car item)))))))
   outstr)
@@ -75,7 +84,8 @@ and print out their respective docstrings."
   ;; TODO: Build list then sort?
   (env-foreach (env) (lambda (item)
                        (when (or (builtinp (cdr item))
-                                 (closurep (cdr item)))
+                                 (closurep (cdr item))
+                                 (macrop   (cdr item)))
                          (define outstr (string-concat outstr (to-string (car item))))
                          (define outstr (string-concat outstr "\\n"))
                          (let ((docstr (docstring (car item))))
