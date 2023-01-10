@@ -1,5 +1,6 @@
-;; Include this file in LITE by passing the path to this file as a command-line argument.
+;;!;; LITE Text Editor Standard Library ;;!;;
 
+;; DO NOT REORDER THESE UNLESS YOU REALLY KNOW WHAT YOU ARE DOING
 (evaluate-file "lisp/std/basics.lt")
 (evaluate-file "lisp/std/maths.lt")
 (evaluate-file "lisp/std/lists.lt")
@@ -150,6 +151,62 @@ If point is zero, get byte at point."
 (defun forward-byte ()
   "Increment point of `CURRENT-BUFFER` by one byte."
   (forward-bytes 1))
+
+(defun utf8-continuation-byte-p (byte)
+  "Return T iff BYTE is a UTF8 continuation byte (MSB set and MSB - 1 clear).
+Otherwise, return nil."
+  (and (> (bitand byte 128) 0) (= 0 (bitand byte 64))))
+
+(defun utf8-point-at-continuation-byte-p ()
+  "Return T iff point is at a UTF8 continuation byte (MSB set and MSB - 1 clear).
+Otherwise, return nil."
+  (utf8-continuation-byte-p
+   ;; Get byte at point as 1-length string then first byte of string as integer.
+   (string-index (byte-at-point current-buffer) 0)))
+
+(defun utf8-forward-char ()
+  "Increment point of `CURRENT-BUFFER` by one utf8 codepoint."
+  (forward-bytes 1)
+  (when (utf8-point-at-continuation-byte-p)
+    (utf8-forward-char)))
+
+(defun utf8-backward-char ()
+  "Decrement point of `CURRENT-BUFFER` by one utf8 codepoint."
+  (backward-bytes 1)
+  (when (utf8-point-at-continuation-byte-p)
+    (utf8-backward-char)))
+
+(defun utf8-remove-char ()
+  "Remove the bytes representing the next utf8 codepoint point of `CURRENT-BUFFER` starting at point."
+  (remove 1)
+  (when (utf8-point-at-continuation-byte-p)
+    (utf8-remove-char)))
+
+(defun utf8-remove-char-forward ()
+  "Remove the bytes representing the next utf8 codepoint point of `CURRENT-BUFFER` starting at point."
+  (remove-forward 1)
+  (when (utf8-point-at-continuation-byte-p)
+    (utf8-remove-char-forward)))
+
+(defun utf8-backspace ()
+  "Remove the utf8 codepoint behind the cursor in the current buffer,
+or, if mark is active and a region is selected, remove the entire region."
+  (if (buffer-mark-active current-buffer)
+      ;; Mark is active, a region is selected.
+      (let ((mark (mark))
+            (p (point))
+            (length (region-length)))
+        ;; Don't remove anything if region is of zero-length
+        (unless (= length 0)
+          ;; Determine if we need to remove forward or backward from point.
+          (if (> mark p)
+              ;; Mark is past point, remove forward.
+              (remove-forward length)
+              ;; Point is past mark, remove backward.
+              (remove length))))
+      ;; Mark isn't active, no region selected---remove a single byte backwards.
+      (utf8-remove-char)))
+
 
 (defun beginning-of-line ()
   "Move to the beginning of the current line"
@@ -343,8 +400,8 @@ where it is."
    (remove (region-length))))
 
 (defun backspace ()
-  "Remove the character behind the cursor in the current buffer,
-or, if mark is active and a region is selected, remove the entire region."
+  "Remove the byte behind the cursor in the current buffer, or, if mark
+is active and a region is selected, remove the entire region."
   (if (buffer-mark-active current-buffer)
       ;; Mark is active, a region is selected.
       (let ((mark (mark))

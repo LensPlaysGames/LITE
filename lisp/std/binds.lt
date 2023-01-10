@@ -38,7 +38,8 @@
 ;;(keymap-push keymap "<return>" "\\r\\n")
 
 ;; keybinds: Backspace
-(keymap-push keymap "<backspace>" '(backspace))
+;;(keymap-push keymap "<backspace>" '(backspace))
+(keymap-push keymap "<backspace>" '(utf8-backspace))
 
 ;; keybinds: Tab is four spaces (by default)
 (keymap-push keymap "<tab>" "    ")
@@ -48,7 +49,8 @@
 
 ;; keybinds: Miscellaneous keys
 (keymap-push keymap "<insert>"       'ignore)
-(keymap-push keymap "<delete>"       '(buffer-remove-forward current-buffer 1))
+;;(keymap-push keymap "<delete>"       '(buffer-remove-forward current-buffer 1))
+(keymap-push keymap "<delete>"       '(utf8-remove-char-forward))
 (keymap-push keymap "<home>"         '(beginning-of-line))
 (keymap-push keymap "<end>"          '(end-of-line))
 (keymap-push keymap "<page-up>"      'ignore)
@@ -145,9 +147,7 @@
 
     ;; keybinds: Backspace and... forwardspace?
     (keymap-push ctrl-shft-keymap "d" "<backspace>")
-    (keymap-push
-     ctrl-keymap "d"
-     '(buffer-remove-forward current-buffer 1))
+    (keymap-push ctrl-keymap "d" "<delete>")
 
 
     (keymap-push ctrl-keymap "g" '(keyboard-quit))
@@ -155,8 +155,10 @@
 
     ;; ctrl keybinds: Simple buffer navigation
     (keymap-push ctrl-keymap " " '(set-or-toggle-mark))
-    (keymap-push ctrl-keymap "f" '(forward-byte))
-    (keymap-push ctrl-keymap "b" '(backward-byte))
+    ;;(keymap-push ctrl-keymap "f" '(forward-byte))
+    ;;(keymap-push ctrl-keymap "b" '(backward-byte))
+    (keymap-push ctrl-keymap "f" '(utf8-forward-char))
+    (keymap-push ctrl-keymap "b" '(utf8-backward-char))
     (keymap-push ctrl-keymap "n" '(forward-line))
     (keymap-push ctrl-keymap "p" '(backward-line))
     (keymap-push ctrl-keymap "a" '(beginning-of-line))
