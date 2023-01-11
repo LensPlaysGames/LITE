@@ -727,6 +727,9 @@ Error evaluate_expression(Atom expr, Atom environment, Atom *result) {
           FOR_ALL_GCOL_THINGS(gcol_unmark);
         }
         if (err.type) {
+          if (err.type == ERROR_ARGUMENTS) {
+            err.ref = cons(operator, arguments);
+          }
           return err;
         }
       } else {

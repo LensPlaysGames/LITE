@@ -32,7 +32,7 @@ Quits evaluating all LISP up until the very top level (minimum needed)."
 
 (defmacro env-foreach (current-env callback)
   "Call CALLBACK on each and every binding within all environments reachable from CURRENT-ENV.
-CALLBACK is called like with a single argument: a pair with car of symbol key and cdr of value."
+CALLBACK is called with a single argument: a pair with car of symbol key and cdr of value."
   `(let ((iterator ,current-env))
      (while (! (nilp iterator))
        (dolist (item (env-bindings iterator) t)
