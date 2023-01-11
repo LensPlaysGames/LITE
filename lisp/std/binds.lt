@@ -31,15 +31,58 @@
 
 (set keymap (make-simple-keymap) "The global keymap containing keybindings.")
 
-;; keybinds: Newlines
-;; UNIX
-(keymap-push keymap "<return>" "\\n")
-;; DOS
-;;(keymap-push keymap "<return>" "\\r\\n")
+(defun nav-ascii ()
+  "Alter navigation functions to use byte based movement."
+  (keymap-set keymap "<backspace>" '(backspace))
+  (keymap-set keymap "<delete>"    '(remove-forward 1))
+  (let ((ctrl-keymap (get-keymap-or-make-simple keymap "CTRL")))
+    (keymap-set ctrl-keymap "f" '(forward-byte))
+    (keymap-set ctrl-keymap "b" '(backward-byte))))
 
-;; keybinds: Backspace
-;;(keymap-push keymap "<backspace>" '(backspace))
-(keymap-push keymap "<backspace>" '(utf8-backspace))
+(defun nav-utf8 ()
+  "Alter navigation functions to use utf8 based movement."
+  (keymap-set keymap "<backspace>" '(utf8-backspace))
+  (keymap-set keymap "<delete>"    '(utf8-remove-char-forward))
+  (let ((ctrl-keymap (get-keymap-or-make-simple keymap "CTRL")))
+    (keymap-set ctrl-keymap "f" '(utf8-forward-char))
+    (keymap-set ctrl-keymap "b" '(utf8-backward-char))))
+
+(defun nav-utf16 ()
+  "Alter navigation functions to use utf16 based movement."
+  (keymap-set keymap "<backspace>" '(utf16-backspace))
+  (keymap-set keymap "<delete>"    '(utf16-remove-char-forward))
+  (let ((ctrl-keymap (get-keymap-or-make-simple keymap "CTRL")))
+    (keymap-set ctrl-keymap "f" '(utf16-forward-char))
+    (keymap-set ctrl-keymap "b" '(utf16-backward-char))))
+
+(defun nav-utf32 ()
+  "Alter navigation functions to use utf32 based movement."
+  (keymap-set keymap "<backspace>" '(utf32-backspace))
+  (keymap-set keymap "<delete>"    '(utf32-remove-char-forward))
+  (let ((ctrl-keymap (get-keymap-or-make-simple keymap "CTRL")))
+    (keymap-set ctrl-keymap "f" '(utf32-forward-char))
+    (keymap-set ctrl-keymap "b" '(utf32-backward-char))
+    (keymap-set keymap "CTRL" ctrl-keymap)))
+
+(defun default-unix-newline ()
+  "Default to UNIX style newline (LF) when pressing return, and CRLF when pressing shift-return."
+  (keymap-set keymap "<return>" "\\n")
+  (let ((ctrl-keymap (get-keymap-or-make-simple keymap "CTRL")))
+    (keymap-set ctrl-keymap "<return>" "\\r\\n")
+    (keymap-set keymap "CTRL" ctrl-keymap)))
+
+(defun default-dos-newline ()
+  "Default to DOS style newline (CRLF) when pressing return, and LF when pressing shift-return."
+  (keymap-set keymap "<return>" "\\r\\n")
+  (let ((ctrl-keymap (get-keymap-or-make-simple keymap "CTRL")))
+    (keymap-set ctrl-keymap "<return>" "\\n")
+    (keymap-set keymap "CTRL" ctrl-keymap)))
+
+;; keybinds: Newlines
+(default-unix-newline)
+
+;; keybinds: Navigation: Backspace, Delete, Forward, Backward
+(nav-utf8)
 
 ;; keybinds: Tab is four spaces (by default)
 (keymap-push keymap "<tab>" "    ")
@@ -49,8 +92,6 @@
 
 ;; keybinds: Miscellaneous keys
 (keymap-push keymap "<insert>"       'ignore)
-;;(keymap-push keymap "<delete>"       '(buffer-remove-forward current-buffer 1))
-(keymap-push keymap "<delete>"       '(utf8-remove-char-forward))
 (keymap-push keymap "<home>"         '(beginning-of-line))
 (keymap-push keymap "<end>"          '(end-of-line))
 (keymap-push keymap "<page-up>"      'ignore)
@@ -145,7 +186,7 @@
   (let ((ctrl-shft-keymap (get-keymap-or-make-simple ctrl-keymap "SHFT"))
         (ctrl-alts-keymap (get-keymap-or-make-simple ctrl-keymap "ALTS")))
 
-    ;; keybinds: Backspace and... forwardspace?
+    ;; keybinds: Backspace, Delete
     (keymap-push ctrl-shft-keymap "d" "<backspace>")
     (keymap-push ctrl-keymap "d" "<delete>")
 
@@ -153,12 +194,9 @@
     (keymap-push ctrl-keymap "g" '(keyboard-quit))
     (keymap-push ctrl-keymap "k" '(delete-line-past))
 
-    ;; ctrl keybinds: Simple buffer navigation
+    ;; ctrl keybinds: Buffer navigation
     (keymap-push ctrl-keymap " " '(set-or-toggle-mark))
-    ;;(keymap-push ctrl-keymap "f" '(forward-byte))
-    ;;(keymap-push ctrl-keymap "b" '(backward-byte))
-    (keymap-push ctrl-keymap "f" '(utf8-forward-char))
-    (keymap-push ctrl-keymap "b" '(utf8-backward-char))
+
     (keymap-push ctrl-keymap "n" '(forward-line))
     (keymap-push ctrl-keymap "p" '(backward-line))
     (keymap-push ctrl-keymap "a" '(beginning-of-line))
@@ -169,6 +207,7 @@
     (keymap-push ctrl-keymap "o" '(insert-lf))
     (keymap-push ctrl-shft-keymap "o" '(insert-crlf))
 
+    ;; ctrl keybinds: save
     (keymap-push
      ctrl-keymap "s"
      '(save-current-buffer-with-msg "Saved"))
@@ -184,6 +223,7 @@
     (keymap-push ctrl-alts-keymap "q" '(quit-completely 0))
 
     ;; Update nested keymap(s) in local keymap.
+    ;; TODO: Is this necessary?
     (keymap-set ctrl-keymap "SHFT" ctrl-shft-keymap)
     (keymap-set ctrl-keymap "ALTS" ctrl-alts-keymap)
     ;; Update keymap in global environment from local keymap.
