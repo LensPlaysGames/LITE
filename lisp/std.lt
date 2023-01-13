@@ -23,13 +23,6 @@ Quits evaluating all LISP up until the very top level (minimum needed)."
   ;; so make sure it's at the end.
   (quit-lisp))
 
-
-;; TODO: With environments recently being entirely reworked, we're
-;; going to have to also rework all of these. Either by writing
-;; builtins that allow us to operate on the environment atom type, or
-;; by writing a function that converts from an atom of environment type
-;; to a list of bindings, or something.
-
 (defmacro env-foreach (current-env callback)
   "Call CALLBACK on each and every binding within all environments reachable from CURRENT-ENV.
 CALLBACK is called with a single argument: a pair with car of symbol key and cdr of value."
@@ -122,7 +115,22 @@ then restore CURRENT-BUFFER. Return the result of BODY."
        (set current-buffer original-buffer)
        result)))
 
+(defun write-string-to-file (string path)
+  "Write the given string to file at path. OVERWRITES DATA."
+  (with-current-buffer (open-buffer path)
+    ;; Clear buffer
+    (set-point 0)
+    (remove-forward 999999999999999)
+    ;; Write string
+    (insert string)
+    ;; Save buffer
+    (save current-buffer)))
+
 ;; BUFFERS
+
+;; TODO: Write a `prev-line`/`next-line` impl that takes into account
+;; codepoint count vs byte count... Currently utf8 characters make line
+;; navigation all wonky and jump around.
 
 (defun buffer-prev-line (buffer)
   "Get the line before the current line, if possible."
@@ -156,6 +164,16 @@ If point is zero, get byte at point."
 
 ;; Navigation
 
+;; TODO: It would be cool if, when we call backward/forward bytes, they
+;; would also set a variable on their current column offset. Then, in
+;; forward-line and backward-line, we could do our best to maintain
+;; this column position, if it's valid. This would allow for Emacs-like
+;; behaviour of jumping between lines, which (I think) is something I
+;; want. The current system isn't bad, but this would just make it
+;; *a tiny bit* better. And we *DEFINITELY* want it under a user
+;; configurable variable check. We could even just have the check
+;; later or in another file and redefine these functions.
+
 (defun backward-bytes (n)
   "Decrement point of `CURRENT-BUFFER` by N bytes."
   (set-point (- (point) n)))
@@ -184,30 +202,37 @@ Otherwise, return nil."
    ;; Get byte at point as 1-length string then first byte of string as integer.
    (string-index (byte-at-point current-buffer) 0)))
 
+(defun utf8-point-after-continuation-byte-p ()
+  "Return T iff point is just after a UTF8 continuation byte (MSB set and MSB - 1 clear).
+Otherwise, return nil."
+  (utf8-continuation-byte-p
+   ;; Get byte at point as 1-length string then first byte of string as integer.
+   (string-index (byte-before-point current-buffer) 0)))
+
 ;; TODO: Make these return current-buffer to be consistent with other navigation functions.
 
 (defun utf8-forward-char ()
   "Increment point of `CURRENT-BUFFER` by one utf8 codepoint."
-  (forward-bytes 1)
-  (when (utf8-point-at-continuation-byte-p)
+  ;; Move byte forward by one byte, ensure it's moved by one, then do
+  ;; the whole thing again if at a continuation byte.
+  (when (and (= (forward-byte) 1) (utf8-point-at-continuation-byte-p))
     (utf8-forward-char)))
 
 (defun utf8-backward-char ()
   "Decrement point of `CURRENT-BUFFER` by one utf8 codepoint."
-  (backward-bytes 1)
-  (when (utf8-point-at-continuation-byte-p)
+  (when (and (= (backward-byte) 1) (utf8-point-at-continuation-byte-p))
     (utf8-backward-char)))
 
 (defun utf8-remove-char ()
   "Remove the bytes representing the utf8 codepoint point of `CURRENT-BUFFER` ending just before point."
-  (remove 1)
-  (when (utf8-point-at-continuation-byte-p)
-    (utf8-remove-char)))
+  (if (utf8-point-after-continuation-byte-p)
+      (when (= (remove 1) 1)
+        (utf8-remove-char))
+      (remove 1)))
 
 (defun utf8-remove-char-forward ()
   "Remove the bytes representing the next utf8 codepoint point of `CURRENT-BUFFER` starting at point."
-  (remove-forward 1)
-  (when (utf8-point-at-continuation-byte-p)
+  (when (and (= (remove-forward 1) 1) (utf8-point-at-continuation-byte-p))
     (utf8-remove-char-forward)))
 
 (defun utf8-backspace ()
@@ -230,6 +255,9 @@ or, if mark is active and a region is selected, remove the entire region."
       (utf8-remove-char)))
 
 
+;; TODO I think utf16 navigation is scuffed; we should be moving only
+;; in byte multiples of two, as everything is at least two bytes. A
+;; surrogate pair is four bytes, two pairs of two bytes.
 
 (defun utf16-high-surrogate-pair-p (byte)
   "Return T iff BYTE represents the high byte of a UTF16 surrogate pair.
@@ -586,6 +614,11 @@ is active and a region is selected, remove the entire region."
     (change-font-size font-size))
 
 
+;; TODO: Shouldn't we take advantage of a struct here? We may have to
+;; rewrite the C code to deconstruct a window in order to support that,
+;; but I think it'd be worth it so we don't have so much `setcar...elt`
+;; stuff.
+
 ;; WINDOW:
 ;;   (z-level (posx . posy) (sizex . sizey) (scrollx . scrolly) (contents . properties))
 
@@ -704,9 +737,8 @@ Foreground (FG) and background (BG) are in format of '(R G B A)'."
   ;; Property:
   ;; (id offset length (fg.r fg.g fg.b fg.a) (bg.r bg.g bg.b bg.a))
   ;; Type checking
-  ;; TODO: Ensure window is window...
-  (unless (and ; (integerp id)
-               (integerp offset)
+  ;; TODO: Ensure WINDOW is actually a window...
+  (unless (and (integerp offset)
                (integerp length)
 
                ;; (R G B A) integer values
@@ -793,7 +825,7 @@ If DIRECTION is negative, decrease active window index. Otherwise, increase it."
 
 (defun layout-1 ()
   "One main window."
-  (set windows   `((0 (0  . 0) (100 . 100) (0 . 0) (,current-buffer . nil))))
+  (set windows `((0 (0  . 0) (100 . 100) (0 . 0) (,current-buffer . nil))))
   (set-active-window 0))
 
 (defun layout-vsplit ()

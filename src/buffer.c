@@ -280,27 +280,27 @@ Error buffer_append_byte(Buffer *buffer, char byte) {
   return buffer_insert_byte_indexed(buffer, SIZE_MAX, byte);
 }
 
-Error buffer_remove_bytes(Buffer *buffer, size_t count) {
+Error buffer_remove_bytes(Buffer *buffer, size_t *count) {
   if (!buffer || !buffer->rope) {
     MAKE_ERROR(err, ERROR_ARGUMENTS, nil
                , "Can not remove bytes from NULL buffer."
                , NULL);
     return err;
   }
-  if (count == 0) {
+  if (!count || *count == 0) {
     MAKE_ERROR(err, ERROR_ARGUMENTS, nil
                , "Can not remove zero bytes from buffer."
                , NULL);
     return err;
   }
-  if (buffer->point_byte >= count){
-    buffer->point_byte -= count;
+  if (buffer->point_byte >= *count){
+    buffer->point_byte -= *count;
   } else {
-    count = buffer->point_byte;
+    *count = buffer->point_byte;
     buffer->point_byte = 0;
   }
-  char *span = rope_span(buffer->rope, buffer->point_byte, count);
-  Rope *rope = rope_remove_span(buffer->rope, buffer->point_byte, count);
+  char *span = rope_span(buffer->rope, buffer->point_byte, *count);
+  Rope *rope = rope_remove_span(buffer->rope, buffer->point_byte, *count);
   if (!rope) {
     MAKE_ERROR(err, ERROR_GENERIC, nil
                , "Failed to remove span from buffer's rope."
@@ -308,7 +308,7 @@ Error buffer_remove_bytes(Buffer *buffer, size_t count) {
     return err;
   }
 
-  buffer_create_hst_node(buffer, BUF_HST_REMOVE, span, buffer->point_byte, count);
+  buffer_create_hst_node(buffer, BUF_HST_REMOVE, span, buffer->point_byte, *count);
 
   // Clear mark activation bit.
   buffer->mark_byte &= ~BUFFER_MARK_ACTIVATION_BIT;
@@ -317,17 +317,18 @@ Error buffer_remove_bytes(Buffer *buffer, size_t count) {
 }
 
 Error buffer_remove_byte(Buffer *buffer) {
-  return buffer_remove_bytes(buffer, 1);
+  static size_t i = 1;
+  return buffer_remove_bytes(buffer, &i);
 }
 
-Error buffer_remove_bytes_forward(Buffer *buffer, size_t count) {
+Error buffer_remove_bytes_forward(Buffer *buffer, size_t *count) {
   if (!buffer) {
     MAKE_ERROR(err, ERROR_ARGUMENTS, nil
                , "Can not remove bytes from NULL buffer."
                , NULL);
     return err;
   }
-  if (count == 0) {
+  if (!count || *count == 0) {
     MAKE_ERROR(err, ERROR_ARGUMENTS, nil
                , "Can not remove zero bytes from buffer."
                , NULL);
@@ -340,21 +341,21 @@ Error buffer_remove_bytes_forward(Buffer *buffer, size_t count) {
     return err;
   }
   size_t size = buffer->rope->weight;
-  if (buffer->point_byte + count >= size) {
-    count = size - buffer->point_byte;
-    if (count == 0) {
+  if (buffer->point_byte + *count >= size) {
+    *count = size - buffer->point_byte;
+    if (*count == 0) {
       return ok;
     }
     // Protect against unsigned underflow on subtraction.
-    if (count > size) {
+    if (*count > size) {
       MAKE_ERROR(err, ERROR_GENERIC, nil
                  , "Can not remove from buffer when point is greater than size."
                  , NULL);
       return err;
     }
   }
-  char *span = rope_span(buffer->rope, buffer->point_byte, count);
-  Rope *rope = rope_remove_span(buffer->rope, buffer->point_byte, count);
+  char *span = rope_span(buffer->rope, buffer->point_byte, *count);
+  Rope *rope = rope_remove_span(buffer->rope, buffer->point_byte, *count);
   if (!rope) {
     MAKE_ERROR(err, ERROR_GENERIC, nil
                , "Failed to remove span from buffer rope."
@@ -362,7 +363,7 @@ Error buffer_remove_bytes_forward(Buffer *buffer, size_t count) {
     return err;
   }
 
-  buffer_create_hst_node(buffer, BUF_HST_REMOVE, span, buffer->point_byte, count);
+  buffer_create_hst_node(buffer, BUF_HST_REMOVE, span, buffer->point_byte, *count);
 
   // Clear mark activation bit.
   buffer->mark_byte &= ~BUFFER_MARK_ACTIVATION_BIT;
@@ -371,7 +372,8 @@ Error buffer_remove_bytes_forward(Buffer *buffer, size_t count) {
 }
 
 Error buffer_remove_byte_forward(Buffer *buffer) {
-  return buffer_remove_bytes_forward(buffer, 1);
+  static size_t i = 1;
+  return buffer_remove_bytes_forward(buffer, &i);
 }
 
 
@@ -547,10 +549,10 @@ Error buffer_remove_region(Buffer *buffer) {
   size_t mark_byte = buffer_mark(*buffer);
   if (buffer->point_byte < mark_byte) {
     length = mark_byte - buffer->point_byte;
-    buffer_remove_bytes_forward(buffer, length);
+    buffer_remove_bytes_forward(buffer, &length);
   } else {
     length = buffer->point_byte - mark_byte;
-    buffer_remove_bytes(buffer, length);
+    buffer_remove_bytes(buffer, &length);
   }
 
   return err;

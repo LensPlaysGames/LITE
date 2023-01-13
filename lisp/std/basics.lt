@@ -187,7 +187,8 @@ the byte length of the selected region")
 
 (define set-point
     (lambda (point) (buffer-set-point current-buffer point))
-  "Set byte offset of cursor within current buffer to POINT.")
+  "Set byte offset of cursor within current buffer to POINT.
+Return the byte difference of new point from where it was moved from.")
 
 (define point
     (lambda () (buffer-point current-buffer))

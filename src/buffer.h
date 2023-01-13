@@ -89,12 +89,16 @@ Error buffer_insert_byte_indexed(Buffer *buffer, size_t byte_index, char byte);
 Error buffer_prepend_byte(Buffer *buffer, char byte);
 Error buffer_append_byte(Buffer *buffer, char byte);
 
-/// Remove the given amount of bytes starting at point going backward.
-Error buffer_remove_bytes(Buffer *buffer, size_t count);
+/** Remove the given amount of bytes starting at point going backward.
+  * @param[in, out] count
+  *   The amount of bytes to remove. Updated to the amount of bytes
+  *   actually removed.
+  */
+Error buffer_remove_bytes(Buffer *buffer, size_t *count);
 Error buffer_remove_byte(Buffer *buffer);
 
 /// Remove the given amount of bytes starting at point going forward.
-Error buffer_remove_bytes_forward(Buffer *buffer, size_t count);
+Error buffer_remove_bytes_forward(Buffer *buffer, size_t *count);
 Error buffer_remove_byte_forward(Buffer *buffer);
 
 Error buffer_undo(Buffer *buffer);

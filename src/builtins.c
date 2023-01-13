@@ -1147,7 +1147,8 @@ const char *const builtin_buffer_remove_name = "BUFFER-REMOVE";
 const char *const builtin_buffer_remove_docstring =
   "(buffer-remove BUFFER COUNT) \n"
   "\n"
-  "Backspace COUNT bytes from BUFFER at point.";
+  "Backspace COUNT bytes from BUFFER at point.\n"
+"Return the amount of bytes actually removed.";
 Error builtin_buffer_remove(Atom arguments, Atom *result) {
   TWO_ARGS(arguments);
   Atom buffer = car(arguments);
@@ -1166,11 +1167,13 @@ Error builtin_buffer_remove(Atom arguments, Atom *result) {
                NULL);
     return err_type;
   }
-  Error err = buffer_remove_bytes(buffer.value.buffer, (size_t)count.value.integer);
+  *result = make_int(0);
+  size_t removed = (size_t)count.value.integer;
+  Error err = buffer_remove_bytes(buffer.value.buffer, &removed);
   if (err.type) {
     return err;
   }
-  *result = buffer;
+  *result = make_int((integer_t)removed);
   return ok;
 }
 
@@ -1197,11 +1200,13 @@ Error builtin_buffer_remove_forward(Atom arguments, Atom *result) {
                NULL);
     return err_type;
   }
-  Error err = buffer_remove_bytes_forward(buffer.value.buffer, (size_t)count.value.integer);
+  *result = make_int(0);
+  size_t removed = (size_t)count.value.integer;
+  Error err = buffer_remove_bytes_forward(buffer.value.buffer, &removed);
   if (err.type) {
     return err;
   }
-  *result = buffer;
+  *result = make_int((integer_t)removed);
   return ok;
 }
 
@@ -1250,7 +1255,8 @@ const char *const builtin_buffer_set_point_name = "BUFFER-SET-POINT";
 const char *const builtin_buffer_set_point_docstring =
   "(buffer-set-point BUFFER POINT) \n"
   "\n"
-  "Set byte offset of cursor within BUFFER to POINT.";
+  "Set byte offset of cursor within BUFFER to POINT.\n"
+"Return difference of new point from old point.";
 Error builtin_buffer_set_point(Atom arguments, Atom *result) {
   TWO_ARGS(arguments);
   Atom buffer = car(arguments);
@@ -1269,16 +1275,21 @@ Error builtin_buffer_set_point(Atom arguments, Atom *result) {
                NULL);
     return err_type;
   }
+
   size_t new_point_byte = 0;
-  if (point.value.integer > 0) {
+  if (point.value.integer >= 0) {
     if (point.value.integer > (integer_t)buffer.value.buffer->rope->weight) {
+      // TODO: should we subtract one from weight?
       new_point_byte = buffer.value.buffer->rope->weight;
     } else {
       new_point_byte = (size_t)point.value.integer;
     }
   }
+
+  size_t old_point_byte = buffer.value.buffer->point_byte;
   buffer.value.buffer->point_byte = new_point_byte;
-  *result = buffer;
+
+  *result = make_int((integer_t)new_point_byte - (integer_t)old_point_byte);
   return ok;
 }
 
@@ -2197,7 +2208,8 @@ Error builtin_read_prompted(Atom arguments, Atom *result) {
 
   // Clear popup buffer.
   popup_buffer.value.buffer->point_byte = 0;
-  buffer_remove_bytes_forward(popup_buffer.value.buffer, SIZE_MAX);
+  size_t all = SIZE_MAX;
+  buffer_remove_bytes_forward(popup_buffer.value.buffer, &all);
 
   // Insert prompt.
   // TODO+FIXME: Make prompt not editable, somehow :p.
@@ -2216,7 +2228,7 @@ Error builtin_read_prompted(Atom arguments, Atom *result) {
 
   // Remove prompt.
   popup_buffer.value.buffer->point_byte = 0;
-  buffer_remove_bytes_forward(popup_buffer.value.buffer, prompt_length);
+  buffer_remove_bytes_forward(popup_buffer.value.buffer, &prompt_length);
 
   // Convert popup buffer contents into a string.
   char *string = buffer_string(*popup_buffer.value.buffer);

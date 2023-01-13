@@ -486,7 +486,7 @@ static inline void draw_gui_string_into_surface_within_rect
 }
 
 void draw_gui(GUIContext *ctx) {
-  if (!gwindow || !grender || !ctx) {
+  if (!gwindow || !grender || !ctx || !created_gui_marker) {
     return;
   }
 
