@@ -570,11 +570,11 @@ int gui_loop(void) {
   }
   gctx->windows = NULL;
 
-  if (gui_ctx()->popup.string) {
-    free_properties(gui_ctx()->popup);
-    gui_ctx()->popup.properties = NULL;
-    free(gui_ctx()->popup.string);
-    gui_ctx()->popup.string = NULL;
+  if (gctx->popup.string) {
+    free_properties(gctx->popup);
+    gctx->popup.properties = NULL;
+    free(gctx->popup.string);
+    gctx->popup.string = NULL;
   }
 
   integer_t index = 0;
@@ -645,7 +645,7 @@ int gui_loop(void) {
     char *contents_string = NULL;
     if (bufferp(contents) && contents.value.buffer) {
       contents_string = buffer_string(*contents.value.buffer);
-    } else if (stringp(contents) && contents.value.symbol) {
+    } else if ((stringp(contents) || symbolp(contents)) && contents.value.symbol) {
       contents_string = strdup(contents.value.symbol);
     }
     new_gui_window->contents.string = contents_string;
@@ -791,8 +791,8 @@ int gui_loop(void) {
       property_it = cdr(property_it);
     }
 
-    if (gui_ctx()->reading) {
-      gui_ctx()->popup.string = buffer_string(*current_buffer.value.buffer);
+    if (gctx->reading) {
+      gctx->popup.string = buffer_string(*current_buffer.value.buffer);
     }
 
     // Add to windows linked list.

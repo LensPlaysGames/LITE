@@ -2188,7 +2188,7 @@ Error builtin_read_prompted(Atom arguments, Atom *result) {
   env_set(*genv(), make_sym("CURRENT-KEYMAP"), keymap);
 
   Atom popup_buffer = make_buffer(env_create(nil, 0), ".popup");
-  if (popup_buffer.value.buffer && !bufferp(popup_buffer)) {
+  if (!bufferp(popup_buffer)) {
     MAKE_ERROR(err, ERROR_GENERIC,
                nil, "make_buffer() didn't return a buffer!",
                NULL);
