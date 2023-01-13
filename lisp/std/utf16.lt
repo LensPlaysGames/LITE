@@ -1,0 +1,80 @@
+;;; LITE LISP UTF16 UTILITIES
+;;; Depends on:
+;;; -> basics.lt
+
+(defun utf16-high-surrogate-pair-p (byte)
+  "Return T iff BYTE represents the high byte of a UTF16 surrogate pair.
+Otherwise, return nil."
+  ;; byte >= 0xd800 && byte <= 0xdbff
+  (and (>= byte 55296) (<= byte 56319)))
+
+(defun utf16-low-surrogate-pair-p (byte)
+  "Return T iff BYTE represents the low byte of a UTF16 surrogate pair.
+Otherwise, return nil."
+  ;; byte >= 0xdc00 && byte <= 0xdfff
+  (and (>= byte 56320) (<= byte 57343)))
+
+(defun utf16-surrogate-pair-p (byte)
+  "Return T iff BYTE represents the high or low byte of a UTF16 surrogate pair.
+Otherwise, return nil."
+  ;; byte >= 0xd800 && byte <= 0xdfff
+  (and (>= byte 55296) (<= byte 57343)))
+
+(defun utf16-point-in-surrogate-pair-p ()
+  "Return T iff point is at the start of a UTF16 surrogate pair.
+Otherwise, return nil."
+  (utf16-surrogate-pair-p (string-index (byte-at-point current-buffer) 0)))
+
+(defun utf16-point-at-surrogate-pair-p ()
+  "Return T iff point is at the start of a UTF16 surrogate pair.
+Otherwise, return nil."
+  (utf16-high-surrogate-pair-p (string-index (byte-at-point current-buffer) 0)))
+
+(defun utf16-forward-char ()
+  "Increment point of `CURRENT-BUFFER` by one utf16 codepoint."
+  (if (utf16-point-at-surrogate-pair-p)
+      (forward-bytes 4)
+      (forward-bytes 2))
+  current-buffer)
+
+(defun utf16-backward-char ()
+  "Decrement point of `CURRENT-BUFFER` by one utf16 codepoint."
+  (backward-bytes 2)
+  (when (utf16-point-in-surrogate-pair-p)
+    (backward-bytes 2))
+  current-buffer)
+
+(defun utf16-remove-char ()
+  "Remove the bytes representing the utf16 codepoint point of `CURRENT-BUFFER` ending just before point."
+  (backward-bytes 2)
+  (when (utf16-point-in-surrogate-pair-p)
+    (backward-bytes 2))
+  current-buffer)
+
+(defun utf16-remove-char-forward ()
+  "Remove the bytes representing the next utf16 codepoint point of `CURRENT-BUFFER` starting at point."
+  (if (utf16-point-at-surrogate-pair-p)
+      (remove-forward 4)
+      (remove-forward 2))
+  current-buffer)
+
+(defun utf16-backspace ()
+  "Remove the utf16 codepoint behind the cursor in the current buffer,
+or, if mark is active and a region is selected, remove the entire region."
+  (if (buffer-mark-active current-buffer)
+      ;; Mark is active, a region is selected.
+      (let ((mark (mark))
+            (p (point))
+            (length (region-length)))
+        ;; Don't remove anything if region is of zero-length
+        (unless (= length 0)
+          ;; Determine if we need to remove forward or backward from point.
+          (if (> mark p)
+              ;; Mark is past point, remove forward.
+              (remove-forward length)
+              ;; Point is past mark, remove backward.
+              (remove length)))
+        current-buffer)
+      ;; Mark isn't active, no region selected---remove a single byte backwards.
+      (utf16-remove-char)))
+

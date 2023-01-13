@@ -186,13 +186,11 @@
   (let ((ctrl-shft-keymap (get-keymap-or-make-simple ctrl-keymap "SHFT"))
         (ctrl-alts-keymap (get-keymap-or-make-simple ctrl-keymap "ALTS")))
 
+    (keymap-push ctrl-keymap "g" '(keyboard-quit))
+
     ;; keybinds: Backspace, Delete
     (keymap-push ctrl-shft-keymap "d" "<backspace>")
     (keymap-push ctrl-keymap "d" "<delete>")
-
-
-    (keymap-push ctrl-keymap "g" '(keyboard-quit))
-    (keymap-push ctrl-keymap "k" '(delete-line-past))
 
     ;; ctrl keybinds: Buffer navigation
     (keymap-push ctrl-keymap " " '(set-or-toggle-mark))
@@ -206,6 +204,7 @@
     (keymap-push ctrl-keymap "y" '(redo))
     (keymap-push ctrl-keymap "o" '(insert-lf))
     (keymap-push ctrl-shft-keymap "o" '(insert-crlf))
+    (keymap-push ctrl-keymap "k" '(delete-line-past))
 
     ;; ctrl keybinds: save
     (keymap-push

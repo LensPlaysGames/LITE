@@ -64,14 +64,31 @@ Error evaluate_bind_arguments(Atom *stack, Atom *expr, Atom *environment) {
     return evaluate_next_expression(stack, expr, environment);
   }
   // Else, bind the arguments into the current stack frame.
+
+  // Ensure operator is as expected (callable with arguments, not a builtin).
   Atom operator = list_get(*stack, 2);
-  Atom arguments = list_get(*stack, 4);
-  *environment = env_create(car(operator), 2 << 2);
-  Atom argument_names = car(cdr(operator));
+  if (!closurep(operator) && !macrop(operator)) {
+    MAKE_ERROR(err, ERROR_GENERIC, operator,
+               "evaluate_bind_arguments() requires operator to be a closure or macro when body is nil.",
+               NULL);
+    return err;
+  }
+
+  // Extract expression body from operator.
   body = cdr(cdr(operator));
-  list_set(*stack, 1, *environment);
   list_set(*stack, 5, body);
+
+  // Create local environment for arguments, with parent of environment
+  // set to the closure's enclosed environment.
+  // Basically, run the function within the environment it was created
+  // within, with an extra layer to bind the arguments.
+  *environment = env_create(car(operator), 2 << 2);
+  list_set(*stack, 1, *environment);
+
   // Bind arguments into local environment.
+  Atom arguments = list_get(*stack, 4);
+  Atom argument_names = car(cdr(operator));
+  // Prepare error
   MAKE_ERROR(error_args, ERROR_ARGUMENTS, arguments, "Could not bind arguments.", NULL);
   while (!nilp(argument_names)) {
     // Handle variadic arguments.
@@ -80,15 +97,23 @@ Error evaluate_bind_arguments(Atom *stack, Atom *expr, Atom *environment) {
       arguments = nil;
       break;
     }
+    // If arguments list runs out before argument_names list, that
+    // means not enough arguments were passed.
     if (nilp(arguments)) {
+      // TODO: Print number of arguments missing? Or expected amount? Or signature?
       error_args.suggestion = "Not enough arguments passed.";
       return error_args;
     }
+
+    // Bind declared parameter name to passed argument value.
     env_set(*environment, car(argument_names), car(arguments));
+
+    // Increment iterators.
     argument_names = cdr(argument_names);
     arguments = cdr(arguments);
   }
   if (!nilp(arguments)) {
+    // TODO: Print number of extra arguments? Or expected amount? Or signature?
     error_args.suggestion = "Too many arguments passed.";
     return error_args;
   }
@@ -100,6 +125,8 @@ Error evaluate_apply(Atom *stack, Atom *expr, Atom *environment) {
   Atom operator = list_get(*stack, 2);
   Atom arguments = list_get(*stack, 4);
   if (!nilp(arguments)) {
+    // Reverse arguments list. This is needed because of how we
+    // evaluate them; they are added last-is-first.
     list_reverse(&arguments);
     list_set(*stack, 4, arguments);
   }
@@ -315,7 +342,10 @@ Error evaluate_return_value(Atom *stack, Atom *expr, Atom *environment, Atom *re
       list_set(*stack, 4, cons(*result, arguments));
     }
   } else if (macrop(operator)) {
+    // This is where the return value of macros are evaluated.
     *expr = *result;
+    *stack = car(*stack);
+
 #   ifdef LITE_DBG
     if (env_non_nil(*environment, make_sym("DEBUG/MACRO"))) {
       printf("          result: ");
@@ -323,21 +353,24 @@ Error evaluate_return_value(Atom *stack, Atom *expr, Atom *environment, Atom *re
       putchar('\n');
     }
 #   endif
-    *stack = car(*stack);
+
     return ok;
   } else {
     // Store argument
+    // NOTE: This stores arguments in reverse order (last is first).
     arguments = list_get(*stack, 4);
     list_set(*stack, 4, cons(*result, arguments));
   }
+
+  // The rest of the arguments to evaluate.
   arguments = list_get(*stack, 3);
+  // No arguments left to evaluate, apply operator with gathered arguments.
   if (nilp(arguments)) {
-    // No arguments left to evaluate, apply operator.
     return evaluate_apply(stack, expr, environment);
   }
-  // Evaluate next argument.
+  // Otherwise, evaluate next argument.
   *expr = car(arguments);
-  // Eat next argument from pre-evaluated arguments list.
+  // Eat next argument from unevaluated arguments list.
   list_set(*stack, 3, cdr(arguments));
   return ok;
 }
@@ -352,7 +385,7 @@ Error evaluate_expression(Atom expr, Atom environment, Atom *result) {
     F(genv());                                  \
     F(&environment);                            \
     F(&stack);                                  \
-    F(buf_table());
+    F(buf_table())
 
   // These numbers are tailored to free around twenty mebibytes at a time,
   // and to have both of the reasons for garbage collection actually used.

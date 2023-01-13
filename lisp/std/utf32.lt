@@ -1,0 +1,44 @@
+;;; LITE LISP UTF32 UTILITIES
+;;; Depends on:
+;;; -> basics.lt
+
+(defun utf32-forward-char ()
+  "Increment point of `CURRENT-BUFFER` by one utf32 codepoint."
+  (forward-bytes 4)
+  current-buffer)
+
+(defun utf32-backward-char ()
+  "Decrement point of `CURRENT-BUFFER` by one utf32 codepoint."
+  (backward-bytes 4)
+  current-buffer)
+
+(defun utf32-remove-char ()
+  "Remove the bytes representing the utf32 codepoint of `CURRENT-BUFFER` ending just before point."
+  (remove 4)
+  current-buffer)
+
+(defun utf32-remove-char-forward ()
+  "Remove the bytes representing the next utf32 codepoint of `CURRENT-BUFFER` starting at point."
+  (remove-forward 4)
+  current-buffer)
+
+(defun utf32-backspace ()
+  "Remove the utf32 codepoint behind the cursor in the current buffer,
+or, if mark is active and a region is selected, remove the entire region."
+  (if (buffer-mark-active current-buffer)
+      ;; Mark is active, a region is selected.
+      (let ((mark (mark))
+            (p (point))
+            (length (region-length)))
+        ;; Don't remove anything if region is of zero-length
+        (unless (= length 0)
+          ;; Determine if we need to remove forward or backward from point.
+          (if (> mark p)
+              ;; Mark is past point, remove forward.
+              (remove-forward length)
+              ;; Point is past mark, remove backward.
+              (remove length)))
+        current-buffer)
+      ;; Mark isn't active, no region selected---remove a single byte backwards.
+      (utf32-remove-char)))
+

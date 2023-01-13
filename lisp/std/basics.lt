@@ -132,6 +132,36 @@ as well as places INITIAL-VALUE at the end of SOME-LIST.")
 
 
 ;; CURRENT BUFFER HELPER FUNCTIONS
+;; TODO: It would be cool if, when we call backward/forward bytes, they
+;; would also set a variable on their current column offset. Then, in
+;; forward-line and backward-line, we could do our best to maintain
+;; this column position, if it's valid. This would allow for Emacs-like
+;; behaviour of jumping between lines, which (I think) is something I
+;; want. The current system isn't bad, but this would just make it
+;; *a tiny bit* better. And we *DEFINITELY* want it under a user
+;; configurable variable check. We could even just have the check
+;; later or in another file and redefine these functions.
+
+(define backward-bytes
+    (lambda (n)
+      (set-point (- (point) n)))
+  "Decrement point of `CURRENT-BUFFER` by N bytes.")
+
+(define forward-bytes
+    (lambda (n)
+      (set-point (+ (point) n)))
+  "Increment point of `CURRENT-BUFFER` by N bytes.")
+
+(define backward-byte
+    (lambda ()
+      (backward-bytes 1))
+  "Decrement point of `CURRENT-BUFFER` by one byte.")
+
+(define forward-byte
+    (lambda ()
+      (forward-bytes 1))
+  "Increment point of `CURRENT-BUFFER` by one byte.")
+
 (define toggle-mark
     (lambda () (buffer-toggle-mark current-buffer))
     "Toggle the mark in the current buffer.")
