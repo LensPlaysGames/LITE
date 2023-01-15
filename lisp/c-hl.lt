@@ -1,68 +1,68 @@
 (set tree-sitter-language "c")
 ;; FG/BG RGBA pairs
-(let ((comment       '((127 131 136 255) (22 23 24 255)))
-      (variable      '((128 255 253 255) (22 23 24 255)))
-      (type          '(( 44 171 255 255) (22 23 24 255)))
-      (function_name '((255 235 187 255) (22 23 24 255)))
-      (keyword       '((221 100 244 255) (22 23 24 255)))
-      (operator      '(( 10 255 141 255) (22 23 24 255)))
-      (delimiter     '((228 235 232 255) (22 23 24 255)))
-      (constant      '((206 255 255 255) (22 23 24 255)))
-      (string        '((255 238  32 255) (22 23 24 255)))
-      (escape        '((255 253 128 255) (22 23 24 255)))
-      (err-color     '((231  17  17 255) (22 23 24 255))))
-  (set tree-sitter-queries
-       `(("(comment) @x" ,comment)
+(set comment '((127 131 136 255) (22 23 24 255)))
+(set variable      '((128 255 253 255) (22 23 24 255)))
+(set type          '(( 44 171 255 255) (22 23 24 255)))
+(set function_name '((255 235 187 255) (22 23 24 255)))
+(set keyword       '((221 100 244 255) (22 23 24 255)))
+(set operator      '(( 10 255 141 255) (22 23 24 255)))
+(set delimiter     '((228 235 232 255) (22 23 24 255)))
+(set constant      '((206 255 255 255) (22 23 24 255)))
+(set string        '((255 238  32 255) (22 23 24 255)))
+(set escape        '((255 253 128 255) (22 23 24 255)))
+(set err-color     '((231  17  17 255) (22 23 24 255)))
 
-         ("(true) @x" ,constant)
-         ("(false) @x" ,constant)
-         ("(null) @x" ,constant)
+(set tree-sitter-queries
+ `(("(comment) @x" ,comment)
 
-         ("[ \\"break\\" \\"case\\" \\"const\\" \\"continue\\" \\"default\\" \\"do\\" \\"else\\" \\"enum\\" \\"extern\\" \\"for\\" \\"goto\\" \\"if\\" \\"long\\" \\"register\\" \\"return\\" \\"short\\" \\"signed\\" \\"sizeof\\" \\"static\\" \\"struct\\" \\"switch\\" \\"typedef\\" \\"union\\" \\"unsigned\\" \\"volatile\\" \\"while\\" ] @x" ,keyword) ;
+   ("(true) @x" ,constant)
+   ("(false) @x" ,constant)
+   ("(null) @x" ,constant)
 
-         ("[ \\"=\\" \\"-\\" \\"*\\" \\"/\\" \\"+\\" \\"%\\" \\"~\\" \\"|\\" \\"&\\" \\"^\\" \\"<<\\" \\">>\\" \\"->\\" \\".\\" \\"<\\" \\"<=\\" \\">=\\" \\">\\" \\"==\\" \\"!=\\" \\"!\\" \\"&&\\" \\"||\\" \\"-=\\" \\"+=\\" \\"*=\\" \\"/=\\" \\"%=\\" \\"|=\\" \\"&=\\" \\"^=\\" \\">>=\\" \\"<<=\\" \\"--\\" \\"++\\" ]" ,operator) ;
+   ("[ \\"break\\" \\"case\\" \\"const\\" \\"continue\\" \\"default\\" \\"do\\" \\"else\\" \\"enum\\" \\"extern\\" \\"for\\" \\"goto\\" \\"if\\" \\"long\\" \\"register\\" \\"return\\" \\"short\\" \\"signed\\" \\"sizeof\\" \\"static\\" \\"struct\\" \\"switch\\" \\"typedef\\" \\"union\\" \\"unsigned\\" \\"volatile\\" \\"while\\" ] @x" ,keyword) ;
 
-         ("(string_literal)    @x" ,string)
-         ("(system_lib_string) @x" ,string)
+   ("[ \\"=\\" \\"-\\" \\"*\\" \\"/\\" \\"+\\" \\"%\\" \\"~\\" \\"|\\" \\"&\\" \\"^\\" \\"<<\\" \\">>\\" \\"->\\" \\".\\" \\"<\\" \\"<=\\" \\">=\\" \\">\\" \\"==\\" \\"!=\\" \\"!\\" \\"&&\\" \\"||\\" \\"-=\\" \\"+=\\" \\"*=\\" \\"/=\\" \\"%=\\" \\"|=\\" \\"&=\\" \\"^=\\" \\">>=\\" \\"<<=\\" \\"--\\" \\"++\\" ]" ,operator) ;
 
-         ("(number_literal) @x" ,constant)
-         ("(char_literal)   @x" ,constant)
+   ("(string_literal)    @x" ,string)
+   ("(system_lib_string) @x" ,string)
 
-         ("(primitive_type)  @x" ,type)
-         ("(type_identifier) @x" ,type)
-         ("(sized_type_specifier) @x" ,type)
+   ("(number_literal) @x" ,constant)
+   ("(char_literal)   @x" ,constant)
 
-         ("(declaration
+   ("(primitive_type)  @x" ,type)
+   ("(type_identifier) @x" ,type)
+   ("(sized_type_specifier) @x" ,type)
+
+   ("(declaration
             declarator: (_) @x)" ,variable)
-         ("(field_declaration
+   ("(field_declaration
             declarator: (_) @x)" ,escape)
-         ("(function_definition
+   ("(function_definition
             declarator: (_) @x)" ,function_name)
 
-         ("(assignment_expression
+   ("(assignment_expression
             left: (identifier) @x)" ,variable)
-         ("(assignment_expression
+   ("(assignment_expression
             left: (field_expression field: (_) @x))" ,escape)
-         ("(assignment_expression
+   ("(assignment_expression
             left: (pointer_expression (identifier) @x))" ,variable)
-         ("(assignment_expression
+   ("(assignment_expression
             left: (subscript_expression (identifier) @x))" ,variable)
 
-         ("(call_expression
+   ("(call_expression
             function: (identifier) @x) " ,function_name)
 
-         ("(identifier) @x" ,variable)
+   ("(identifier) @x" ,variable)
 
-         ("(labeled_statement
+   ("(labeled_statement
             label: (statement_identifier) @x)" ,constant)
 
-         ("(ERROR) @x" ,err-color)
+   ("(ERROR) @x" ,err-color)
 
-         ("(escape_sequence) @x" ,escape)
+   ("(escape_sequence) @x" ,escape)
 
-         ("(field_identifier) @x" ,escape)
-         ("(enumerator name: (identifier) @x)" ,escape)
+   ("(field_identifier) @x" ,escape)
+   ("(enumerator name: (identifier) @x)" ,escape)
 
-         ("[ \\",\\" \\":\\" \\";\\" \\"(\\" \\")\\" \\"[\\" \\"]\\" \\"{\\" \\"}\\" ] @x" ,delimiter) ;
-         ))
-  )
+   ("[ \\",\\" \\":\\" \\";\\" \\"(\\" \\")\\" \\"[\\" \\"]\\" \\"{\\" \\"}\\" ] @x" ,delimiter) ;
+   ))

@@ -49,6 +49,7 @@ typedef struct Atom {
     BuiltIn builtin;
     integer_t integer;
     struct Environment *env;
+    void *data;
   } value;
   char *docstring;
   GenericAllocation *galloc;
