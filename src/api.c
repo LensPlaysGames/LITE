@@ -11,6 +11,10 @@
 #include <types.h>
 #include <utility.h>
 
+#if defined(TREE_SITTER)
+#include <tree_sitter/api.h>
+#endif
+
 #if defined (_WIN32) || defined (_WIN64)
 #  include <windows.h>
 #  define SLEEP(ms) Sleep(ms)
@@ -526,6 +530,162 @@ GUIContext *initialize_lite_gui_ctx() {
   return ctx;
 }
 
+#ifdef TREE_SITTER
+
+#if defined(_WIN32)
+#include <windows.h>
+#elif defined(__linux__)
+#include <dlfcn.h>
+#endif
+
+/// Define `SO_EXIT` preprocessor directive to make errors exit the program
+#if defined(SO_EXIT)
+#define so_return_error exit(1)
+#else
+#define so_return_error return NULL
+#endif
+
+void *so_load(const char *library_path) {
+  void *out = NULL;
+#if defined(_WIN32)
+  // Use WINAPI to load library
+  HMODULE lib = LoadLibraryA(TEXT(library_path));
+  if (lib == NULL) {
+    fprintf(stdout, "Could not load tree sitter grammar library at \"%s\"\n", library_path);
+    so_return_error;
+  }
+  out = lib;
+#elif defined(__linux__)
+  out = dlopen(library_path);
+  if (out == NULL) {
+    fprintf("Error from dlopen(\"%s\"):\n  \"%s\"\n", library_path, dlerror());
+    so_return_error;
+  }
+  // Clear any existing error.
+  dlerror();
+#else
+# error "Can not support dynamic loading on unrecognized system"
+#endif
+  return out;
+}
+
+void *so_get(void *data, const char *symbol) {
+  void *out = NULL;
+#if defined(_WIN32)
+  // Get Tree Sitter language function address
+  out = (void *)GetProcAddress(data, TEXT(symbol));
+  if (out == NULL) {
+    fprintf(stdout, "Could not load symbol \"%s\" from dynamically loaded library.\n", symbol);
+    so_return_error;
+  }
+#elif defined(__linux__)
+  out = (void *)dlsym(*data, library_path);
+  char *error = dlerror();
+  if (error) {
+    fprintf(stdout,
+            "Could not load tree sitter language function from library loaded at \"%s\"\n"
+            "  \"%s\"\n",
+            library_path,
+            error);
+    so_return_error;
+  }
+#else
+# error "Can not support dynamic loading on unrecognized system"
+#endif
+  return out;
+}
+
+void so_delete(void *data) {
+#if defined(_WIN32)
+  FreeLibrary(data);
+#elif defined(__linux__)
+  dlclose(data);
+#else
+# error "Can not support dynamic loading on unrecognized system"
+#endif
+}
+
+void *so_load_ts(const char *language) {
+  void *out = NULL;
+  // Construct library path
+#if defined(_WIN32)
+  // ~/.tree_sitter/bin/libtree-sitter-<language>.dll
+  const char *appdata_path = getenv("APPDATA");
+  char *tree_sitter_bin = string_join(appdata_path, "/.tree_sitter/bin/");
+  char *tmp = string_join("libtree-sitter-", language);
+  char *library_path = string_trijoin(tree_sitter_bin, tmp, ".dll");
+  free(tree_sitter_bin);
+  free(tmp);
+#elif defined(__APPLE__)
+  // libtree-sitter-<language>.dylib
+  // TODO: Tree sitter bin on MacOS?
+  char *library_path = string_trijoin("libtree-sitter-", language, ".dylib");
+#elif defined(__linux__)
+  // ~/.tree_sitter/bin/libtree-sitter-<language>.so
+  const char *home_path = getenv("HOME");
+  char *tree_sitter_bin = string_join(home_path, "/.tree_sitter/bin/");
+  char *tmp = string_trijoin("libtree-sitter-", language, ".so");
+  char *library_path = string_join(tree_sitter_bin, tmp);
+  free(tree_sitter_bin);
+  free(tmp);
+
+#else
+# error "Can not support dynamic loading on unrecognized system"
+#endif
+  // Load library at path
+  out = so_load(library_path);
+  free(library_path);
+  return out;
+}
+
+void *so_get_ts(void *data, const char *language) {
+  void *out = NULL;
+  // Construct function name
+  char *lang_symbol = string_join("tree_sitter_", language);
+  // Load symbol from library
+  out = so_get(data, lang_symbol);
+  free(lang_symbol);
+  return out;
+}
+
+/// Pass a NULL initialised void pointer as `data`, and hang on to it;
+// it is needed by platforms during the deletion process.
+static TSLanguage *tree_sitter_language(const char *lang, void **data) {
+  // TODO: Check list of loaded languages, increment refcount if it exists or something and just use that one.
+
+  TSLanguage *(*tree_sitter_lang_func)(void);
+
+  // Load tree sitter language grammar shared object
+  *data = so_load_ts(lang);
+  if (!*data) {
+    printf("Could not load tree sitter %s grammar library\n", lang);
+    so_return_error;
+  }
+  tree_sitter_lang_func = so_get_ts(*data, lang);
+  if (!tree_sitter_lang_func) {
+    printf("Could not load tree sitter language function symbol from %s grammar library", lang);
+    so_return_error;
+  }
+  return tree_sitter_lang_func();
+}
+
+/// Pass the SAME `data` that you passed when creating.
+void tree_sitter_delete_language(const char *lang, void *data) {
+  (void)lang;
+  so_delete(data);
+}
+
+void print_span(const char *source, size_t start, size_t end) {
+  if (end == -1) {
+    end = strlen(source);
+  }
+  for (const char *span = source + start; span < source + end; ++span) {
+    putchar(*span);
+  }
+}
+
+#endif
+
 HOTFUNCTION
 int gui_loop(void) {
   // Call all "refresh" functions. Just a list of LISP forms that
@@ -558,6 +718,20 @@ int gui_loop(void) {
   if (err.type) {
     print_error(err);
   }
+
+#if defined(TREE_SITTER)
+  Atom ts_language = nil;
+  err = env_get(*genv(), make_sym("TREE-SITTER-LANGUAGE"), &ts_language);
+  if (err.type) {
+    //print_error(err);
+  }
+
+  Atom ts_queries = nil;
+  err = env_get(*genv(), make_sym("TREE-SITTER-QUERIES"), &ts_queries);
+  if (err.type) {
+    //print_error(err);
+  }
+#endif
 
   // Free all GUIWindows!
   GUIWindow *window = gctx->windows;
@@ -761,6 +935,105 @@ int gui_loop(void) {
       add_property(&new_gui_window->contents, new_property);
     }
 
+
+#if defined(TREE_SITTER)
+    // Add properties from tree sitter
+    // TODO: More checking of `ts_queries` and `ts_language`
+
+    // Build and run each query from TREE-SITTER-QUERIES
+    if (stringp(ts_language) && pairp(ts_queries)) {
+      for (Atom query_it = ts_queries; !nilp(query_it); query_it = cdr(query_it)) {
+        Atom query = car(query_it);
+        Atom query_string = car(query);
+        Atom query_colors = car(cdr(query));
+        Atom query_fg = car(query_colors);
+        Atom query_fg_r = car(query_fg);
+        Atom query_fg_g = car(cdr(query_fg));
+        Atom query_fg_b = car(cdr(cdr(query_fg)));
+        Atom query_fg_a = car(cdr(cdr(cdr(query_fg))));
+        Atom query_bg = car(cdr(query_colors));
+        Atom query_bg_r = car(query_bg);
+        Atom query_bg_g = car(cdr(query_bg));
+        Atom query_bg_b = car(cdr(cdr(query_bg)));
+        Atom query_bg_a = car(cdr(cdr(cdr(query_bg))));
+
+        // TODO: Lots of color typechecking...
+
+        uint8_t fg_r = query_fg_r.value.integer;
+        uint8_t fg_g = query_fg_g.value.integer;
+        uint8_t fg_b = query_fg_b.value.integer;
+        uint8_t fg_a = query_fg_a.value.integer;
+
+        uint8_t bg_r = query_bg_r.value.integer;
+        uint8_t bg_g = query_bg_g.value.integer;
+        uint8_t bg_b = query_bg_b.value.integer;
+        uint8_t bg_a = query_bg_a.value.integer;
+
+        if (stringp(query_string) && pairp(query_fg) && pairp(query_bg)) {
+          TSParser *parser = ts_parser_new();
+          void *data = NULL;
+          TSLanguage *language = tree_sitter_language(ts_language.value.symbol, &data);
+          if (language) {
+            ts_parser_set_language(parser, language);
+            {
+              TSTree *tree = ts_parser_parse_string(parser, NULL, contents_string, strlen(contents_string));
+              TSNode root = ts_tree_root_node(tree);
+
+              {
+                // Create query for language
+                TSQueryError query_error;
+                uint32_t query_error_offset = 0;
+                TSQuery *ts_query = ts_query_new
+                                      (language,
+                                       query_string.value.symbol,
+                                       strlen(query_string.value.symbol),
+                                       &query_error_offset, &query_error);
+                if (query_error != TSQueryErrorNone) {
+                  fprintf(stdout, "Error in query at offset %u: \"%s\"", query_error_offset, query);
+                } else {
+                  TSQueryCursor *query_cursor = ts_query_cursor_new();
+                  ts_query_cursor_exec(query_cursor, ts_query, root);
+
+                  TSQueryMatch match;
+                  while (ts_query_cursor_next_match(query_cursor, &match)) {
+                    for (uint16_t i = 0; i < match.capture_count; ++i) {
+                      TSQueryCapture capture = match.captures[i];
+                      size_t start = ts_node_start_byte(capture.node);
+                      size_t end = ts_node_end_byte(capture.node);
+                      size_t length = end - start;
+
+                      GUIStringProperty *new_property = calloc(1, sizeof(GUIStringProperty));
+
+                      new_property->offset = start;
+                      new_property->length = length;
+
+                      new_property->fg.r = fg_r;
+                      new_property->fg.g = fg_g;
+                      new_property->fg.b = fg_b;
+                      new_property->fg.a = fg_a;
+
+                      new_property->bg.r = bg_r;
+                      new_property->bg.g = bg_g;
+                      new_property->bg.b = bg_b;
+                      new_property->bg.a = bg_a;
+
+                      // Add new property to list.
+                      add_property(&new_gui_window->contents, new_property);
+
+                    }
+                  }
+                  ts_query_delete(ts_query);
+                }
+              }
+              ts_tree_delete(tree);
+            }
+          }
+          ts_parser_delete(parser);
+        }
+      }
+    }
+
+#endif
     // Remove properties with a non-integer ID from property list of
     // window. These are known as *once* properties, and are very
     // useful for dynamic highlighting every redisplay (in conjunction
