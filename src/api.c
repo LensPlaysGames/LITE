@@ -225,7 +225,7 @@ void handle_keydown(char *keystring) {
       // library), or the user has purposefully borked it.
       // TODO: Do something like restoring default keymap or something
       // that is more useful than just flopping around like a dead fish.
-      fprintf(stderr, "ERROR: There is no bound keymap!\n");
+      fprintf(stdout, "ERROR: There is no bound keymap!\n");
     }
   }
   if (debug_keybinding) {
@@ -319,7 +319,7 @@ void handle_keydown(char *keystring) {
     } else if (stringp(keybind)) {
       // Rebind characters using a string associated value.
       if (!keybind.value.symbol || keybind.value.symbol[0] == '\0') {
-        fprintf(stderr, "Can not follow rebind of %s to empty string!\n", keystring);
+        fprintf(stdout, "Can not follow rebind of %s to empty string!\n", keystring);
         return;
       }
       keystring = (char *)keybind.value.symbol;
@@ -989,7 +989,8 @@ int gui_loop(void) {
                                        strlen(query_string.value.symbol),
                                        &query_error_offset, &query_error);
                 if (query_error != TSQueryErrorNone) {
-                  fprintf(stdout, "Error in query at offset %u: \"%s\"", query_error_offset, query);
+                  fprintf(stdout, "Error in query at offset %u: \"%s\"\n",
+                          query_error_offset, query_string.value.symbol);
                 } else {
                   TSQueryCursor *query_cursor = ts_query_cursor_new();
                   ts_query_cursor_exec(query_cursor, ts_query, root);

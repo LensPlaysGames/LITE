@@ -31,6 +31,8 @@
 
 (set keymap (make-simple-keymap) "The global keymap containing keybindings.")
 
+;; TODO: Make actual ascii navigation functions so that they can
+;; properly return current buffer, as they should.
 (defun nav-ascii ()
   "Alter navigation functions to use byte based movement."
   (keymap-set keymap "<backspace>" '(backspace))
