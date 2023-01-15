@@ -938,100 +938,99 @@ int gui_loop(void) {
 
 #if defined(TREE_SITTER)
     // Add properties from tree sitter
-    // TODO: More checking of `ts_queries` and `ts_language`
+    // TODO: More checking of `ts_queries`
 
-    // Build and run each query from TREE-SITTER-QUERIES
     if (stringp(ts_language) && pairp(ts_queries)) {
-      for (Atom query_it = ts_queries; !nilp(query_it); query_it = cdr(query_it)) {
-        Atom query = car(query_it);
-        Atom query_string = car(query);
-        Atom query_colors = car(cdr(query));
-        Atom query_fg = car(query_colors);
-        Atom query_fg_r = car(query_fg);
-        Atom query_fg_g = car(cdr(query_fg));
-        Atom query_fg_b = car(cdr(cdr(query_fg)));
-        Atom query_fg_a = car(cdr(cdr(cdr(query_fg))));
-        Atom query_bg = car(cdr(query_colors));
-        Atom query_bg_r = car(query_bg);
-        Atom query_bg_g = car(cdr(query_bg));
-        Atom query_bg_b = car(cdr(cdr(query_bg)));
-        Atom query_bg_a = car(cdr(cdr(cdr(query_bg))));
+      TSParser *parser = ts_parser_new();
+      void *data = NULL;
+      TSLanguage *language = tree_sitter_language(ts_language.value.symbol, &data);
+      if (language) {
+        ts_parser_set_language(parser, language);
 
-        // TODO: Lots of color typechecking...
+        // Build and run each query from TREE-SITTER-QUERIES
+        for (Atom query_it = ts_queries; !nilp(query_it); query_it = cdr(query_it)) {
+          Atom query = car(query_it);
+          Atom query_string = car(query);
 
-        uint8_t fg_r = query_fg_r.value.integer;
-        uint8_t fg_g = query_fg_g.value.integer;
-        uint8_t fg_b = query_fg_b.value.integer;
-        uint8_t fg_a = query_fg_a.value.integer;
+          // TODO: Lots of color typechecking...
+          Atom query_colors = car(cdr(query));
+          Atom query_fg = car(query_colors);
+          Atom query_fg_r = car(query_fg);
+          Atom query_fg_g = car(cdr(query_fg));
+          Atom query_fg_b = car(cdr(cdr(query_fg)));
+          Atom query_fg_a = car(cdr(cdr(cdr(query_fg))));
+          Atom query_bg = car(cdr(query_colors));
+          Atom query_bg_r = car(query_bg);
+          Atom query_bg_g = car(cdr(query_bg));
+          Atom query_bg_b = car(cdr(cdr(query_bg)));
+          Atom query_bg_a = car(cdr(cdr(cdr(query_bg))));
 
-        uint8_t bg_r = query_bg_r.value.integer;
-        uint8_t bg_g = query_bg_g.value.integer;
-        uint8_t bg_b = query_bg_b.value.integer;
-        uint8_t bg_a = query_bg_a.value.integer;
+          uint8_t fg_r = query_fg_r.value.integer;
+          uint8_t fg_g = query_fg_g.value.integer;
+          uint8_t fg_b = query_fg_b.value.integer;
+          uint8_t fg_a = query_fg_a.value.integer;
 
-        if (stringp(query_string) && pairp(query_fg) && pairp(query_bg)) {
-          TSParser *parser = ts_parser_new();
-          void *data = NULL;
-          TSLanguage *language = tree_sitter_language(ts_language.value.symbol, &data);
-          if (language) {
-            ts_parser_set_language(parser, language);
-            {
-              TSTree *tree = ts_parser_parse_string(parser, NULL, contents_string, strlen(contents_string));
-              TSNode root = ts_tree_root_node(tree);
+          uint8_t bg_r = query_bg_r.value.integer;
+          uint8_t bg_g = query_bg_g.value.integer;
+          uint8_t bg_b = query_bg_b.value.integer;
+          uint8_t bg_a = query_bg_a.value.integer;
 
-              {
-                // Create query for language
-                TSQueryError query_error;
-                uint32_t query_error_offset = 0;
-                TSQuery *ts_query = ts_query_new
-                                      (language,
-                                       query_string.value.symbol,
-                                       strlen(query_string.value.symbol),
-                                       &query_error_offset, &query_error);
-                if (query_error != TSQueryErrorNone) {
-                  fprintf(stdout, "Error in query at offset %u: \"%s\"\n",
-                          query_error_offset, query_string.value.symbol);
-                } else {
-                  TSQueryCursor *query_cursor = ts_query_cursor_new();
-                  ts_query_cursor_exec(query_cursor, ts_query, root);
+          if (stringp(query_string)) {
+            char *contents_parse = strdup(contents_string);
+            TSTree *tree = ts_parser_parse_string(parser, NULL, contents_parse, strlen(contents_parse));
+            free(contents_parse);
+            // Create query for language
+            TSQueryError query_error;
+            uint32_t query_error_offset = 0;
+            TSQuery *ts_query = ts_query_new
+                                  (ts_tree_language(tree),
+                                   query_string.value.symbol,
+                                   strlen(query_string.value.symbol),
+                                   &query_error_offset, &query_error);
+            if (query_error != TSQueryErrorNone) {
+              fprintf(stdout, "Error in query at offset %u: \"%s\"\n",
+                      query_error_offset, query_string.value.symbol);
+            } else {
+              TSQueryCursor *query_cursor = ts_query_cursor_new();
+              ts_query_cursor_exec(query_cursor, ts_query, ts_tree_root_node(tree));
 
-                  TSQueryMatch match;
-                  while (ts_query_cursor_next_match(query_cursor, &match)) {
-                    for (uint16_t i = 0; i < match.capture_count; ++i) {
-                      TSQueryCapture capture = match.captures[i];
-                      size_t start = ts_node_start_byte(capture.node);
-                      size_t end = ts_node_end_byte(capture.node);
-                      size_t length = end - start;
+              TSQueryMatch match;
+              while (ts_query_cursor_next_match(query_cursor, &match)) {
+                for (uint16_t i = 0; i < match.capture_count; ++i) {
+                  TSQueryCapture capture = match.captures[i];
+                  size_t start = ts_node_start_byte(capture.node);
+                  size_t end = ts_node_end_byte(capture.node);
+                  size_t length = end - start;
 
-                      GUIStringProperty *new_property = calloc(1, sizeof(GUIStringProperty));
+                  GUIStringProperty *new_property = calloc(1, sizeof(GUIStringProperty));
 
-                      new_property->offset = start;
-                      new_property->length = length;
+                  new_property->offset = start;
+                  new_property->length = length;
 
-                      new_property->fg.r = fg_r;
-                      new_property->fg.g = fg_g;
-                      new_property->fg.b = fg_b;
-                      new_property->fg.a = fg_a;
+                  new_property->fg.r = fg_r;
+                  new_property->fg.g = fg_g;
+                  new_property->fg.b = fg_b;
+                  new_property->fg.a = fg_a;
 
-                      new_property->bg.r = bg_r;
-                      new_property->bg.g = bg_g;
-                      new_property->bg.b = bg_b;
-                      new_property->bg.a = bg_a;
+                  new_property->bg.r = bg_r;
+                  new_property->bg.g = bg_g;
+                  new_property->bg.b = bg_b;
+                  new_property->bg.a = bg_a;
 
-                      // Add new property to list.
-                      add_property(&new_gui_window->contents, new_property);
+                  // Add new property to list.
+                  add_property(&new_gui_window->contents, new_property);
 
-                    }
-                  }
-                  ts_query_delete(ts_query);
                 }
               }
-              ts_tree_delete(tree);
+              ts_query_cursor_delete(query_cursor);
             }
+            ts_query_delete(ts_query);
+            ts_tree_delete(tree);
           }
-          ts_parser_delete(parser);
         }
+        tree_sitter_delete_language(ts_language.value.symbol, data);
       }
+      ts_parser_delete(parser);
     }
 
 #endif
