@@ -162,8 +162,13 @@ If point is zero, get byte at point."
         (buffer-index buffer 0)
         (buffer-index buffer (- point 1)))))
 
+(defun byte-after-point (buffer)
+  "Get the byte after the point in BUFFER."
+  (buffer-index buffer (+ 1 (buffer-point buffer))))
+
 ;; Navigation
 
+(evaluate-file "lisp/std/ascii.lt")
 (evaluate-file "lisp/std/utf8.lt")
 (evaluate-file "lisp/std/utf16.lt")
 (evaluate-file "lisp/std/utf32.lt")

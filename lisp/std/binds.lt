@@ -2,6 +2,10 @@
 ;;; Depends on:
 ;;; -> basics.lt
 ;;; -> lists.lt
+;;; -> ascii.lt
+;;; -> utf8.lt
+;;; -> utf16.lt
+;;; -> utf32.lt
 
 (defmacro keymap-push (given-alist key value)
   "Define GIVEN-ALIST to an alist with KEY associated to VALUE, no checking for duplicates."
@@ -31,15 +35,21 @@
 
 (set keymap (make-simple-keymap) "The global keymap containing keybindings.")
 
-;; TODO: Make actual ascii navigation functions so that they can
-;; properly return current buffer, as they should.
-(defun nav-ascii ()
+(defun nav-byte ()
   "Alter navigation functions to use byte based movement."
   (keymap-set keymap "<backspace>" '(backspace))
   (keymap-set keymap "<delete>"    '(remove-forward 1))
   (let ((ctrl-keymap (get-keymap-or-make-simple keymap "CTRL")))
     (keymap-set ctrl-keymap "f" '(forward-byte))
     (keymap-set ctrl-keymap "b" '(backward-byte))))
+
+(defun nav-ascii ()
+  "Alter navigation functions to use ASCII based movement."
+  (keymap-set keymap "<backspace>" '(ascii-backspace))
+  (keymap-set keymap "<delete>"    '(ascii-remove-char-forward))
+  (let ((ctrl-keymap (get-keymap-or-make-simple keymap "CTRL")))
+    (keymap-set ctrl-keymap "f" '(ascii-forward-char))
+    (keymap-set ctrl-keymap "b" '(ascii-backward-char))))
 
 (defun nav-utf8 ()
   "Alter navigation functions to use utf8 based movement."
