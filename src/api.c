@@ -534,7 +534,7 @@ GUIContext *initialize_lite_gui_ctx() {
 
 #if defined(_WIN32)
 #include <windows.h>
-#elif defined(__linux__)
+#elif defined(__unix__)
 #include <dlfcn.h>
 #endif
 
@@ -555,7 +555,7 @@ void *so_load(const char *library_path) {
     so_return_error;
   }
   out = lib;
-#elif defined(__linux__)
+#elif defined(__unix__)
   out = dlopen(library_path);
   if (out == NULL) {
     fprintf("Error from dlopen(\"%s\"):\n  \"%s\"\n", library_path, dlerror());
@@ -578,7 +578,7 @@ void *so_get(void *data, const char *symbol) {
     fprintf(stdout, "Could not load symbol \"%s\" from dynamically loaded library.\n", symbol);
     so_return_error;
   }
-#elif defined(__linux__)
+#elif defined(__unix__)
   out = (void *)dlsym(*data, library_path);
   char *error = dlerror();
   if (error) {
@@ -598,7 +598,7 @@ void *so_get(void *data, const char *symbol) {
 void so_delete(void *data) {
 #if defined(_WIN32)
   FreeLibrary(data);
-#elif defined(__linux__)
+#elif defined(__unix__)
   dlclose(data);
 #else
 # error "Can not support dynamic loading on unrecognized system"
@@ -648,40 +648,116 @@ void *so_get_ts(void *data, const char *language) {
   return out;
 }
 
-/// Pass a NULL initialised void pointer as `data`, and hang on to it;
-// it is needed by platforms during the deletion process.
-static TSLanguage *tree_sitter_language(const char *lang, void **data) {
-  // TODO: Check list of loaded languages, increment refcount if it exists or something and just use that one.
 
-  TSLanguage *(*tree_sitter_lang_func)(void);
+// TODO: Also store queries here, and only update these structures from
+// LISP variables when user calls something like `tree-sitter-update`
+// or something. This will allow us to properly cache everything and
+// only do data traversal in the redraw.
+typedef struct TreeSitterLanguage {
+  int used;
+  char *lang;
+  void *library_handle;
+  TSLanguage *(*lang_func)(void);
+  /// A parser with language set. Be sure to call ts_parser_reset before each use.
+  TSParser *parser;
+} TreeSitterLanguage;
 
-  // Load tree sitter language grammar shared object
-  *data = so_load_ts(lang);
-  if (!*data) {
-    printf("Could not load tree sitter %s grammar library\n", lang);
-    so_return_error;
+#define TREE_SITTER_LANGUAGE_MAXIMUM 256
+#define TS_LANG_MAX TREE_SITTER_LANGUAGE_MAXIMUM
+// TODO: Make this a hash table from language string to TreeSitterLanguage.
+TreeSitterLanguage ts_langs[TS_LANG_MAX];
+TreeSitterLanguage *ts_langs_find_lang(const char *lang) {
+  for (int i = 0; i < TS_LANG_MAX; ++i) {
+    if (ts_langs[i].used && ts_langs[i].lang && strcmp(lang, ts_langs[i].lang) == 0) {
+      return ts_langs + i;
+    }
   }
-  tree_sitter_lang_func = so_get_ts(*data, lang);
-  if (!tree_sitter_lang_func) {
-    printf("Could not load tree sitter language function symbol from %s grammar library", lang);
-    so_return_error;
+  return NULL;
+}
+TreeSitterLanguage *ts_langs_find_free() {
+  for (int i = 0; i < TS_LANG_MAX; ++i) {
+    if (!ts_langs[i].used) {
+      return ts_langs + i;
+    }
   }
-  return tree_sitter_lang_func();
+  assert(0 && "Sorry, we don't support over TS_LANG_MAX tree sitter languages.");
+  return NULL;
+}
+TreeSitterLanguage *ts_langs_new(const char *lang_string) {
+  TreeSitterLanguage *lang = NULL;
+  if ((lang = ts_langs_find_lang(lang_string))) {
+    return lang;
+  }
+  lang = ts_langs_find_free();
+  lang->used = 1;
+  // FIXME: More error checks
+  lang->lang = strdup(lang_string);
+  lang->library_handle = so_load_ts(lang_string);
+  lang->lang_func = so_get_ts(lang->library_handle, lang_string);
+  lang->parser = ts_parser_new();
+  ts_parser_set_language(lang->parser, lang->lang_func());
+  return lang;
+}
+void ts_langs_delete_one(TreeSitterLanguage *lang) {
+  if (!lang || !lang->used) return;
+  ts_parser_delete(lang->parser);
+  so_delete(lang->library_handle);
+  free(lang->lang);
+  lang->used = 0;
+}
+void ts_langs_delete(const char *lang_string) {
+  ts_langs_delete_one(ts_langs_find_lang(lang_string));
+}
+void ts_langs_delete_all() {
+  for (int i = 0; i < TS_LANG_MAX; ++i) {
+    ts_langs_delete_one(ts_langs + i);
+  }
 }
 
-/// Pass the SAME `data` that you passed when creating.
-void tree_sitter_delete_language(const char *lang, void *data) {
-  (void)lang;
-  so_delete(data);
-}
+typedef uint32_t RGBA;
+#define RGBA_R(a) ((uint8_t)((((RGBA)a) & (0xff000000)) >> 24))
+#define RGBA_G(a) ((uint8_t)((((RGBA)a) & (0x00ff0000)) >> 16))
+#define RGBA_B(a) ((uint8_t)((((RGBA)a) & (0x0000ff00)) >>  8))
+#define RGBA_A(a) ((uint8_t)((((RGBA)a) & (0x000000ff)) >>  0))
+#define RGBA_VALUE(r, g, b, a) (RGBA)(((r) << 24) | ((g) << 16) | ((b) << 8) | (a))
 
-void print_span(const char *source, size_t start, size_t end) {
-  if (end == -1) {
-    end = strlen(source);
+void add_property_from_query_matches(GUIWindow *window, TSQuery *ts_query, TSNode root, RGBA fg, RGBA bg) {
+  TSQueryCursor *query_cursor = ts_query_cursor_new();
+  ts_query_cursor_exec(query_cursor, ts_query, root);
+
+  GUIColor fg_color;
+  fg_color.r = RGBA_R(fg);
+  fg_color.g = RGBA_G(fg);
+  fg_color.b = RGBA_B(fg);
+  fg_color.a = RGBA_A(fg);
+
+  GUIColor bg_color;
+  bg_color.r = RGBA_R(bg);
+  bg_color.g = RGBA_G(bg);
+  bg_color.b = RGBA_B(bg);
+  bg_color.a = RGBA_A(bg);
+
+  TSQueryMatch match;
+  while (ts_query_cursor_next_match(query_cursor, &match)) {
+    for (uint16_t i = 0; i < match.capture_count; ++i) {
+      TSQueryCapture capture = match.captures[i];
+      size_t start = ts_node_start_byte(capture.node);
+      size_t end = ts_node_end_byte(capture.node);
+      size_t length = end - start;
+
+      GUIStringProperty *new_property = calloc(1, sizeof(GUIStringProperty));
+
+      new_property->offset = start;
+      new_property->length = length;
+
+      new_property->fg = fg_color;
+      new_property->bg = bg_color;
+
+      // Add new property to list.
+      add_property(&window->contents, new_property);
+    }
   }
-  for (const char *span = source + start; span < source + end; ++span) {
-    putchar(*span);
-  }
+  ts_query_cursor_delete(query_cursor);
 }
 
 #endif
@@ -815,12 +891,15 @@ int gui_loop(void) {
     }
 
     // Set contents
-    Atom contents   = car(car(cdr(cdr(cdr(cdr(window))))));
+    Atom contents = car(car(cdr(cdr(cdr(cdr(window))))));
     char *contents_string = NULL;
-    if (bufferp(contents) && contents.value.buffer) {
+    size_t contents_length = 0;
+    if (bufferp(contents)) {
       contents_string = buffer_string(*contents.value.buffer);
+      contents_length = contents.value.buffer->rope->weight;
     } else if ((stringp(contents) || symbolp(contents)) && contents.value.symbol) {
       contents_string = strdup(contents.value.symbol);
+      contents_length = strlen(contents_string);
     }
     new_gui_window->contents.string = contents_string;
 
@@ -941,11 +1020,17 @@ int gui_loop(void) {
     // TODO: More checking of `ts_queries`
 
     if (stringp(ts_language) && pairp(ts_queries)) {
-      TSParser *parser = ts_parser_new();
-      void *data = NULL;
-      TSLanguage *language = tree_sitter_language(ts_language.value.symbol, &data);
+      // TODO: Don't remake parser every frame
+      // TODO: *REALLY* shouldn't be loading/unloading the entire dynamic library every single frame...
+      // TODO: tree_sitter_parser(ts_language.value.symbol) which creates parser if it doesn't exist,
+      // otherwise return existing. If we do this, we also need to, during freeing, deallocate all the
+      // parsers and unload all the libraries, etc. So it may be nice to make a custom data structure
+      // that holds the lib handle, parser pointer, language function pointer, and language pointer.
+      // Then just keep a list of them or something and free them on destruction.
+      TreeSitterLanguage *language = ts_langs_new(ts_language.value.symbol);
+      TSParser *parser = language->parser;
       if (language) {
-        ts_parser_set_language(parser, language);
+        TSTree *tree = ts_parser_parse_string(parser, NULL, contents_string, contents_length);
 
         // Build and run each query from TREE-SITTER-QUERIES
         for (Atom query_it = ts_queries; !nilp(query_it); query_it = cdr(query_it)) {
@@ -965,20 +1050,17 @@ int gui_loop(void) {
           Atom query_bg_b = car(cdr(cdr(query_bg)));
           Atom query_bg_a = car(cdr(cdr(cdr(query_bg))));
 
-          uint8_t fg_r = query_fg_r.value.integer;
-          uint8_t fg_g = query_fg_g.value.integer;
-          uint8_t fg_b = query_fg_b.value.integer;
-          uint8_t fg_a = query_fg_a.value.integer;
+          uint32_t fg = RGBA_VALUE(query_fg_r.value.integer,
+                                   query_fg_g.value.integer,
+                                   query_fg_b.value.integer,
+                                   query_fg_a.value.integer);
 
-          uint8_t bg_r = query_bg_r.value.integer;
-          uint8_t bg_g = query_bg_g.value.integer;
-          uint8_t bg_b = query_bg_b.value.integer;
-          uint8_t bg_a = query_bg_a.value.integer;
+          uint32_t bg = RGBA_VALUE(query_bg_r.value.integer,
+                                   query_bg_g.value.integer,
+                                   query_bg_b.value.integer,
+                                   query_bg_a.value.integer);
 
           if (stringp(query_string)) {
-            char *contents_parse = strdup(contents_string);
-            TSTree *tree = ts_parser_parse_string(parser, NULL, contents_parse, strlen(contents_parse));
-            free(contents_parse);
             // Create query for language
             TSQueryError query_error;
             uint32_t query_error_offset = 0;
@@ -987,50 +1069,17 @@ int gui_loop(void) {
                                    query_string.value.symbol,
                                    strlen(query_string.value.symbol),
                                    &query_error_offset, &query_error);
-            if (query_error != TSQueryErrorNone) {
+            if (query_error == TSQueryErrorNone) {
+              add_property_from_query_matches(new_gui_window, ts_query, ts_tree_root_node(tree), fg, bg);
+            } else {
               fprintf(stdout, "Error in query at offset %u: \"%s\"\n",
                       query_error_offset, query_string.value.symbol);
-            } else {
-              TSQueryCursor *query_cursor = ts_query_cursor_new();
-              ts_query_cursor_exec(query_cursor, ts_query, ts_tree_root_node(tree));
-
-              TSQueryMatch match;
-              while (ts_query_cursor_next_match(query_cursor, &match)) {
-                for (uint16_t i = 0; i < match.capture_count; ++i) {
-                  TSQueryCapture capture = match.captures[i];
-                  size_t start = ts_node_start_byte(capture.node);
-                  size_t end = ts_node_end_byte(capture.node);
-                  size_t length = end - start;
-
-                  GUIStringProperty *new_property = calloc(1, sizeof(GUIStringProperty));
-
-                  new_property->offset = start;
-                  new_property->length = length;
-
-                  new_property->fg.r = fg_r;
-                  new_property->fg.g = fg_g;
-                  new_property->fg.b = fg_b;
-                  new_property->fg.a = fg_a;
-
-                  new_property->bg.r = bg_r;
-                  new_property->bg.g = bg_g;
-                  new_property->bg.b = bg_b;
-                  new_property->bg.a = bg_a;
-
-                  // Add new property to list.
-                  add_property(&new_gui_window->contents, new_property);
-
-                }
-              }
-              ts_query_cursor_delete(query_cursor);
             }
             ts_query_delete(ts_query);
-            ts_tree_delete(tree);
           }
         }
-        tree_sitter_delete_language(ts_language.value.symbol, data);
+        ts_tree_delete(tree);
       }
-      ts_parser_delete(parser);
     }
 
 #endif
@@ -1120,6 +1169,9 @@ int enter_lite_gui(void) {
       }
     }
   }
+#if defined(TREE_SITTER)
+  ts_langs_delete_all();
+#endif
   destroy_gui();
   return 0;
 }
