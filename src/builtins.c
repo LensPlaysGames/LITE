@@ -2723,6 +2723,29 @@ Error builtin_set_carriage_return_character(Atom arguments, Atom *result) {
   return ok;
 }
 
+const char *const builtin_tree_sitter_update_name = "TREE-SITTER-UPDATE";
+const char *const builtin_tree_sitter_update_docstring =
+  "(tree-sitter-update LANGUAGE QUERIES)\n"
+  "\n"
+  "Update the tree sitter configuration for LANGUAGE with QUERIES.\n"
+  "TREE-SITTER-LANGUAGE still dictates which is active at any given moment.";
+Error builtin_tree_sitter_update(Atom arguments, Atom *result) {
+  TWO_ARGS(arguments);
+#ifdef TREE_SITTER
+  if (!stringp(car(arguments))) {
+    // TODO: return type error;
+    return ok;
+  }
+  const char *lang_string = car(arguments).value.symbol;
+  Atom queries = car(cdr(arguments));
+  ts_langs_update_queries(lang_string, queries);
+  return ok;
+#else
+  *result = nil;
+  return ok;
+#endif /* #ifdef TREE_SITTER */
+}
+
 /*
 const char *const builtin__name = "LISP-SYMBOL";
 const char *const builtin__docstring =

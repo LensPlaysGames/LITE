@@ -12,7 +12,7 @@
 #include <utility.h>
 
 #if defined(TREE_SITTER)
-#include <tree_sitter/api.h>
+#include <tree_sitter.h>
 #endif
 
 #if defined (_WIN32) || defined (_WIN64)
@@ -143,7 +143,7 @@ int modkey_state(GUIModifierKey key) {
 // All these global variables may be bad :^|
 
 GUIContext *gctx = NULL;
-GUIContext *gui_ctx() { return gctx; }
+GUIContext *gui_ctx(void) { return gctx; }
 
 /// Return zero iff input should be discarded.
 int handle_modifier
@@ -648,23 +648,6 @@ void *so_get_ts(void *data, const char *language) {
   return out;
 }
 
-
-// TODO: Also store queries here, and only update these structures from
-// LISP variables when user calls something like `tree-sitter-update`
-// or something. This will allow us to properly cache everything and
-// only do data traversal in the redraw.
-typedef struct TreeSitterLanguage {
-  int used;
-  char *lang;
-  void *library_handle;
-  TSLanguage *(*lang_func)(void);
-  /// A parser with language set. Be sure to call ts_parser_reset before each use.
-  TSParser *parser;
-} TreeSitterLanguage;
-
-#define TREE_SITTER_LANGUAGE_MAXIMUM 256
-#define TS_LANG_MAX TREE_SITTER_LANGUAGE_MAXIMUM
-// TODO: Make this a hash table from language string to TreeSitterLanguage.
 TreeSitterLanguage ts_langs[TS_LANG_MAX];
 TreeSitterLanguage *ts_langs_find_lang(const char *lang) {
   for (int i = 0; i < TS_LANG_MAX; ++i) {
@@ -695,13 +678,102 @@ TreeSitterLanguage *ts_langs_new(const char *lang_string) {
   lang->library_handle = so_load_ts(lang_string);
   lang->lang_func = so_get_ts(lang->library_handle, lang_string);
   lang->parser = ts_parser_new();
+  lang->query_count = 0;
+  lang->queries = NULL;
   ts_parser_set_language(lang->parser, lang->lang_func());
   return lang;
+}
+void ts_langs_update_queries(const char *lang_string, struct Atom queries) {
+  TreeSitterLanguage *lang = ts_langs_new(lang_string);
+  if (!lang) {
+    return;
+  }
+  // Free existing queries.
+  if (lang->query_count) {
+    for (int i = 0; i < lang->query_count; ++i) {
+      TreeSitterQuery ts_query = lang->queries[i];
+      ts_query_delete(ts_query.query);
+    }
+    lang->query_count = 0;
+    free(lang->queries);;
+    lang->queries = NULL;
+  }
+
+  for (Atom query_it = queries; pairp(query_it); query_it = cdr(query_it)) {
+    lang->query_count += 1;
+  }
+  if (lang->query_count == 0) {
+    return;
+  }
+
+  lang->queries = calloc(lang->query_count, sizeof *lang->queries);
+
+  size_t i = 0;
+  for (Atom query_it = queries; !nilp(query_it); query_it = cdr(query_it), ++i) {
+    if (i >= lang->query_count) {
+      printf("Trouble updating tree sitter queries for %s: too many supplied (likely internal error)");
+      return;
+    }
+    TreeSitterQuery *ts_it = lang->queries + i;;
+    Atom query = car(query_it);
+    if (!pairp(query)) {
+      // invalid query
+      continue;
+    }
+    Atom query_string = car(query);
+    if (!stringp(query_string)) {
+      // invalid query
+      continue;
+    }
+
+    // TODO: Lots of color typechecking...
+    Atom query_colors = car(cdr(query));
+    Atom query_fg = car(query_colors);
+    Atom query_fg_r = car(query_fg);
+    Atom query_fg_g = car(cdr(query_fg));
+    Atom query_fg_b = car(cdr(cdr(query_fg)));
+    Atom query_fg_a = car(cdr(cdr(cdr(query_fg))));
+    Atom query_bg = car(cdr(query_colors));
+    Atom query_bg_r = car(query_bg);
+    Atom query_bg_g = car(cdr(query_bg));
+    Atom query_bg_b = car(cdr(cdr(query_bg)));
+    Atom query_bg_a = car(cdr(cdr(cdr(query_bg))));
+
+    RGBA fg = RGBA_VALUE(query_fg_r.value.integer,
+                         query_fg_g.value.integer,
+                         query_fg_b.value.integer,
+                         query_fg_a.value.integer);
+
+    RGBA bg = RGBA_VALUE(query_bg_r.value.integer,
+                         query_bg_g.value.integer,
+                         query_bg_b.value.integer,
+                         query_bg_a.value.integer);
+
+    uint32_t query_error_offset = 0;
+    TSQueryError query_error = TSQueryErrorNone;
+    TSQuery *new_query = ts_query_new
+                           (ts_parser_language(lang->parser),
+                            query_string.value.symbol,
+                            strlen(query_string.value.symbol),
+                            &query_error_offset, &query_error);
+
+    if (query_error != TSQueryErrorNone) {
+      fprintf(stdout, "Error in query at offset %u: \"%s\"\n",
+              query_error_offset, query_string.value.symbol);
+      return;
+    }
+
+    ts_it->query = new_query;
+    ts_it->fg = fg;
+    ts_it->bg = bg;
+  }
 }
 void ts_langs_delete_one(TreeSitterLanguage *lang) {
   if (!lang || !lang->used) return;
   ts_parser_delete(lang->parser);
-  so_delete(lang->library_handle);
+  if (lang->library_handle) {
+    so_delete(lang->library_handle);
+  }
   free(lang->lang);
   lang->used = 0;
 }
@@ -714,28 +786,14 @@ void ts_langs_delete_all() {
   }
 }
 
-typedef uint32_t RGBA;
-#define RGBA_R(a) ((uint8_t)((((RGBA)a) & (0xff000000)) >> 24))
-#define RGBA_G(a) ((uint8_t)((((RGBA)a) & (0x00ff0000)) >> 16))
-#define RGBA_B(a) ((uint8_t)((((RGBA)a) & (0x0000ff00)) >>  8))
-#define RGBA_A(a) ((uint8_t)((((RGBA)a) & (0x000000ff)) >>  0))
-#define RGBA_VALUE(r, g, b, a) (RGBA)(((r) << 24) | ((g) << 16) | ((b) << 8) | (a))
+#define GUI_COLOR_FROM_RGBA(name, rgba) GUIColor (name); (name).r = RGBA_R(rgba); (name).g = RGBA_G(rgba); (name).b = RGBA_B(rgba); (name).a = RGBA_A(rgba)
 
-void add_property_from_query_matches(GUIWindow *window, TSQuery *ts_query, TSNode root, RGBA fg, RGBA bg) {
+void add_property_from_query_matches(GUIWindow *window, TSNode root, TSQuery *ts_query, RGBA fg, RGBA bg) {
   TSQueryCursor *query_cursor = ts_query_cursor_new();
   ts_query_cursor_exec(query_cursor, ts_query, root);
 
-  GUIColor fg_color;
-  fg_color.r = RGBA_R(fg);
-  fg_color.g = RGBA_G(fg);
-  fg_color.b = RGBA_B(fg);
-  fg_color.a = RGBA_A(fg);
-
-  GUIColor bg_color;
-  bg_color.r = RGBA_R(bg);
-  bg_color.g = RGBA_G(bg);
-  bg_color.b = RGBA_B(bg);
-  bg_color.a = RGBA_A(bg);
+  GUI_COLOR_FROM_RGBA(fg_color, fg);
+  GUI_COLOR_FROM_RGBA(bg_color, bg);
 
   TSQueryMatch match;
   while (ts_query_cursor_next_match(query_cursor, &match)) {
@@ -745,11 +803,9 @@ void add_property_from_query_matches(GUIWindow *window, TSQuery *ts_query, TSNod
       size_t end = ts_node_end_byte(capture.node);
       size_t length = end - start;
 
-      GUIStringProperty *new_property = calloc(1, sizeof(GUIStringProperty));
-
+      GUIStringProperty *new_property = malloc(sizeof *new_property);
       new_property->offset = start;
       new_property->length = length;
-
       new_property->fg = fg_color;
       new_property->bg = bg_color;
 
@@ -798,12 +854,6 @@ int gui_loop(void) {
 #if defined(TREE_SITTER)
   Atom ts_language = nil;
   err = env_get(*genv(), make_sym("TREE-SITTER-LANGUAGE"), &ts_language);
-  if (err.type) {
-    //print_error(err);
-  }
-
-  Atom ts_queries = nil;
-  err = env_get(*genv(), make_sym("TREE-SITTER-QUERIES"), &ts_queries);
   if (err.type) {
     //print_error(err);
   }
@@ -894,14 +944,33 @@ int gui_loop(void) {
     Atom contents = car(car(cdr(cdr(cdr(cdr(window))))));
     char *contents_string = NULL;
     size_t contents_length = 0;
+    char contents_modified = 1;
     if (bufferp(contents)) {
       contents_string = buffer_string(*contents.value.buffer);
       contents_length = contents.value.buffer->rope->weight;
+      contents_modified = contents.value.buffer->modified;
+      // If buffer is modified, unset it's modified status.
+      if (contents.value.buffer->modified) {
+        // FIXME: This is required for this to work, but it requires
+        // that nothing else ever use this flag, really.
+        contents.value.buffer->modified = 0;
+      }
     } else if ((stringp(contents) || symbolp(contents)) && contents.value.symbol) {
       contents_string = strdup(contents.value.symbol);
       contents_length = strlen(contents_string);
     }
     new_gui_window->contents.string = contents_string;
+
+    // NOTE: This optimisation only works for single-window setups, but
+    // it doesn't cause under-rendering with multiple window setups, just
+    // overrendering.
+    // FIXME: We should eventually figure out a way to know if a window's
+    // contents need redisplayed that aren't this squirrely and complex.
+    static Atom last_contents = {ATOM_TYPE_NIL, {0}, NULL, NULL};
+    if (nilp(compare_atoms(contents, last_contents))) {
+      contents_modified = 1;
+    }
+    last_contents = contents;
 
     if (index == active_window_index.value.integer) {
       // Active window specific properties, like cursor ig
@@ -936,9 +1005,10 @@ int gui_loop(void) {
       // Extend cursor property to include all utf8 continuation bytes
       char byte = rope_index(current_buffer.value.buffer->rope,
                              current_buffer.value.buffer->point_byte + cursor_property->length);
-
+      // Max amount of iterations, protect against infinite loop when continuation byte at end...
+      char protect = 3;
       // byte & 0b10000000 && !(byte & 0b01000000)
-      while (byte & 128 && !(byte & 64)) {
+      while (--protect >= 0 && byte & 128 && !(byte & 64)) {
         cursor_property->length++;
         byte = rope_index(current_buffer.value.buffer->rope,
                           current_buffer.value.buffer->point_byte + cursor_property->length);
@@ -1014,71 +1084,44 @@ int gui_loop(void) {
       add_property(&new_gui_window->contents, new_property);
     }
 
-
 #if defined(TREE_SITTER)
     // Add properties from tree sitter
-    // TODO: More checking of `ts_queries`
 
-    if (stringp(ts_language) && pairp(ts_queries)) {
-      // TODO: Don't remake parser every frame
-      // TODO: *REALLY* shouldn't be loading/unloading the entire dynamic library every single frame...
-      // TODO: tree_sitter_parser(ts_language.value.symbol) which creates parser if it doesn't exist,
-      // otherwise return existing. If we do this, we also need to, during freeing, deallocate all the
-      // parsers and unload all the libraries, etc. So it may be nice to make a custom data structure
-      // that holds the lib handle, parser pointer, language function pointer, and language pointer.
-      // Then just keep a list of them or something and free them on destruction.
+    if (stringp(ts_language)) {
       TreeSitterLanguage *language = ts_langs_new(ts_language.value.symbol);
-      TSParser *parser = language->parser;
       if (language) {
-        TSTree *tree = ts_parser_parse_string(parser, NULL, contents_string, contents_length);
-
-        // Build and run each query from TREE-SITTER-QUERIES
-        for (Atom query_it = ts_queries; !nilp(query_it); query_it = cdr(query_it)) {
-          Atom query = car(query_it);
-          Atom query_string = car(query);
-
-          // TODO: Lots of color typechecking...
-          Atom query_colors = car(cdr(query));
-          Atom query_fg = car(query_colors);
-          Atom query_fg_r = car(query_fg);
-          Atom query_fg_g = car(cdr(query_fg));
-          Atom query_fg_b = car(cdr(cdr(query_fg)));
-          Atom query_fg_a = car(cdr(cdr(cdr(query_fg))));
-          Atom query_bg = car(cdr(query_colors));
-          Atom query_bg_r = car(query_bg);
-          Atom query_bg_g = car(cdr(query_bg));
-          Atom query_bg_b = car(cdr(cdr(query_bg)));
-          Atom query_bg_a = car(cdr(cdr(cdr(query_bg))));
-
-          uint32_t fg = RGBA_VALUE(query_fg_r.value.integer,
-                                   query_fg_g.value.integer,
-                                   query_fg_b.value.integer,
-                                   query_fg_a.value.integer);
-
-          uint32_t bg = RGBA_VALUE(query_bg_r.value.integer,
-                                   query_bg_g.value.integer,
-                                   query_bg_b.value.integer,
-                                   query_bg_a.value.integer);
-
-          if (stringp(query_string)) {
-            // Create query for language
-            TSQueryError query_error;
-            uint32_t query_error_offset = 0;
-            TSQuery *ts_query = ts_query_new
-                                  (ts_tree_language(tree),
-                                   query_string.value.symbol,
-                                   strlen(query_string.value.symbol),
-                                   &query_error_offset, &query_error);
-            if (query_error == TSQueryErrorNone) {
-              add_property_from_query_matches(new_gui_window, ts_query, ts_tree_root_node(tree), fg, bg);
-            } else {
-              fprintf(stdout, "Error in query at offset %u: \"%s\"\n",
-                      query_error_offset, query_string.value.symbol);
+        if (!language->tree || contents_modified) {
+          if (language->tree) {
+            ts_tree_delete(language->tree);
+          }
+          if (contents_length > 2 << 13) {
+            const char *parse_string = contents_string;
+            size_t parse_length = contents_length;
+            const char *new_parse_string = NULL;
+            // 100 lines of context above cursor should hopefully be enough.
+            if (new_gui_window->contents.vertical_offset > 100) {
+              for (size_t i = 0; i < new_gui_window->contents.vertical_offset - 100; ++i) {
+                new_parse_string = strchr(parse_string, '\n');
+                if (!new_parse_string) {
+                  break;
+                }
+                parse_length -= new_parse_string - parse_string;
+                parse_string = new_parse_string;
+              }
             }
-            ts_query_delete(ts_query);
+            if (parse_length > 2 << 12) {
+              parse_length = 2 << 12;
+            }
+            language->tree = ts_parser_parse_string(language->parser, NULL, parse_string, parse_length);
+          } else {
+            language->tree = ts_parser_parse_string(language->parser, NULL, contents_string, contents_length);
           }
         }
-        ts_tree_delete(tree);
+        for (size_t i = 0; i < language->query_count; ++i) {
+          TreeSitterQuery *query = language->queries + i;
+          add_property_from_query_matches(new_gui_window, ts_tree_root_node(language->tree),
+                                          query->query, query->fg, query->bg);
+        }
       }
     }
 

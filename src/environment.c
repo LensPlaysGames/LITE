@@ -14,7 +14,7 @@
 
 char user_quit = 0;
 
-Atom env_create(Atom parent, size_t initial_capacity) {
+Atom env_create_nofree(Atom parent, size_t initial_capacity) {
   Environment *env = calloc(1, sizeof(*env));
   if (!env) {
     fprintf(stderr, "env_create() could not allocate new environment.");
@@ -35,6 +35,11 @@ Atom env_create(Atom parent, size_t initial_capacity) {
   out.docstring = NULL;
   out.value.env = env;
 
+  return out;
+}
+
+Atom env_create(Atom parent, size_t initial_capacity) {
+  Atom out = env_create_nofree(parent, initial_capacity);
   gcol_generic_allocation(&out, out.value.env->data);
   gcol_generic_allocation(&out, out.value.env);
   return out;
@@ -260,6 +265,7 @@ Atom default_environment(void) {
 
   defbuiltin(quit_lisp);
   defbuiltin(docstring);
+  defbuiltin(tree_sitter_update);
 
   defbuiltin(car);
   defbuiltin(cdr);

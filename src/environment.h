@@ -4,9 +4,15 @@
 #include <types.h>
 #include <error.h>
 
+/// Create an environment without registering it in garbage collection
+/// system.
+Atom env_create_nofree(Atom parent, size_t initial_size);
+/// Create an environment and register it's allocated data in the
+/// garbage collection system.
 Atom env_create(Atom parent, size_t initial_size);
-//Atom env_create(Atom parent);
+/// Bind SYMBOL to VALUE in ENVIRONMENT.
 Error env_set(Atom environment, Atom symbol, Atom value);
+/// Return VALUE bound to SYMBOL in ENVIRONMENT.
 Error env_get(Atom environment, Atom symbol, Atom *result);
 
 /// Get the containing environment where SYMBOL is bound, or nil if unbound.

@@ -112,7 +112,6 @@ https://github.com/tree-sitter/tree-sitter.git")
     PRIVATE
     TREE_SITTER
   )
-
 endif()
 
 

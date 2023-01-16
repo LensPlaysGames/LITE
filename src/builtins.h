@@ -8,13 +8,14 @@ struct Error;
   extern const char *const builtin_##name##_docstring; \
   struct Error builtin_##name(Atom arguments, Atom *result)
 
-
 struct Atom;
 typedef struct Atom Atom;
 
 builtin(quit_lisp);
 
 builtin(docstring);
+
+builtin(tree_sitter_update);
 
 // TYPES
 

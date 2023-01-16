@@ -48,6 +48,10 @@ void buf_hst_create_node(BufferHistoryType type, BufferHistoryNode **head, char 
 }
 
 Error buffer_create_hst_node(Buffer *buffer, BufferHistoryType type, char *data, size_t offset, size_t length) {
+  // Everywhere the buffer is modified and requires a new history node,
+  // there /should/ be a modification that's been done, so this flag
+  // being set here means we don't have to set it everywhere.
+  buffer->modified = 1;
   // If the previous head is of the same type...
   if (buffer->history.undo && buffer->history.undo->type == type) {
     // If the cursor is in the correct position.

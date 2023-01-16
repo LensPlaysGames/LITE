@@ -57,6 +57,8 @@ typedef struct Buffer {
   size_t mark_byte; // Highest bit denotes activation
 
   BufferHistory history;
+
+  char modified;
 } Buffer;
 
 /** Open file or create new if one doesn't exist.
