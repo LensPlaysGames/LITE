@@ -9,7 +9,6 @@
 (set number        '((206 255 255 255) (22 23 24 255)))
 (set tree-sitter-queries
  `(("(comment) @x" ,comment)
-   ("(identifier) @x" ((128 255 253 255) (22 23 24 255)))
    ("(type_base)      @x" ,type)
    ("(type_pointer)   @x" ,type)
    ("(type_function)  @x" ,type)
@@ -20,6 +19,7 @@
    ("(expr_decl name: (identifier) @x
                 type: (type_pointer (type_function)))" ,function_name)
    ("(expr_call callee: (identifier) @x)" ,function_name)
+   ("(identifier) @x" ((128 255 253 255) (22 23 24 255)))
    ("[ \\"if\\" \\"else\\" \\"ext\\" \\"while\\" ] @x" ,keyword) ;
    ("[ \\"+\\" \\"-\\" \\"*\\" \\"/\\" \\"%\\" \\"<<\\" \\">>\\" \\"&\\" \\"|\\" \\"^\\" \\"~\\" \\"<=\\" \\">=\\" \\"!=\\" \\"=\\" \\"<\\" \\">\\" \\"!\\" \\":\\" \\":=\\" \\"@\\" \\"as\\" ] @x" ,operator) ;
    ("[ \\"(\\" \\")\\" \\"[\\" \\"]\\" \\"{\\" \\"}\\" ]" ,delimiter)
