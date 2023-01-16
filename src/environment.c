@@ -15,7 +15,7 @@
 char user_quit = 0;
 
 Atom env_create_nofree(Atom parent, size_t initial_capacity) {
-  Environment *env = calloc(1, sizeof(*env));
+  Environment *env = calloc(1, sizeof *env);
   if (!env) {
     fprintf(stderr, "env_create() could not allocate new environment.");
     exit(9);
@@ -23,7 +23,7 @@ Atom env_create_nofree(Atom parent, size_t initial_capacity) {
   env->parent = parent;
   env->data_count = 0;
   env->data_capacity = initial_capacity;
-  env->data = calloc(1, initial_capacity * sizeof(*env->data));
+  env->data = calloc(1, initial_capacity * sizeof *env->data);
   if (!env->data) {
     fprintf(stderr, "env_create() could not allocate new hash table.");
     exit(9);
@@ -40,8 +40,9 @@ Atom env_create_nofree(Atom parent, size_t initial_capacity) {
 
 Atom env_create(Atom parent, size_t initial_capacity) {
   Atom out = env_create_nofree(parent, initial_capacity);
-  gcol_generic_allocation(&out, out.value.env->data);
   gcol_generic_allocation(&out, out.value.env);
+  gcol_generic_allocation(&out, out.value.env->data);
+  out.value.env->galloc_data = out.galloc;
   return out;
 }
 
@@ -134,6 +135,9 @@ static void env_expand(Environment *table) {
   EnvironmentValue *old_data = table->data;
   table->data = new_data;
   table->data_capacity = new_capacity;
+  if (table->galloc_data) {
+    table->galloc_data->payload = new_data;
+  }
 
   // Rehash all values from old table into new table. This is needed
   // because the index where the symbol is stored is a function of the

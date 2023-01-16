@@ -2438,7 +2438,7 @@ Error builtin_scroll_up(Atom arguments, Atom *result) {
                  NULL);
       return err_type;
     }
-    if (car(arguments).value.integer > 0) {
+    if (car(arguments).value.integer >= 0) {
       offset = car(arguments).value.integer;
     }
   }
@@ -2480,7 +2480,7 @@ Error builtin_scroll_down(Atom arguments, Atom *result) {
       return err_type;
     }
     // Only use argument to set offset if it is positive.
-    if (car(arguments).value.integer > 0) {
+    if (car(arguments).value.integer >= 0) {
       offset = car(arguments).value.integer;
     }
   }
@@ -2505,7 +2505,6 @@ const char *const builtin_scroll_left_docstring =
   "\n"
   "";
 Error builtin_scroll_left(Atom arguments, Atom *result) {
-  NO_ARGS(arguments);
   (void)result;
 #ifdef LITE_GFX
   // Use the default offset of one, unless a positive integer value was
@@ -2519,7 +2518,7 @@ Error builtin_scroll_left(Atom arguments, Atom *result) {
                  NULL);
       return err_type;
     }
-    if (car(arguments).value.integer > 0) {
+    if (car(arguments).value.integer >= 0) {
       offset = car(arguments).value.integer;
     }
   }
@@ -2542,7 +2541,6 @@ const char *const builtin_scroll_right_docstring =
   "\n"
   "";
 Error builtin_scroll_right(Atom arguments, Atom *result) {
-  NO_ARGS(arguments);
   (void)result;
 #ifdef LITE_GFX
   // Use the default offset of one, unless a positive integer value was
@@ -2562,18 +2560,18 @@ Error builtin_scroll_right(Atom arguments, Atom *result) {
       return err_type;
     }
     // Only use argument to set offset if it is positive.
-    if (car(arguments).value.integer > 0) {
+    if (car(arguments).value.integer >= 0) {
       offset = car(arguments).value.integer;
     }
   }
   Atom active_window = get_active_window();
   // Prevent unsigned integer overflow.
   Atom scrollxy = list_get(active_window, 3);
-  integer_t old_vertical_offset = cdr(scrollxy).value.integer;
+  integer_t old_horizontal_offset = car(scrollxy).value.integer;
   car(scrollxy).value.integer += offset;
-  if (car(scrollxy).value.integer < old_vertical_offset) {
-    // Restore vertical offset to what it was before overflow.
-    car(scrollxy).value.integer = old_vertical_offset;
+  if (car(scrollxy).value.integer < old_horizontal_offset) {
+    // Restore horizontal offset to what it was before overflow.
+    car(scrollxy).value.integer = old_horizontal_offset;
   }
 #else
   (void)arguments;

@@ -69,6 +69,7 @@ typedef struct Environment {
   size_t data_count;
   size_t data_capacity;
   struct EnvironmentValue *data;
+  GenericAllocation *galloc_data;
 } Environment;
 
 static const Atom nil = { ATOM_TYPE_NIL,     { 0 }, NULL, NULL };
@@ -115,6 +116,7 @@ extern size_t pair_allocations_freed;
 typedef struct GenericAllocation {
   struct GenericAllocation *next;
   struct GenericAllocation *more;
+  Atom ref;
   void *payload;
   char mark;
 } GenericAllocation;
