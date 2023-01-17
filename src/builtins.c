@@ -2351,6 +2351,58 @@ Error builtin_window_size(Atom arguments, Atom *result) {
   return ok;
 }
 
+const char *const builtin_window_rows_cols_name = "WINDOW-ROWS-COLS";
+const char *const builtin_window_rows_cols_docstring =
+  "(window-rows-cols)\n"
+  "\n"
+  "Return a pair containing the graphical window's size in character rows and columns, approximately.";
+Error builtin_window_rows_cols(Atom arguments, Atom *result) {
+  NO_ARGS(arguments);
+#ifdef LITE_GFX
+  size_t rows = 0;
+  size_t cols = 0;
+  window_size_row_col(&rows, &cols);
+  *result = cons(make_int((integer_t)rows), make_int((integer_t)cols));
+#endif
+  return ok;
+}
+
+const char *const builtin_buffer_row_col_name = "BUFFER-ROW-COL";
+const char *const builtin_buffer_row_col_docstring =
+  "(buffer-row-col BUFFER BYTE-OFFSET)\n"
+  "\n"
+  "Return a pair containing BYTE-OFFSET's position within buffer in rows and columns.";
+Error builtin_buffer_row_col(Atom arguments, Atom *result) {
+  TWO_ARGS(arguments);
+#ifdef LITE_GFX
+  Atom buffer = car(arguments);
+  Atom offset = car(cdr(arguments));
+  if (!bufferp(buffer) || !integerp(offset) || offset.value.integer < 0) {
+    MAKE_ERROR(err_type, ERROR_TYPE,
+               arguments,
+               "BUFFER-ROW-COL requires a buffer argument followed by an integer argument",
+               NULL);
+    return err_type;
+  }
+  if (offset.value.integer == 0) {
+    *result = cons(make_int(0), make_int(0));
+    return ok;
+  }
+
+  if (offset.value.integer >= (integer_t)buffer.value.buffer->rope->weight) {
+    offset.value.integer = (integer_t)buffer.value.buffer->rope->weight - 1;
+  }
+
+  integer_t rows;
+  integer_t cols;
+  buffer_row_col(*buffer.value.buffer, (size_t)offset.value.integer,
+                 (size_t *)&rows, (size_t *)&cols);
+  *result = cons(make_int(rows), make_int(cols));
+
+#endif
+  return ok;
+}
+
 const char *const builtin_change_window_size_name = "CHANGE-WINDOW-SIZE";
 const char *const builtin_change_window_size_docstring =
   "(change-window-size WIDTH HEIGHT)\n"

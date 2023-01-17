@@ -106,6 +106,17 @@ Error buffer_remove_byte_forward(Buffer *buffer);
 Error buffer_undo(Buffer *buffer);
 Error buffer_redo(Buffer *buffer);
 
+/** Get row/col coordinates of offset within BUFFER.
+ *
+ * @param[in] buffer
+ *   The buffer to calculate the position within.
+ * @param[in] offset
+ *   The byte position within buffer to calculate position of.
+ * @param[out] row
+ * @param[out] col
+ */
+Error buffer_row_col(Buffer buffer, size_t offset, size_t *row, size_t *col);
+
 /** Get BUFFER's mark byte offset.
  *
  * @param[in] buffer

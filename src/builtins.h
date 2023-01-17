@@ -104,6 +104,7 @@ builtin(buffer_redo);
 
 builtin(buffer_set_point);
 builtin(buffer_point);
+builtin(buffer_row_col);
 
 builtin(buffer_index);
 builtin(buffer_string);
@@ -154,6 +155,7 @@ builtin(change_font);
 builtin(change_font_size);
 
 builtin(window_size);
+builtin(window_rows_cols);
 builtin(change_window_size);
 builtin(change_window_mode);
 

@@ -473,6 +473,31 @@ Error buffer_redo(Buffer *buffer) {
 }
 
 
+Error buffer_row_col(Buffer buffer, size_t offset, size_t *row, size_t *col) {
+  // TODO: It may be faster to search by traversing rope nodes instead.
+  char *str = buffer_string(buffer);
+  if (!str) {
+    MAKE_ERROR(err, ERROR_GENERIC, nil, "buffer_row_col could not make string from given buffer.", NULL);
+    return err;
+  }
+  for (char *it = str; it && *it && it < str + offset; it = strchr(it+1, '\n')) {
+    *row += 1;
+  }
+  // Rows were counted, we want the row index.
+  if (*row) (*row)--;
+  if (*row) {
+    char *it = str + offset - 1;
+    while (*it != '\n') {
+      *col += 1;
+      it -= 1;
+    }
+  } else {
+    *col = offset;
+  }
+  free(str);
+  return ok;
+}
+
 size_t buffer_mark(Buffer buffer) {
   return buffer.mark_byte &= ~BUFFER_MARK_ACTIVATION_BIT;
 }

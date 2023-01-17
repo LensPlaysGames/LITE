@@ -346,6 +346,7 @@ Atom default_environment(void) {
   defbuiltin(buffer_current_line);
   defbuiltin(buffer_set_point);
   defbuiltin(buffer_point);
+  defbuiltin(buffer_row_col);
   defbuiltin(buffer_index);
   defbuiltin(buffer_seek_byte);
   defbuiltin(buffer_seek_past_byte);
@@ -380,6 +381,7 @@ Atom default_environment(void) {
   defbuiltin(change_font_size);
 
   defbuiltin(window_size);
+  defbuiltin(window_rows_cols);
   defbuiltin(change_window_size);
   defbuiltin(change_window_mode);
 

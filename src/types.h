@@ -181,14 +181,14 @@ void gcol_unmark(Atom *root);
  *
  * Both ConsAllocation and GenericAllocation are handled.
  */
-void gcol();
+void gcol(void);
 
 /** Print all data collected surrounding garbage collection.
  *
  * This includes amount of created and freed allocations for both types
  * of allocation (pair/cons and generic).
  */
-void print_gcol_data();
+void print_gcol_data(void);
 
 //================================================================ END garbage_collection
 
