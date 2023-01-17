@@ -101,6 +101,7 @@ void gcol_mark(Atom *root) {
 
 static size_t mark = 1;
 size_t gcol_explicit_frame(void) {
+  if (mark == SIZE_MAX) mark = 1;
   return ++mark;
 }
 
