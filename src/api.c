@@ -1116,7 +1116,6 @@ int gui_loop(void) {
             const char *parse_string = contents_string;
             size_t parse_length = contents_length;
             const char *new_parse_string = NULL;
-
             if (new_gui_window->contents.vertical_offset > TREE_SITTER_MIN_PARSE_CONTEXT) {
               size_t upper_bound = new_gui_window->contents.vertical_offset - TREE_SITTER_MIN_PARSE_CONTEXT;
               for (size_t i = 0; i < upper_bound; ++i) {

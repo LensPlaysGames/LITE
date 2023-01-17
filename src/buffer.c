@@ -417,6 +417,8 @@ Error buffer_undo(Buffer *buffer) {
   } break;
   }
 
+  buffer->modified = 1;
+
   // Remove node by updating head to head->next;
   *head = (*head)->next;
 
@@ -461,6 +463,8 @@ Error buffer_redo(Buffer *buffer) {
     return err;
   } break;
   }
+
+  buffer->modified = 1;
 
   // Remove node by updating head to head->next;
   *head = (*head)->next;
