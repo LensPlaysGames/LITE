@@ -106,7 +106,7 @@ static const Atom nil = { ATOM_TYPE_NIL,     { 0 }, NULL, NULL };
 typedef struct ConsAllocation {
   struct ConsAllocation *next;
   Pair pair;
-  char mark;
+  size_t mark;
 } ConsAllocation;
 
 extern ConsAllocation *global_pair_allocations;
@@ -118,7 +118,7 @@ typedef struct GenericAllocation {
   struct GenericAllocation *more;
   Atom ref;
   void *payload;
-  char mark;
+  size_t mark;
 } GenericAllocation;
 
 extern GenericAllocation *generic_allocations;
@@ -153,6 +153,8 @@ Error gcol_generic_allocation(Atom *ref, void *payload);
  */
 void gcol_mark(Atom *root);
 
+size_t gcol_explicit_frame();
+
 /** Just like gcol_mark() except it won't be unmarked at next gcol().
  *
  * Mark atoms that are accessible from a given root as in-use,
@@ -172,7 +174,7 @@ void gcol_mark_explicit(Atom *root);
  *
  * DO NOT CALL WITH NULL ARGUMENT!
  */
-void gcol_unmark(Atom *root);
+void gcol_unmark(Atom *root, size_t mark_num);
 
 /** Do a garbage collection.
  *
