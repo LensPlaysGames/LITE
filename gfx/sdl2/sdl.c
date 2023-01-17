@@ -339,10 +339,15 @@ static inline void draw_gui_string_into_surface_within_rect
   // must use a copy to prevent clobbering our data.
   SDL_Rect destination = srcrect;
   SDL_Rect destination_copy = destination;
+  char cr_skip = 0;
   while (1) {
     // TODO: What to display \r as when cr_char isn't valid?
-    if (*string == '\r' && cr_char >= ' ') {
-      *string = cr_char;
+    if (*string == '\r') {
+      if (cr_char >= ' ') {
+        *string = cr_char;
+      } else if (*(string + 1) == '\n') {
+        cr_skip = 1;
+      }
     } else if (*string == '\n' || *string == '\0') {
       // Byte offset of start of line we are currently at the end of.
       // TODO: Add horizontal offset here. If that makes start past
@@ -357,6 +362,10 @@ static inline void draw_gui_string_into_surface_within_rect
       // Render entire line using defaults.
       // Calculate amount of bytes within the current line.
       size_t bytes_to_render = offset - start_of_line_offset;
+      if (cr_skip) {
+        cr_skip = 0;
+        bytes_to_render -= 1;
+      }
       char *line_text = allocate_string_span
         (gui_string.string, start_of_line_offset, bytes_to_render);
       if (!line_text) {
