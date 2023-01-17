@@ -166,6 +166,8 @@ builtin(scroll_down);
 builtin(scroll_left);
 builtin(scroll_right);
 
+builtin(cursor_keep_on_screen);
+
 #undef builtin
 
 #endif /* LITE_BUILTINS_H */

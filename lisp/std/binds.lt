@@ -228,8 +228,9 @@
     (keymap-push ctrl-keymap "r" '(search-backward))
 
     ;; ctrl-alts keybinds: Buffer navigation
-    (keymap-push ctrl-alts-keymap "," '(set-point 0))
-    (keymap-push ctrl-alts-keymap "." '(progn (set-point 0) (forward-bytes 999999999999)))
+    (keymap-push ctrl-alts-keymap "," '(progn (set-point 0) (cursor-keep-on-screen (active-window)) current-buffer))
+    (keymap-push ctrl-alts-keymap "." '(progn (set-point 0) (forward-bytes 999999999999)
+                                        (cursor-keep-on-screen (active-window)) current-buffer))
 
     ;; ctrl-alts keybinds: font size
     (keymap-push ctrl-alts-keymap "=" '(size-reset))

@@ -391,6 +391,7 @@ Atom default_environment(void) {
   defbuiltin(scroll_left);
   defbuiltin(scroll_right);
 
+  defbuiltin(cursor_keep_on_screen);
 
   env_set(environment, make_sym((char *)"PLATFORM"),
 #         if defined(__FreeBSD__)

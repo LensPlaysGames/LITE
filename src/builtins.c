@@ -2631,6 +2631,68 @@ Error builtin_scroll_right(Atom arguments, Atom *result) {
   return ok;
 }
 
+const char *const builtin_cursor_keep_on_screen_name = "CURSOR-KEEP-ON-SCREEN";
+const char *const builtin_cursor_keep_on_screen_docstring =
+  "(cursor-keep-on-screen WINDOW)\n"
+  "\n"
+  "Keep cursor of WINDOW contents buffer on screen by altering scroll values.\n"
+  "Do NOT pass a malformed window.";
+Error builtin_cursor_keep_on_screen(Atom arguments, Atom *result) {
+  ONE_ARG(arguments);
+  (void)result;
+#ifdef LITE_GFX
+  Atom window = car(arguments);
+  if (!pairp(window)) {
+    MAKE_ERROR(err_type, ERROR_TYPE,
+               arguments,
+               "CURSOR-KEEP-ON-SCREEN requires a single window argument",
+               NULL);
+    return err_type;
+  }
+
+  // WINDOW API
+  Buffer *buffer = car(list_get(window, 4)).value.buffer;
+  Atom scrollxy = list_get(window, 3);
+
+  integer_t visual_row_start = cdr(scrollxy).value.integer;
+  integer_t visual_col_start = car(scrollxy).value.integer;
+  size_t rows = 0;
+  size_t cols = 0;
+  window_size_row_col(&rows, &cols);
+  integer_t visual_row_end = visual_row_start + (integer_t)rows;
+  integer_t visual_col_end = visual_col_start + (integer_t)cols;
+
+  integer_t cursor_row = 0;
+  integer_t cursor_col = 0;
+  buffer_row_col(*buffer, buffer->point_byte, (size_t *)&cursor_row, (size_t *)&cursor_col);
+
+  // VERT
+  if (cursor_row < visual_row_start) {
+    // Off top of screen
+    // scroll up
+    cdr(scrollxy).value.integer -= visual_row_start - cursor_row;
+  } else if (cursor_row >= visual_row_end) {
+    // Off bottom of screen
+    // scroll down
+    cdr(scrollxy).value.integer += 1 + (cursor_row - visual_row_end);
+  }
+  // HORZ
+  if (cursor_col < visual_col_start) {
+    // Off left of screen
+    // scroll left
+    car(scrollxy).value.integer -= visual_col_start - cursor_col;
+  } else if (cursor_col >= visual_col_end) {
+    // Off right of screen
+    // scroll right
+    car(scrollxy).value.integer += 1 + (cursor_col - visual_col_end);
+  }
+
+  return ok;
+#else
+  return ok;
+#endif /* #ifdef LITE_GFX */
+}
+
 Atom terrible_copy_paste_implementation = { .type      = ATOM_TYPE_STRING,
                                             .value     = { .symbol = "Paste and ye shall recieve." },
                                             .galloc    = NULL,

@@ -9,6 +9,7 @@ If cursor is at a \\r\\n, then move two bytes. Otherwise, move one."
            (eq (byte-after-point current-buffer) "\\n"))
       (forward-bytes 2)
       (forward-byte))
+  (cursor-keep-on-screen (active-window))
   current-buffer)
 
 (defun ascii-backward-char ()
@@ -18,6 +19,7 @@ If cursor is after a \\r\\n, then move two bytes. Otherwise, move one."
   (when (and (eq (byte-at-point current-buffer) "\\n")
              (eq (byte-before-point current-buffer) "\\r"))
     (backward-byte))
+  (cursor-keep-on-screen (active-window))
   current-buffer)
 
 (defun ascii-remove-char ()
@@ -26,6 +28,7 @@ If cursor is after a \\r\\n, then move two bytes. Otherwise, move one."
            (eq (buffer-index current-buffer (- (buffer-point current-buffer) 2)) "\\r"))
       (remove 2)
       (remove 1))
+  (cursor-keep-on-screen (active-window))
   current-buffer)
 
 (defun ascii-remove-char-forward ()
@@ -34,6 +37,7 @@ If cursor is after a \\r\\n, then move two bytes. Otherwise, move one."
            (eq (byte-after-point current-buffer) "\\n"))
       (remove-forward 2)
       (remove-forward 1))
+  (cursor-keep-on-screen (active-window))
   current-buffer)
 
 (defun ascii-backspace ()
@@ -52,6 +56,7 @@ or, if mark is active and a region is selected, remove the entire region."
               (remove-forward length)
               ;; Point is past mark, remove backward.
               (remove length)))
+        (cursor-keep-on-screen (active-window))
         current-buffer)
       ;; Mark isn't active, no region selected---remove a single byte backwards.
       (ascii-remove-char)))

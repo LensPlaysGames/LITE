@@ -32,6 +32,7 @@ You should probably call `utf8-forward-char` instead of this."
 (defun utf8-forward-char ()
   "Increment point of `CURRENT-BUFFER` by one utf8 codepoint."
   (utf8-forward-char-impl)
+  (cursor-keep-on-screen (active-window))
   current-buffer)
 
 (defun utf8-backward-char-impl ()
@@ -43,6 +44,7 @@ You should probably call `utf8-backward-char` instead of this."
 (defun utf8-backward-char ()
   "Decrement point of `CURRENT-BUFFER` by one utf8 codepoint."
   (utf8-backward-char-impl)
+  (cursor-keep-on-screen (active-window))
   current-buffer)
 
 (defun utf8-remove-char-impl ()
@@ -56,6 +58,7 @@ You should probably call `utf8-remove-char` instead of this."
 (defun utf8-remove-char ()
   "Remove the bytes representing the utf8 codepoint point of `CURRENT-BUFFER` ending just before point."
   (utf8-remove-char-impl)
+  (cursor-keep-on-screen (active-window))
   current-buffer)
 
 (defun utf8-remove-char-forward-impl ()
@@ -67,6 +70,7 @@ You should probably call `utf8-remove-char-forward` instead of this."
 (defun utf8-remove-char-forward ()
   "Remove the bytes representing the next utf8 codepoint point of `CURRENT-BUFFER` starting at point."
   (utf8-remove-char-forward-impl)
+  (cursor-keep-on-screen (active-window))
   current-buffer)
 
 (defun utf8-backspace ()
@@ -85,6 +89,7 @@ or, if mark is active and a region is selected, remove the entire region."
               (remove-forward length)
               ;; Point is past mark, remove backward.
               (remove length)))
+        (cursor-keep-on-screen (active-window))
         current-buffer)
       ;; Mark isn't active, no region selected---remove a single byte backwards.
       (utf8-remove-char)))
