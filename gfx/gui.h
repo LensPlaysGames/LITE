@@ -96,7 +96,11 @@ int change_font(char *path, size_t size);
 /// @return Zero upon success.
 int change_font_size(size_t size);
 
+/// @return Window size in pixels.
 void window_size(size_t *width, size_t *height);
+
+/// @return Window size in character rows and columns, approximately.
+void window_size_row_col(size_t *rows, size_t *cols);
 
 /// @return Zero upon success.
 void change_window_size(size_t width, size_t height);
