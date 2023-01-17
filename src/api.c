@@ -788,23 +788,30 @@ void ts_langs_delete_all() {
 
 #define GUI_COLOR_FROM_RGBA(name, rgba) GUIColor (name); (name).r = RGBA_R(rgba); (name).g = RGBA_G(rgba); (name).b = RGBA_B(rgba); (name).a = RGBA_A(rgba)
 
-void add_property_from_query_matches(GUIWindow *window, TSNode root, size_t offset, TSQuery *ts_query, RGBA fg, RGBA bg) {
+void add_property_from_query_matches(GUIWindow *window, TSNode root, size_t offset, size_t narrow_begin, size_t narrow_end, TSQuery *ts_query, RGBA fg, RGBA bg) {
   TSQueryCursor *query_cursor = ts_query_cursor_new();
   ts_query_cursor_exec(query_cursor, ts_query, root);
 
   GUI_COLOR_FROM_RGBA(fg_color, fg);
   GUI_COLOR_FROM_RGBA(bg_color, bg);
 
+  // Foreach match...
   TSQueryMatch match;
   while (ts_query_cursor_next_match(query_cursor, &match)) {
+    // Foreach capture...
     for (uint16_t i = 0; i < match.capture_count; ++i) {
       TSQueryCapture capture = match.captures[i];
-      size_t start = ts_node_start_byte(capture.node);
-      size_t end = ts_node_end_byte(capture.node);
+
+      size_t start = ts_node_start_byte(capture.node) + offset;
+      // NOTE: This assumes captures are in order, from beginning to end.
+      if (start > narrow_end) break;
+
+      size_t end = ts_node_end_byte(capture.node) + offset;
       size_t length = end - start;
+      if (start < narrow_begin && end < narrow_begin) continue;
 
       GUIStringProperty *new_property = malloc(sizeof *new_property);
-      new_property->offset = start + offset;
+      new_property->offset = start;
       new_property->length = length;
       new_property->fg = fg_color;
       new_property->bg = bg_color;
@@ -813,6 +820,7 @@ void add_property_from_query_matches(GUIWindow *window, TSNode root, size_t offs
       add_property(&window->contents, new_property);
     }
   }
+
   ts_query_cursor_delete(query_cursor);
 }
 
@@ -840,6 +848,7 @@ int gui_loop(void) {
   if (err.type) {
     print_error(err);
   }
+
   Atom active_window_index = nil;
   err = env_get(*genv(), make_sym("ACTIVE-WINDOW-INDEX"), &active_window_index);
   if (err.type) {
@@ -854,8 +863,8 @@ int gui_loop(void) {
 #if defined(TREE_SITTER)
   Atom ts_language = nil;
   err = env_get(*genv(), make_sym("TREE-SITTER-LANGUAGE"), &ts_language);
-  if (err.type) {
-    //print_error(err);
+  if (err.type && err.type != ERROR_NOT_BOUND) {
+    print_error(err);
   }
 #endif
 
@@ -1090,6 +1099,7 @@ int gui_loop(void) {
     if (stringp(ts_language)) {
       TreeSitterLanguage *language = ts_langs_new(ts_language.value.symbol);
       if (language) {
+
         // TODO: Get rid of static variables here...
         static size_t last_frame_vertical_offset = -1;
         static size_t last_frame_horizontal_offset = -1;
@@ -1099,17 +1109,44 @@ int gui_loop(void) {
         last_frame_horizontal_offset = new_gui_window->contents.horizontal_offset;
 
         static size_t parse_offset = 0;
+        static char *begin_visual_range = NULL;
+        static char *end_visual_range = NULL;
         if (!language->tree || contents_modified || view_modified) {
           if (language->tree) {
             ts_tree_delete(language->tree);
           }
+
+          begin_visual_range = contents_string;
+          for (size_t i = 0; i < new_gui_window->contents.vertical_offset; ++i) {
+            char *new_begin = strchr(begin_visual_range + 1, '\n');
+            if (!new_begin) break;
+            begin_visual_range = new_begin;
+          }
+          end_visual_range = begin_visual_range;
+          size_t rows = 0;
+          size_t cols = 0;
+          window_size_row_col(&rows, &cols);
+          for (size_t i = 0; i <= rows; ++i) {
+            char *new_end = strchr(end_visual_range + 1, '\n');
+            if (!new_end) break;
+            end_visual_range = new_end;
+          }
+
+          // FIXME: The reason for this "moving parser" optimisation is
+          // because it is really slow to iterate many matches, even if we
+          // don't do anything with them. That is why we reduce the size
+          // of the input file, to get less matches to appear, and for it
+          // to not take so long iterating over them. However, this is also
+          // the cause of highlighting bugs due to the parser not really
+          // being given a valid starting point...
+
 #ifndef TREE_SITTER_MAX_PARSE_LENGTH
 // This many bytes should be more than can be realistically displayed in the window, at once.
-# define TREE_SITTER_MAX_PARSE_LENGTH (2 << 12)
+# define TREE_SITTER_MAX_PARSE_LENGTH (2 << 13)
 #endif
 #ifndef TREE_SITTER_MIN_PARSE_CONTEXT
 // This many lines of context above cursor should hopefully be enough.
-# define TREE_SITTER_MIN_PARSE_CONTEXT (2 << 6)
+# define TREE_SITTER_MIN_PARSE_CONTEXT (2 << 7)
 #endif
           // Limit max length of parsed contents, making sure to parse contents related to what is in view.
           if (contents_length > TREE_SITTER_MAX_PARSE_LENGTH) {
@@ -1120,7 +1157,7 @@ int gui_loop(void) {
               size_t upper_bound = new_gui_window->contents.vertical_offset - TREE_SITTER_MIN_PARSE_CONTEXT;
               for (size_t i = 0; i < upper_bound; ++i) {
                 new_parse_string = strchr(parse_string + 1, '\n');
-                if (!new_parse_string) { break; }
+                if (!new_parse_string) break;
                 parse_length -= new_parse_string - parse_string;
                 parse_string = new_parse_string;
               }
@@ -1132,19 +1169,23 @@ int gui_loop(void) {
             language->tree = ts_parser_parse_string(language->parser, NULL, parse_string, parse_length);
           } else {
             parse_offset = 0;
+            begin_visual_range = NULL;
+            end_visual_range = NULL;
             language->tree = ts_parser_parse_string(language->parser, NULL, contents_string, contents_length);
           }
         }
         for (size_t i = 0; i < language->query_count; ++i) {
           TreeSitterQuery *query = language->queries + i;
+          size_t begin = begin_visual_range ? begin_visual_range - contents_string : (size_t)0;
+          size_t end = end_visual_range ? end_visual_range - contents_string : SIZE_MAX;
           add_property_from_query_matches(new_gui_window, ts_tree_root_node(language->tree),
-                                          parse_offset,
+                                          parse_offset, begin, end,
                                           query->query, query->fg, query->bg);
         }
       }
     }
+#endif /* #if defined(TREE_SITTER) */
 
-#endif
     // Remove properties with a non-integer ID from property list of
     // window. These are known as *once* properties, and are very
     // useful for dynamic highlighting every redisplay (in conjunction
