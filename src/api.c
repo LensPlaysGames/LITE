@@ -788,7 +788,7 @@ void ts_langs_delete_all() {
 
 #define GUI_COLOR_FROM_RGBA(name, rgba) GUIColor (name); (name).r = RGBA_R(rgba); (name).g = RGBA_G(rgba); (name).b = RGBA_B(rgba); (name).a = RGBA_A(rgba)
 
-void add_property_from_query_matches(GUIWindow *window, TSNode root, TSQuery *ts_query, RGBA fg, RGBA bg) {
+void add_property_from_query_matches(GUIWindow *window, TSNode root, size_t offset, TSQuery *ts_query, RGBA fg, RGBA bg) {
   TSQueryCursor *query_cursor = ts_query_cursor_new();
   ts_query_cursor_exec(query_cursor, ts_query, root);
 
@@ -804,7 +804,7 @@ void add_property_from_query_matches(GUIWindow *window, TSNode root, TSQuery *ts
       size_t length = end - start;
 
       GUIStringProperty *new_property = malloc(sizeof *new_property);
-      new_property->offset = start;
+      new_property->offset = start + offset;
       new_property->length = length;
       new_property->fg = fg_color;
       new_property->bg = bg_color;
@@ -1090,36 +1090,56 @@ int gui_loop(void) {
     if (stringp(ts_language)) {
       TreeSitterLanguage *language = ts_langs_new(ts_language.value.symbol);
       if (language) {
-        if (!language->tree || contents_modified) {
+        // TODO: Get rid of static variables here...
+        static size_t last_frame_vertical_offset = -1;
+        static size_t last_frame_horizontal_offset = -1;
+        char view_modified = new_gui_window->contents.vertical_offset != last_frame_vertical_offset
+                             || new_gui_window->contents.horizontal_offset != last_frame_horizontal_offset;
+        last_frame_vertical_offset = new_gui_window->contents.vertical_offset;
+        last_frame_horizontal_offset = new_gui_window->contents.horizontal_offset;
+
+        static size_t parse_offset = 0;
+        if (!language->tree || contents_modified || view_modified) {
           if (language->tree) {
             ts_tree_delete(language->tree);
           }
-          if (contents_length > 2 << 13) {
+#ifndef TREE_SITTER_MAX_PARSE_LENGTH
+// This many bytes should be more than can be realistically displayed in the window, at once.
+# define TREE_SITTER_MAX_PARSE_LENGTH (2 << 12)
+#endif
+#ifndef TREE_SITTER_MIN_PARSE_CONTEXT
+// This many lines of context above cursor should hopefully be enough.
+# define TREE_SITTER_MIN_PARSE_CONTEXT (2 << 6)
+#endif
+          // Limit max length of parsed contents, making sure to parse contents related to what is in view.
+          if (contents_length > TREE_SITTER_MAX_PARSE_LENGTH) {
             const char *parse_string = contents_string;
             size_t parse_length = contents_length;
             const char *new_parse_string = NULL;
-            // 100 lines of context above cursor should hopefully be enough.
-            if (new_gui_window->contents.vertical_offset > 100) {
-              for (size_t i = 0; i < new_gui_window->contents.vertical_offset - 100; ++i) {
-                new_parse_string = strchr(parse_string, '\n');
-                if (!new_parse_string) {
-                  break;
-                }
+
+            if (new_gui_window->contents.vertical_offset > TREE_SITTER_MIN_PARSE_CONTEXT) {
+              size_t upper_bound = new_gui_window->contents.vertical_offset - TREE_SITTER_MIN_PARSE_CONTEXT;
+              for (size_t i = 0; i < upper_bound; ++i) {
+                new_parse_string = strchr(parse_string + 1, '\n');
+                if (!new_parse_string) { break; }
                 parse_length -= new_parse_string - parse_string;
                 parse_string = new_parse_string;
               }
             }
-            if (parse_length > 2 << 12) {
-              parse_length = 2 << 12;
+            parse_offset = parse_string - contents_string;
+            if (parse_length > TREE_SITTER_MAX_PARSE_LENGTH) {
+              parse_length = TREE_SITTER_MAX_PARSE_LENGTH;
             }
             language->tree = ts_parser_parse_string(language->parser, NULL, parse_string, parse_length);
           } else {
+            parse_offset = 0;
             language->tree = ts_parser_parse_string(language->parser, NULL, contents_string, contents_length);
           }
         }
         for (size_t i = 0; i < language->query_count; ++i) {
           TreeSitterQuery *query = language->queries + i;
           add_property_from_query_matches(new_gui_window, ts_tree_root_node(language->tree),
+                                          parse_offset,
                                           query->query, query->fg, query->bg);
         }
       }
