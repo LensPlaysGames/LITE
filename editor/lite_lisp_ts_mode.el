@@ -3,7 +3,7 @@
 ;; Author: Rylan Lens Kellogg
 ;; Maintainer: Rylan Lens Kellogg
 ;; Version: 0.0.1
-;; Keywords   : LITE LISP languages tree-sitter
+;; Keywords: LITE LISP languages tree-sitter
 
 
 ;; This file is not part of GNU Emacs
@@ -47,8 +47,7 @@
   "LITE LISP keywords for tree-sitter font-locking.")
 
 (defvar lite-lisp-ts-mode--operators
-  '("'" "`" "," ",@"
-    )
+  '("'" "`" "," ",@")
   "LITE LISP operators for tree-sitter font-locking.")
 
 (defvar lite-lisp-ts-mode--delimiters
