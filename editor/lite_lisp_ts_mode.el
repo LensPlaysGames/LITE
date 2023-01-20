@@ -87,7 +87,7 @@
    ))
 
 ;;;###autoload
-(define-derived-mode lite-lisp-ts-mode lisp-mode
+(define-derived-mode lite-lisp-ts-mode lisp-mode "LITE"
   "Major mode for editing LITE LISP, powered by tree-sitter."
   :group 'lite
 
