@@ -17,9 +17,13 @@
 #include <utility.h>
 
 #ifdef LITE_GFX
-#  include <api.h>
-#  include <gfx.h>
-#  include <gui.h>
+# include <api.h>
+# include <gfx.h>
+# include <gui.h>
+#endif
+
+#ifdef TREE_SITTER
+# include <tree_sitter.h>
 #endif
 
 #define ARG_ERR(args) do {                              \
@@ -2850,8 +2854,7 @@ Error builtin_tree_sitter_update(Atom arguments, Atom *result) {
   }
   const char *lang_string = car(arguments).value.symbol;
   Atom queries = car(cdr(arguments));
-  ts_langs_update_queries(lang_string, queries);
-  return ok;
+  return ts_langs_update_queries(lang_string, queries);
 #else
   *result = nil;
   return ok;

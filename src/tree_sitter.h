@@ -3,6 +3,8 @@
 #ifndef LITE_TREE_SITTER_H
 #define LITE_TREE_SITTER_H
 
+#include <error.h>
+
 #include <tree_sitter/api.h>
 
 typedef uint32_t RGBA;
@@ -47,7 +49,7 @@ typedef struct TreeSitterLanguage {
 #define TS_LANG_MAX TREE_SITTER_LANGUAGE_MAXIMUM
 extern TreeSitterLanguage ts_langs[TS_LANG_MAX];
 
-void ts_langs_update_queries(const char *lang_string, struct Atom queries);
+Error ts_langs_update_queries(const char *lang_string, struct Atom queries);
 
 #endif /* LITE_TREE_SITTER_H */
 

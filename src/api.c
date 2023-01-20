@@ -2,10 +2,13 @@
 
 #include <assert.h>
 #include <buffer.h>
+#include <error.h>
 #include <environment.h>
 #include <evaluation.h>
 #include <gfx.h>
 #include <gui.h>
+#include <inttypes.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <types.h>
@@ -683,12 +686,9 @@ TreeSitterLanguage *ts_langs_new(const char *lang_string) {
   ts_parser_set_language(lang->parser, lang->lang_func());
   return lang;
 }
-void ts_langs_update_queries(const char *lang_string, struct Atom queries) {
+Error ts_langs_update_queries(const char *lang_string, struct Atom queries) {
   TreeSitterLanguage *lang = ts_langs_new(lang_string);
-  if (!lang) {
-    return;
-  }
-  // Free existing queries.
+  // Free existing queries, if any.
   if (lang->query_count) {
     for (int i = 0; i < lang->query_count; ++i) {
       TreeSitterQuery ts_query = lang->queries[i];
@@ -698,12 +698,16 @@ void ts_langs_update_queries(const char *lang_string, struct Atom queries) {
     free(lang->queries);;
     lang->queries = NULL;
   }
-
+  // Count queries
   for (Atom query_it = queries; pairp(query_it); query_it = cdr(query_it)) {
     lang->query_count += 1;
   }
+  // If there are no queries, there is nothing to do.
   if (lang->query_count == 0) {
-    return;
+    MAKE_ERROR(err, ERROR_GENERIC, queries,
+               "ts_langs_update_queries(): No queries supplied.",
+               NULL);
+    return err;
   }
 
   lang->queries = calloc(lang->query_count, sizeof *lang->queries);
@@ -711,28 +715,96 @@ void ts_langs_update_queries(const char *lang_string, struct Atom queries) {
   size_t i = 0;
   for (Atom query_it = queries; !nilp(query_it); query_it = cdr(query_it), ++i) {
     if (i >= lang->query_count) {
-      printf("Trouble updating tree sitter queries for %s: too many supplied (likely internal error)");
-      return;
+      MAKE_ERROR(err, ERROR_GENERIC, queries,
+                 "Trouble updating tree sitter queries for %s: too many supplied (likely internal error)",
+                 "Report this bug to the LITE developers with as much context and information as possible.");
+      return err;
     }
-    TreeSitterQuery *ts_it = lang->queries + i;;
+    TreeSitterQuery *ts_it = lang->queries + i;
     Atom query = car(query_it);
     if (!pairp(query)) {
       // invalid query
+      printf("ERROR in tree-sitter query specification: Query must be a list\n");
       continue;
     }
     Atom query_string = car(query);
     if (!stringp(query_string)) {
       // invalid query
+      printf("ERROR in tree-sitter query specification: Query must be a string\n");
       continue;
     }
 
     // TODO: Lots of color typechecking...
+
+    if (!pairp(cdr(query))) {
+      // invalid query
+      printf("ERROR in tree-sitter query specification: Invalid amount of elements in query specification\n");
+      continue;
+    }
+
     Atom query_colors = car(cdr(query));
+    if (!pairp(query_colors)) {
+      // invalid query
+      printf("ERROR in tree-sitter query specification: Invalid fg/bg color pair\n");
+      continue;
+    }
+
+    // ((fg_r . (fg_g . (fg_b . (fg_a . nil)))) . ((bg_r . (bg_g . (bg_b . (bg_a . nil)))) . nil))
+
+    // car: (fg_r . (fg_g . (fg_b . (fg_a . nil))))
+    //   car: fg_r
+    //   cdr: (fg_g . (fg_b . (fg_a . nil)))
+    //     car: fg_g
+    //     cdr: (fg_b . (fg_a . nil))
+    //       car: fg_b
+    //       cdr: (fg_a . nil)
+    //         car: fg_a
+    //         cdr: nil
+    if (!pairp(car(query_colors))
+        || !pairp(cdr(car(query_colors)))
+        || !pairp(cdr(cdr(car(query_colors))))
+        || !pairp(cdr(cdr(cdr(car(query_colors)))))
+        || !integerp(car(car(query_colors)))
+        || !integerp(car(cdr(car(query_colors))))
+        || !integerp(car(cdr(cdr(car(query_colors)))))
+        || !integerp(car(cdr(cdr(cdr(car(query_colors))))))
+      ) {
+      // invalid query
+      printf("ERROR in tree-sitter query specification: Invalid foreground color\n");
+      continue;
+    }
     Atom query_fg = car(query_colors);
     Atom query_fg_r = car(query_fg);
     Atom query_fg_g = car(cdr(query_fg));
     Atom query_fg_b = car(cdr(cdr(query_fg)));
     Atom query_fg_a = car(cdr(cdr(cdr(query_fg))));
+
+
+    // cdr: ((bg_r . (bg_g . (bg_b . (bg_a . nil)))))
+    //   car: (bg_r . (bg_g . (bg_b . (bg_a . nil))))
+    //     car: bg_r
+    //     cdr: (bg_g . (bg_b . (bg_a . nil)))
+    //       car: bg_g
+    //       cdr: (bg_b . (bg_a . nil))
+    //         car: bg_b
+    //         cdr: (bg_a . nil)
+    //           car: bg_a
+    //           cdr: nil
+    //   cdr: nil
+    if (!pairp(car(cdr(query_colors)))
+        || !pairp(cdr(car(cdr(query_colors))))
+        || !pairp(cdr(cdr(car(cdr(query_colors)))))
+        || !pairp(cdr(cdr(cdr(car(cdr(query_colors))))))
+        || !integerp(car(car(cdr(query_colors))))
+        || !integerp(car(cdr(car(cdr(query_colors)))))
+        || !integerp(car(cdr(cdr(car(cdr(query_colors))))))
+        || !integerp(car(cdr(cdr(cdr(car(cdr(query_colors)))))))
+      ) {
+      // invalid query
+      printf("ERROR in tree-sitter query specification: Invalid background color\n");
+      pretty_print_atom(cdr(query_colors));putchar('\n');
+      continue;
+    }
     Atom query_bg = car(cdr(query_colors));
     Atom query_bg_r = car(query_bg);
     Atom query_bg_g = car(cdr(query_bg));
@@ -758,15 +830,18 @@ void ts_langs_update_queries(const char *lang_string, struct Atom queries) {
                             &query_error_offset, &query_error);
 
     if (query_error != TSQueryErrorNone) {
-      fprintf(stdout, "Error in query at offset %u: \"%s\"\n",
-              query_error_offset, query_string.value.symbol);
-      return;
+      fprintf(stderr, "Error in query at offset %"PRIu32"\n%s\n", query_error_offset, query_string.value.symbol);
+      MAKE_ERROR(err, ERROR_GENERIC, query_string,
+                 "Error in tree-sitter query",
+                 NULL);
+      return err;
     }
 
     ts_it->query = new_query;
     ts_it->fg = fg;
     ts_it->bg = bg;
   }
+  return ok;
 }
 void ts_langs_delete_one(TreeSitterLanguage *lang) {
   if (!lang || !lang->used) return;
@@ -789,6 +864,8 @@ void ts_langs_delete_all() {
 #define GUI_COLOR_FROM_RGBA(name, rgba) GUIColor (name); (name).r = RGBA_R(rgba); (name).g = RGBA_G(rgba); (name).b = RGBA_B(rgba); (name).a = RGBA_A(rgba)
 
 void add_property_from_query_matches(GUIWindow *window, TSNode root, size_t offset, size_t narrow_begin, size_t narrow_end, TSQuery *ts_query, RGBA fg, RGBA bg) {
+  if (!ts_query) return;
+
   TSQueryCursor *query_cursor = ts_query_cursor_new();
   ts_query_cursor_exec(query_cursor, ts_query, root);
 
@@ -1098,7 +1175,7 @@ int gui_loop(void) {
 
     if (stringp(ts_language)) {
       TreeSitterLanguage *language = ts_langs_new(ts_language.value.symbol);
-      if (language) {
+      if (language && language->query_count) {
 
         // TODO: Get rid of static variables here...
         static size_t last_frame_vertical_offset = -1;
