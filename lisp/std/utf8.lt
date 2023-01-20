@@ -31,7 +31,10 @@ You should probably call `utf8-forward-char` instead of this."
 
 (defun utf8-forward-char ()
   "Increment point of `CURRENT-BUFFER` by one utf8 codepoint."
-  (utf8-forward-char-impl)
+  (if (and (eq (byte-at-point current-buffer) "\\r")
+           (eq (byte-after-point current-buffer) "\\n"))
+      (forward-bytes 2)
+      (utf8-forward-char-impl))
   (cursor-keep-on-screen (active-window))
   current-buffer)
 
@@ -43,7 +46,10 @@ You should probably call `utf8-backward-char` instead of this."
 
 (defun utf8-backward-char ()
   "Decrement point of `CURRENT-BUFFER` by one utf8 codepoint."
-  (utf8-backward-char-impl)
+  (if (and (eq (byte-at-point current-buffer) "\\n")
+           (eq (byte-before-point current-buffer) "\\r"))
+      (backward-bytes 2)
+      (utf8-backward-char-impl))
   (cursor-keep-on-screen (active-window))
   current-buffer)
 
@@ -57,7 +63,10 @@ You should probably call `utf8-remove-char` instead of this."
 
 (defun utf8-remove-char ()
   "Remove the bytes representing the utf8 codepoint point of `CURRENT-BUFFER` ending just before point."
-  (utf8-remove-char-impl)
+  (if (and (eq (buffer-index current-buffer (- (buffer-point current-buffer) 1)) "\\n")
+           (eq (buffer-index current-buffer (- (buffer-point current-buffer) 2)) "\\r"))
+      (remove 2)
+      (utf8-remove-char-impl))
   (cursor-keep-on-screen (active-window))
   current-buffer)
 
@@ -69,7 +78,10 @@ You should probably call `utf8-remove-char-forward` instead of this."
 
 (defun utf8-remove-char-forward ()
   "Remove the bytes representing the next utf8 codepoint point of `CURRENT-BUFFER` starting at point."
-  (utf8-remove-char-forward-impl)
+  (if (and (eq (byte-at-point current-buffer) "\\r")
+           (eq (byte-after-point current-buffer) "\\n"))
+      (remove-forward 2)
+      (utf8-remove-char-forward-impl))
   (cursor-keep-on-screen (active-window))
   current-buffer)
 

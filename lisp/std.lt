@@ -166,6 +166,12 @@ If point is zero, get byte at point."
   "Get the byte after the point in BUFFER."
   (buffer-index buffer (+ 1 (buffer-point buffer))))
 
+(defun at-crlf ()
+  "Return T if the two bytes under and after point of CURRENT-BUFFER
+are equal to a CRLF (13, 10) carriage-return/newline pair."
+  (and (eq (byte-at-point current-buffer) "\\r")
+       (eq (byte-after-point current-buffer) "\\n")))
+
 ;; Navigation
 
 (evaluate-file "lisp/std/ascii.lt")
@@ -188,6 +194,9 @@ If point is zero, get byte at point."
       (when (= (seek-byte "\\n" 1) 0)
         ;; get to end of last line.
         (forward-bytes 999999999999)))
+  (when (and (eq (byte-at-point current-buffer) "\\n")
+             (eq (byte-before-point current-buffer) "\\r"))
+    (backward-byte))
   (cursor-keep-on-screen (active-window))
   current-buffer)
 

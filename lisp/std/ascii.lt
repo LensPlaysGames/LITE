@@ -36,7 +36,12 @@ If cursor is after a \\r\\n, then move two bytes. Otherwise, move one."
   (if (and (eq (byte-at-point current-buffer) "\\r")
            (eq (byte-after-point current-buffer) "\\n"))
       (remove-forward 2)
-      (remove-forward 1))
+      (if (and (eq (byte-at-point current-buffer) "\\n")
+               (eq (byte-before-point current-buffer) "\\r"))
+          (progn
+            (backward-byte)
+            (remove-forward 2))
+          (remove-forward 1)))
   (cursor-keep-on-screen (active-window))
   current-buffer)
 
