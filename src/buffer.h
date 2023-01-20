@@ -265,13 +265,4 @@ Error buffer_save(Buffer buffer);
 
 void buffer_free(Buffer* buffer);
 
-/** Create and initialize a buffer atom and return it, if possible.
- *
- * @param[in] path
- *   The file path the returned buffer will be visiting.
- *
- * @return A buffer initialized at path, or panic the program (exit).
- */
-Atom initialize_buffer_or_panic(const char *const path);
-
 #endif /* LITE_BUFFER_H */
