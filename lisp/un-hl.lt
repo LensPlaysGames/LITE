@@ -7,7 +7,8 @@
 (set operator      '(( 10 255 141 255) (22 23 24 255)))
 (set delimiter     '((228 235 232 255) (22 23 24 255)))
 (set number        '((206 255 255 255) (22 23 24 255)))
-(set tree-sitter-queries
+(tree-sitter-update
+ tree-sitter-language
  `(("(comment) @x" ,comment)
    ("(type_base)      @x" ,type)
    ("(type_pointer)   @x" ,type)
@@ -24,6 +25,4 @@
    ("[ \\"+\\" \\"-\\" \\"*\\" \\"/\\" \\"%\\" \\"<<\\" \\">>\\" \\"&\\" \\"|\\" \\"^\\" \\"~\\" \\"<=\\" \\">=\\" \\"!=\\" \\"=\\" \\"<\\" \\">\\" \\"!\\" \\":\\" \\":=\\" \\"@\\" \\"as\\" ] @x" ,operator) ;
    ("[ \\"(\\" \\")\\" \\"[\\" \\"]\\" \\"{\\" \\"}\\" ]" ,delimiter)
    ))
-
-(tree-sitter-update tree-sitter-language tree-sitter-queries)
 
