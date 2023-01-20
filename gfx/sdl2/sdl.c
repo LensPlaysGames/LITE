@@ -350,8 +350,8 @@ static inline void draw_gui_string_into_surface_within_rect
       }
     } else if (*string == '\n' || *string == '\0') {
       // Byte offset of start of line we are currently at the end of.
-      // TODO: Add horizontal offset here. If that makes start past
-      // or equal to end, skip line but increment destination height.
+      // Add horizontal offset here. If that makes start past or equal
+      // to end, skip line but increment destination height.
       size_t start_of_line_offset = gui_string.horizontal_offset + last_newline_offset + 1;
       size_t line_height = font_height;
 
@@ -364,15 +364,19 @@ static inline void draw_gui_string_into_surface_within_rect
       size_t bytes_to_render = offset - start_of_line_offset;
       if (cr_skip) {
         cr_skip = 0;
-        bytes_to_render -= 1;
+        if (bytes_to_render) {
+          bytes_to_render -= 1;
+        }
       }
       char *line_text = allocate_string_span
         (gui_string.string, start_of_line_offset, bytes_to_render);
+#ifndef NDEBUG
       if (!line_text) {
         fprintf(stderr,
                 "GFX::SDL2::ERROR: Could not allocate string span for line text.");
         return;
       }
+#endif
       // Skip empty lines.
       if (line_text[0] != '\0') {
         // Use FreeType subpixel LCD rendering, if possible.
@@ -923,11 +927,10 @@ int handle_event(SDL_Event *event) {
 HOTFUNCTION
 int handle_events() {
   SDL_Event event;
-  int open = 1;
-  while (open && SDL_PollEvent(&event)) {
-    open = handle_event(&event);
+  while (SDL_PollEvent(&event)) {
+    if (!handle_event(&event)) return 0;
   }
-  return open;
+  return 1;
 }
 
 // Returns a boolean-like integer value (0 is false).
