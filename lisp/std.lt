@@ -179,6 +179,14 @@ are equal to a CRLF (13, 10) carriage-return/newline pair."
 (evaluate-file "lisp/std/utf16.lt")
 (evaluate-file "lisp/std/utf32.lt")
 
+(defun transpose-byte ()
+  "Swap the byte at point with the byte before point, and increment point."
+  (unless (= (point) 0)
+    (let ((before-point (byte-before-point current-buffer)))
+      (remove 1)
+      (forward-byte)
+      (insert before-point))))
+
 (defun beginning-of-line ()
   "Move to the beginning of the current line"
   (if (= (seek-byte "\\n" -1) 0)

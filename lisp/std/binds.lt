@@ -204,6 +204,8 @@
     (keymap-push ctrl-shft-keymap "d" "<backspace>")
     (keymap-push ctrl-keymap "d" "<delete>")
 
+    (keymap-push ctrl-keymap "t" '(transpose-byte))
+
     ;; ctrl keybinds: Buffer navigation
     (keymap-push ctrl-keymap " " '(set-or-toggle-mark))
 
