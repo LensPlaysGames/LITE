@@ -3,6 +3,12 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
+#include <freetype/freetype.h>
+
+#include <hb.h>
+#include <hb-ft.h>
+
+#include <inttypes.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -68,7 +74,7 @@ static void r_vertex(Renderer *r, Vertex v) {
   if (!r->vertices) {
     r->vertex_count = 0;
     // Megabyte of vertices.
-    r->vertex_capacity = ((2 << 16) / sizeof(Vertex));
+    r->vertex_capacity = ((1 << 20) / sizeof(Vertex));
     r->vertices = malloc(sizeof(*r->vertices) * r->vertex_capacity);
   }
   if (r->vertex_count + 1 >= r->vertex_capacity) {
@@ -99,6 +105,241 @@ static void r_clear(Renderer *r) {
   r->vertex_count = 0;
 }
 
+
+typedef struct Glyph {
+  uint32_t codepoint;
+  uint32_t glyph_index;
+  uint32_t hash;
+  // X offset into glyph atlas to get to this glyph's bitmap.
+  size_t x;
+  // Size of the bitmap within glyph atlas
+  uint32_t bmp_w; //> bitmap width
+  uint32_t bmp_h; //> bitmap height
+  // Offset within the bitmap within glyph atlas to draw
+  int64_t bmp_x; //> bitmap x offset
+  int64_t bmp_y; //> bitmap y offset
+  // X offset into glyph atlas as a float between 0 and 1
+  float uvx;
+  // Y offset into glyph atlas as a float between 0 and 1
+  float uvy;
+  // X max offset into glyph atlas as a float between 0 and 1
+  float uvx_max;
+  // Y max offset into glyph atlas as a float between 0 and 1
+  float uvy_max;
+  /// Equal to `true` iff this glyph structure is valid.
+  bool populated;
+} Glyph;
+
+/// Open addressed hash map of UTF32 codepoint -> Glyph
+typedef struct GlyphMap {
+  FT_Face face; //> Face that atlas is rendered with.
+
+  GLuint atlas; //> Glyph atlas
+  size_t atlas_width;
+  size_t atlas_height;
+  size_t atlas_draw_offset; //> Offset into atlas texture to begin drawing new glyphs.
+
+  size_t glyph_capacity;
+  size_t glyph_count;
+  Glyph *glyphs;
+} GlyphMap;
+
+// https://crypto.stackexchange.com/a/16231
+// some arbitrary permutation of 32-bit values
+uint32_t hash_perm32(uint32_t x) {
+  // Repeat for n from 12 down to 1
+  int n = 12;
+  do x = ((x>>8)^x)*0x6B+n;
+  while( --n!=0 );
+  return x;
+}
+
+#ifndef glyph_map_hash
+#define glyph_map_hash hash_perm32
+#endif
+
+// By default, make an 8 megabyte glyph atlas.
+#ifndef GLYPH_ATLAS_WIDTH
+# define GLYPH_ATLAS_WIDTH (2 << 13)
+#endif
+#ifndef GLYPH_ATLAS_HEIGHT
+// Hopefully one glyph is never taller than this, otherwise it will
+// cause a major slowdown in having to reallocate a new buffer and
+// copy data...
+# define GLYPH_ATLAS_HEIGHT (2 << 8)
+#endif
+
+/// Set min/mag texture filters based on whether or not we want to use
+/// anti aliasing, and whether or not mipmaps should be used for the
+/// texture. Operates on currently bound texture.
+static void antialiasing(GLboolean enable, GLboolean use_mipmaps) {
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  if (enable) {
+    if (use_mipmaps) glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    else glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  } else {
+    if (use_mipmaps) glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
+    else glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  }
+}
+
+void glyph_map_init(GlyphMap *map, FT_Face face) {
+  if (!map) return;
+
+  map->face = face;
+
+  // Megabyte of glyphs...
+  map->glyph_capacity = ((1 << 20) / sizeof(*map->glyphs));
+  map->glyph_count = 0;
+  map->glyphs = calloc(map->glyph_capacity, sizeof(*map->glyphs));
+
+  map->atlas_width = GLYPH_ATLAS_WIDTH;
+  map->atlas_height = GLYPH_ATLAS_HEIGHT;
+  map->atlas_draw_offset = 0;
+  glGenTextures(1, &map->atlas);
+  glBindTexture(GL_TEXTURE_2D, map->atlas);
+  antialiasing(GL_TRUE, GL_TRUE);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+  glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+  glTexImage2D(
+    GL_TEXTURE_2D,
+    0,
+    GL_RED,
+    map->atlas_width,
+    map->atlas_height,
+    0,
+    GL_RED,
+    GL_UNSIGNED_BYTE,
+    NULL
+  );
+}
+
+/// Return matching or free entry.
+Glyph *glyph_map_entry(GlyphMap map, uint32_t codepoint) {
+  uint32_t hash = glyph_map_hash(codepoint);
+  size_t index = hash % map.glyph_capacity;
+  Glyph *entry = map.glyphs + index;
+  // Start search at hash index.
+  for (size_t i = index; i < map.glyph_capacity; ++i) {
+    // Free entry
+    if (!entry->populated) {
+      entry->hash = hash;
+      return entry;
+    }
+    // Matching entry
+    if (entry->codepoint == codepoint) {
+      entry->hash = hash;
+      return entry;
+    }
+  }
+  // Start search from beginning.
+  for (size_t i = 0; i < index; ++i) {
+    // Free entry
+    if (!entry->populated) {
+      entry->hash = hash;
+      return entry;
+    }
+    // Matching entry
+    if (entry->codepoint == codepoint) {
+      entry->hash = hash;
+      return entry;
+    }
+  }
+  return NULL;
+}
+
+/// Populate `entry` with data corresponding to `codepoint`.
+static Glyph *glyph_map_populate(GlyphMap map, Glyph *entry, uint32_t codepoint) {
+  // Populate entry using freetype, draw into glyph atlas.
+  FT_Error ft_err = FT_Load_Char(map.face, codepoint, FT_LOAD_DEFAULT);
+  if (ft_err) {
+    fprintf(stderr, "FreeType could not load char (error %d) corresponding to codepoint 0x%"PRIx32"\n", ft_err, codepoint);
+    return NULL;
+  }
+
+  // TODO: SDF, LCD
+  ft_err = FT_Render_Glyph(map.face->glyph, FT_RENDER_MODE_NORMAL);
+  if (ft_err) {
+    fprintf(stderr, "FreeType could not render glyph (error %d) corresponding to codepoint 0x%"PRIx32"\n", ft_err, codepoint);
+    return NULL;
+  }
+
+  map.glyph_count += 1;
+  if (map.glyph_count >= map.glyph_capacity) {
+    fprintf(stderr, "TODO: Expand glyph map.");
+    return NULL;
+  }
+
+  entry->codepoint = codepoint;
+  entry->glyph_index = map.face->glyph->glyph_index;
+  entry->x = map.atlas_draw_offset + 1;
+  entry->bmp_w = map.face->glyph->bitmap.width;
+  entry->bmp_h = map.face->glyph->bitmap.rows;
+  entry->bmp_x = map.face->glyph->bitmap_left;
+  entry->bmp_y = map.face->glyph->bitmap_top;
+  entry->uvx = (float)entry->x / map.atlas_width;
+  entry->uvy = (float)entry->bmp_h / map.atlas_height;
+  entry->uvx_max = entry->uvx + ((float)entry->bmp_w / map.atlas_width);
+  entry->uvy_max = 0;
+  if (entry->uvx_max < entry->uvx) {
+    fprintf(stderr, "ERROR: uvx_max lte uvx: %f difference\n", ((float)entry->bmp_w / map.atlas_width));
+    return NULL;
+  }
+  if (entry->uvy_max > entry->uvy) {
+    fprintf(stderr, "ERROR: uvy_max gte uvy\n");
+    return NULL;
+  }
+  if (map.atlas_draw_offset + entry->bmp_w >= map.atlas_width) {
+    fprintf(stderr, "TODO: Expand glyph atlas texture width-wise.");
+    return NULL;
+  }
+  if (entry->bmp_h > map.atlas_height) {
+    fprintf(stderr, "TODO: Expand glyph atlas height-wise.");
+    return NULL;
+  }
+  glBindTexture(GL_TEXTURE_2D, map.atlas);
+  glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+  glTexSubImage2D(
+                  GL_TEXTURE_2D,
+                  0,
+                  entry->x,
+                  0,
+                  entry->bmp_w,
+                  entry->bmp_h,
+                  GL_RED,
+                  GL_UNSIGNED_BYTE,
+                  map.face->glyph->bitmap.buffer
+                  );
+  glGenerateMipmap(GL_TEXTURE_2D);
+
+  map.atlas_draw_offset += entry->bmp_w + 2;
+
+  return entry;
+}
+
+Glyph *glyph_map_find_or_add(GlyphMap map, uint32_t codepoint) {
+  Glyph *entry = glyph_map_entry(map, codepoint);
+  if (!entry) return NULL;
+  if (entry->populated) return entry;
+  else return glyph_map_populate(map, entry, codepoint);
+}
+
+/// Freetype is used to get glyph metrics and cache them in the glyph
+/// map, as well as render the glyph and put the contents into the
+/// glyph atlas found at `texture`.
+/// Text renderer uses glyph metrics in order to be able to draw the
+/// glyph, and uses the harfbuzz font to put the glyphs into position.
+
+typedef struct GLFace {
+  // TODO: Allow multiple sets of these members corresponding to multiple font sizes.
+
+  // Hash map containing codepoint -> glyph rendering data.
+  GlyphMap glyph_map;
+  FT_Face ft_face;
+  hb_font_t *hb_font;
+} GLFace;
+
 struct {
   GLColor bg;
 
@@ -107,6 +348,10 @@ struct {
   size_t height;
 
   Renderer rend;
+
+  FT_Library ft;
+
+  GLFace face;
 } g;
 
 
@@ -240,6 +485,26 @@ int create_gui() {
   status = init_opengl();
   if (status != CREATE_GUI_OK) return status;
 
+  FT_Error ft_err = FT_Init_FreeType(&g.ft);
+  if (ft_err) {
+    fprintf(stderr, "Could not initialize freetype, sorry\n");
+    return CREATE_GUI_ERR;
+  }
+#ifdef _WIN32
+  const char *const facepath = "C:/Windows/Fonts/arial.ttf";
+#elif defined(__unix__)
+  // FIXME: idk lol, I'm not a unix guru
+  const char *const facepath = "/usr/share/fonts/Iosevka.ttf";
+#endif
+  ft_err = FT_New_Face(g.ft, facepath, 0, &g.face.ft_face);
+  if (ft_err) {
+    fprintf(stderr, "Could not initialize freetype face from font file at %s, sorry\n", facepath);
+    return CREATE_GUI_ERR;
+  }
+  FT_Set_Pixel_Sizes(g.face.ft_face, 0, 512);
+
+  glyph_map_init(&g.face.glyph_map, g.face.ft_face);
+
   return CREATE_GUI_OK;
 }
 
@@ -269,12 +534,15 @@ void draw_gui(GUIContext *ctx) {
   glBindVertexArray(g.rend.vao);
   glUseProgram(g.rend.shader);
 
-  Vertex bl  = (Vertex){ .position = {-0.5, -0.5}, .uv = { 0.0,  0.0}, .color = { 1.0,  0.0,  0.0,  1.0} };
-  Vertex top = (Vertex){ .position = { 0.0,  0.5}, .uv = { 0.0,  0.0}, .color = { 1.0,  0.0,  0.0,  1.0} };
-  Vertex br  = (Vertex){ .position = { 0.5, -0.5}, .uv = { 0.0,  0.0}, .color = { 1.0,  0.0,  0.0,  1.0} };
-
   r_clear(&g.rend);
-  r_tri(&g.rend, bl, top, br);
+
+  Glyph *glyph = glyph_map_find_or_add(g.face.glyph_map, 'E');
+  Vertex tl = (Vertex){ .position = {-0.5,  0.5}, .uv = { glyph->uvx,     glyph->uvy_max}, .color = { 1.0,  1.0,  1.0,  1.0} };
+  Vertex tr = (Vertex){ .position = { 0.5,  0.5}, .uv = { glyph->uvx_max, glyph->uvy_max}, .color = { 1.0,  1.0,  1.0,  1.0} };
+  Vertex bl = (Vertex){ .position = {-0.5, -0.5}, .uv = { glyph->uvx,     glyph->uvy},     .color = { 1.0,  1.0,  1.0,  1.0} };
+  Vertex br = (Vertex){ .position = { 0.5, -0.5}, .uv = { glyph->uvx_max, glyph->uvy},     .color = { 1.0,  1.0,  1.0,  1.0} };
+  r_quad(&g.rend, tl, tr, bl, br);
+
   r_update(&g.rend);
 
   // Use shader program.
