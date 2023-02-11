@@ -351,6 +351,8 @@ struct {
 
   FT_Library ft;
 
+  GLfloat scale;
+
   GLFace face;
 } g;
 
@@ -501,9 +503,11 @@ int create_gui() {
     fprintf(stderr, "Could not initialize freetype face from font file at %s, sorry\n", facepath);
     return CREATE_GUI_ERR;
   }
-  FT_Set_Pixel_Sizes(g.face.ft_face, 0, 512);
+  FT_Set_Pixel_Sizes(g.face.ft_face, 0, GLYPH_ATLAS_HEIGHT);
 
   glyph_map_init(&g.face.glyph_map, g.face.ft_face);
+
+  g.scale = 1.0f;
 
   return CREATE_GUI_OK;
 }
@@ -518,7 +522,68 @@ void destroy_gui() {
 
 int handle_events() {
   glfwPollEvents();
-  return 1;
+  return glfwWindowShouldClose(g.window);
+}
+
+/// `x` and `y` are in pixels, whereas the returned values are in NDC (-1 to 1, origin bottom left).
+static vec2 pixel_to_screen_coordinates(size_t x, size_t y) {
+  vec2 out = (vec2){
+    out.x = (2 * ((float)x / g.width)) - 1.0f,
+    out.y = (2 * ((float)y / g.height)) - 1.0f
+  };
+  if (out.x > 1.0f) out.x = 1.0f;
+  if (out.y > 1.0f) out.y = 1.0f;
+  if (out.x < -1.0f) out.x = -1.0f;
+  if (out.y < -1.0f) out.y = -1.0f;
+  return out;
+}
+
+static void draw_glyph(vec2 draw_position, uint32_t codepoint) {
+  if (draw_position.x < 0 || draw_position.y < 0 || draw_position.x >= g.width || draw_position.y >= g.height) {
+    //fprintf(stderr, "Draw position oob");
+    return;
+  }
+
+  Glyph *glyph = glyph_map_find_or_add(g.face.glyph_map, 'E');
+
+  draw_position.x += g.scale * glyph->bmp_x;
+  draw_position.y += g.scale * (glyph->bmp_y - glyph->bmp_h);
+  if (draw_position.x < 0 || draw_position.y < 0 || draw_position.x >= g.width || draw_position.y >= g.height) {
+    //fprintf(stderr, "Draw position oob 2");
+    return;
+  }
+  const vec2 draw_position_max = (vec2){
+    .x = draw_position.x + (g.scale * glyph->bmp_w),
+    .y = draw_position.y + (g.scale * glyph->bmp_h),
+  };
+
+  if (draw_position_max.x < 0 || draw_position_max.y < 0 || draw_position_max.x >= g.width || draw_position_max.y >= g.height) {
+    //fprintf(stderr, "Draw pos max oob: (%f %f)   pos: (%f %f)\n", draw_position_max.x, draw_position_max.y, draw_position.x, draw_position.y);
+    return;
+  }
+
+  vec2 screen_position = pixel_to_screen_coordinates(draw_position.x, draw_position.y);
+  vec2 screen_position_max = pixel_to_screen_coordinates(draw_position_max.x, draw_position_max.y);
+
+  const Vertex tl = (Vertex){
+    .position = screen_position.x, screen_position_max.y,
+    .uv = { glyph->uvx, glyph->uvy_max },
+    .color = { 1.0, 1.0, 1.0, 1.0}
+  };
+  const Vertex tr = (Vertex){
+    .position = screen_position_max.x, screen_position_max.y,
+    .uv = { glyph->uvx_max, glyph->uvy_max },
+    .color = { 1.0, 1.0, 1.0, 1.0} };
+  const Vertex bl = (Vertex){
+    .position = screen_position.x, screen_position.y,
+    .uv = { glyph->uvx, glyph->uvy },
+    .color = { 1.0, 1.0, 1.0, 1.0} };
+  const Vertex br = (Vertex){
+    .position = screen_position_max.x, screen_position.y,
+    .uv = { glyph->uvx_max, glyph->uvy },
+    .color = { 1.0, 1.0, 1.0, 1.0} };
+
+  r_quad(&g.rend, tl, tr, bl, br);
 }
 
 void draw_gui(GUIContext *ctx) {
@@ -536,12 +601,8 @@ void draw_gui(GUIContext *ctx) {
 
   r_clear(&g.rend);
 
-  Glyph *glyph = glyph_map_find_or_add(g.face.glyph_map, 'E');
-  Vertex tl = (Vertex){ .position = {-0.5,  0.5}, .uv = { glyph->uvx,     glyph->uvy_max}, .color = { 1.0,  1.0,  1.0,  1.0} };
-  Vertex tr = (Vertex){ .position = { 0.5,  0.5}, .uv = { glyph->uvx_max, glyph->uvy_max}, .color = { 1.0,  1.0,  1.0,  1.0} };
-  Vertex bl = (Vertex){ .position = {-0.5, -0.5}, .uv = { glyph->uvx,     glyph->uvy},     .color = { 1.0,  1.0,  1.0,  1.0} };
-  Vertex br = (Vertex){ .position = { 0.5, -0.5}, .uv = { glyph->uvx_max, glyph->uvy},     .color = { 1.0,  1.0,  1.0,  1.0} };
-  r_quad(&g.rend, tl, tr, bl, br);
+  vec2 draw_position = {0, 0};
+  draw_glyph(draw_position, 'E');
 
   r_update(&g.rend);
 
