@@ -88,7 +88,7 @@ static inline void draw_bg() {
   SDL_RenderClear(grender);
 }
 
-int change_font(char *path, size_t size) {
+int change_font(const char *path, size_t size) {
   if (!path) { return 1; }
 
   TTF_Font *working_font = NULL;
@@ -247,14 +247,15 @@ int create_gui() {
            );
     return 1;
   }
-  font_height = TTF_FontHeight(font);
-  if (!font_height) {
+  int fheight = TTF_FontHeight(font);
+  if (fheight <= 0) {
     printf("GFX::SDL: SDL_ttf could not get height of font.\n"
            "        : %s\n"
            , TTF_GetError()
            );
     return 1;
   }
+  font_height = fheight;
   printf("GFX::SDL: SDL_ttf Initialized\n");
   return CREATE_GUI_OK;
 }
@@ -481,13 +482,9 @@ static inline void draw_gui_string_into_surface_within_rect
       last_newline_offset = offset;
 
       // No more room to draw text in output rectangle, stop now.
-      if (destination.h <= 0) {
-        break;
-      }
+      if (destination.h <= 0) break;
     }
-    if (*string == '\0') {
-      break;
-    }
+    if (*string == '\0') break;
     string += 1;
     offset += 1;
   }

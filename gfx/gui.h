@@ -67,6 +67,7 @@ typedef struct GUIContext {
 enum CreateGUIReturnValue {
   CREATE_GUI_OK = 0,
   CREATE_GUI_ALREADY_CREATED = 3,
+  CREATE_GUI_ERR,
 };
 
 /** Attempt to initialize and create the GUI.
@@ -75,6 +76,7 @@ enum CreateGUIReturnValue {
  *
  * @retval CREATE_GUI_OK Successful creation of GUI.
  * @retval CREATE_GUI_ALREADY_CREATED Can not create two GUIs.
+ * @retval CREATE_GUI_ERR Attempted to but could not create GUI.
  */
 int create_gui();
 void destroy_gui();
@@ -91,7 +93,7 @@ int handle_events();
 int do_gui(GUIContext *ctx);
 
 /// @return Zero upon success.
-int change_font(char *path, size_t size);
+int change_font(const char *path, size_t size);
 
 /// @return Zero upon success.
 int change_font_size(size_t size);
