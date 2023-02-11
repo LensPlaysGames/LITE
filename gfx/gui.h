@@ -20,8 +20,7 @@ typedef struct GUIColor {
   uint8_t g;
   uint8_t b;
   uint8_t a;
-} GUIColor;
-#define GUIColour GUIColor
+} GUIColor, GUIColour;
 
 typedef struct GUIStringProperty {
   size_t id;
