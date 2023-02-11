@@ -3,9 +3,12 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
+#include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+
+#include <shade.h>
 
 typedef struct GLColor {
   float r;
@@ -18,12 +21,92 @@ typedef struct GLColor {
 #define guicolor_from_gl(c) (GUIColor){ .r = c.r * UINT8_MAX, .g = c.g * UINT8_MAX, .b = c.b * UINT8_MAX, .a = c.a * UINT8_MAX }
 
 
+typedef struct vec2 {
+  GLfloat x;
+  GLfloat y;
+} vec2;
+
+typedef struct vec3 {
+  GLfloat x;
+  GLfloat y;
+  GLfloat z;
+} vec3;
+
+typedef struct vec4 {
+  GLfloat x;
+  GLfloat y;
+  GLfloat z;
+  GLfloat w;
+} vec4;
+
+typedef struct Vertex {
+  vec2 position;
+  vec2 uv;
+  vec4 color;
+} Vertex;
+
+typedef struct Renderer {
+  size_t vertex_capacity;
+  size_t vertex_count;
+  Vertex *vertices;
+
+
+  /** Vertex Array Object
+   * Allows quick binding/unbinding of different VBOs without
+   * creating/destroying them all the time.
+   */
+  GLuint vao;
+  /** Vertex Buffer Object
+   * Stores vertex attribute configuration.
+   */
+  GLuint vbo;
+  /// Shader program
+  GLuint shader;
+} Renderer;
+
+static void r_vertex(Renderer *r, Vertex v) {
+  if (!r->vertices) {
+    r->vertex_count = 0;
+    // Megabyte of vertices.
+    r->vertex_capacity = ((2 << 16) / sizeof(Vertex));
+    r->vertices = malloc(sizeof(*r->vertices) * r->vertex_capacity);
+  }
+  if (r->vertex_count + 1 >= r->vertex_capacity) {
+    // TODO: Expand, try again.
+    return;
+  }
+  r->vertices[r->vertex_count++] = v;
+}
+
+static void r_tri(Renderer *r, Vertex a, Vertex b, Vertex c) {
+  r_vertex(r, a);
+  r_vertex(r, b);
+  r_vertex(r, c);
+}
+
+static void r_quad(Renderer *r, Vertex tl, Vertex tr, Vertex bl, Vertex br) {
+  r_tri(r, bl, tl, br);
+  r_tri(r, br, tl, tr);
+}
+
+static void r_update(Renderer *r) {
+  glBindVertexArray(r->vao);
+  glBindBuffer(GL_ARRAY_BUFFER, r->vbo);
+  glBufferSubData(GL_ARRAY_BUFFER, 0, r->vertex_count * sizeof(Vertex), r->vertices);
+}
+
+static void r_clear(Renderer *r) {
+  r->vertex_count = 0;
+}
+
 struct {
   GLColor bg;
 
   GLFWwindow *window;
   size_t width;
   size_t height;
+
+  Renderer rend;
 } g;
 
 
@@ -51,7 +134,6 @@ static int init_glfw() {
 #ifndef DISABLE_TRANSPARENCY
   glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, GLFW_TRUE);
 #endif
-
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
@@ -80,7 +162,54 @@ static int init_opengl() {
 
   glViewport(0, 0, g.width, g.height);
 
-  // TODO: Generate VAO/VBO, create basic vertex renderer
+  glGenVertexArrays(1, &g.rend.vao);
+  glGenBuffers(1, &g.rend.vbo);
+
+  g.rend.vertex_count = 0;
+  g.rend.vertex_capacity = ((2 << 16) / sizeof(Vertex));
+  g.rend.vertices = malloc(sizeof(*g.rend.vertices) * g.rend.vertex_capacity);
+
+  glBindVertexArray(g.rend.vao);
+  glBindBuffer(GL_ARRAY_BUFFER, g.rend.vbo);
+  glBufferData(GL_ARRAY_BUFFER, g.rend.vertex_capacity * sizeof(Vertex), g.rend.vertices, GL_DYNAMIC_DRAW);
+
+  // The layout of the data that the shaders are expecting is specified here.
+  // This must match the `layout`s at the top of the vertex shader.
+  glEnableVertexAttribArray(0);
+  glEnableVertexAttribArray(1);
+  glEnableVertexAttribArray(2);
+  glVertexAttribPointer(0,            //> Which attribute to configure
+    2,                                //> Number of elements in attribute
+    GL_FLOAT,                         //> Type of each element
+    GL_FALSE,                         //> Normalise
+    sizeof(Vertex),                   //> Stride
+    (void*)offsetof(Vertex, position) //> Offset
+  );
+  glVertexAttribPointer(1,
+    2,
+    GL_FLOAT,
+    GL_FALSE,
+    sizeof(Vertex),
+    (void*)offsetof(Vertex, uv)
+  );
+  glVertexAttribPointer(2,
+    4,
+    GL_FLOAT,
+    GL_FALSE,
+    sizeof(Vertex),
+    (void*)offsetof(Vertex, color)
+  );
+
+  GLuint frag;
+  GLuint vert;
+  bool success;
+  // TODO: Look in lite directory for shaders.
+  success = shader_compile("gfx/gl/shaders/vert.glsl", GL_VERTEX_SHADER, &vert);
+  if (!success) return CREATE_GUI_ERR;
+  success = shader_compile("gfx/gl/shaders/frag.glsl", GL_FRAGMENT_SHADER, &frag);
+  if (!success) return CREATE_GUI_ERR;
+  success = shader_program(&g.rend.shader, vert, frag);
+  if (!success) return CREATE_GUI_ERR;
 
   // http://www.opengl-tutorial.org/intermediate-tutorials/tutorial-10-transparency/
   glEnable(GL_BLEND);
@@ -91,7 +220,9 @@ static int init_opengl() {
   return CREATE_GUI_OK;
 }
 static void fini_opengl()  {
-  ;
+  glDeleteProgram(g.rend.shader);
+  glDeleteBuffers(1, &g.rend.vbo);
+  glDeleteVertexArrays(1, &g.rend.vao);
 }
 
 
@@ -134,6 +265,26 @@ void draw_gui(GUIContext *ctx) {
 
   glClearColor(g.bg.r, g.bg.g, g.bg.b, g.bg.a);
   glClear(GL_COLOR_BUFFER_BIT);
+
+  glBindVertexArray(g.rend.vao);
+  glUseProgram(g.rend.shader);
+
+  Vertex bl  = (Vertex){ .position = {-0.5, -0.5}, .uv = { 0.0,  0.0}, .color = { 1.0,  0.0,  0.0,  1.0} };
+  Vertex top = (Vertex){ .position = { 0.0,  0.5}, .uv = { 0.0,  0.0}, .color = { 1.0,  0.0,  0.0,  1.0} };
+  Vertex br  = (Vertex){ .position = { 0.5, -0.5}, .uv = { 0.0,  0.0}, .color = { 1.0,  0.0,  0.0,  1.0} };
+
+  r_clear(&g.rend);
+  r_tri(&g.rend, bl, top, br);
+  r_update(&g.rend);
+
+  // Use shader program.
+  glUseProgram(g.rend.shader);
+  // Binding the VAO "remembers" the bound buffers and vertex
+  // attributes and such, which is way nicer than having to set all
+  // that state manually, and also a great hardware speedup.
+  glBindVertexArray(g.rend.vao);
+  // Draw amount of triangles that are present in the current frame...
+  glDrawArrays(GL_TRIANGLES, 0, g.rend.vertex_count);
 
   glfwSwapBuffers(g.window);
 }

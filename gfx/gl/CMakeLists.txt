@@ -44,13 +44,12 @@ add_subdirectory(libs/freetype)
 set(HB_HAVE_FREETYPE on)
 add_subdirectory(libs/harfbuzz)
 target_compile_options(harfbuzz PRIVATE -w)
-
 if (CMAKE_C_COMPILER_ID STREQUAL "GNU")
   target_compile_options(harfbuzz PRIVATE -Wno-error=unused-variable)
 endif()
 
 
-add_library(GL_LIB STATIC src/main.c)
+add_library(GL_LIB STATIC src/main.c src/shade.c)
 target_compile_definitions(GL_LIB PUBLIC HB_TINY)
 target_include_directories(
   GL_LIB
