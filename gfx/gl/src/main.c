@@ -250,76 +250,77 @@ Glyph *glyph_map_entry(GlyphMap map, uint32_t codepoint) {
 }
 
 /// Populate `entry` with data corresponding to `codepoint`.
-static Glyph *glyph_map_populate(GlyphMap map, Glyph *entry, uint32_t codepoint) {
+static Glyph *glyph_map_populate(GlyphMap *map, Glyph *entry, uint32_t codepoint) {
+  if (!map) return NULL;
   // Populate entry using freetype, draw into glyph atlas.
-  FT_Error ft_err = FT_Load_Char(map.face, codepoint, FT_LOAD_DEFAULT);
+  FT_Error ft_err = FT_Load_Char(map->face, codepoint, FT_LOAD_DEFAULT);
   if (ft_err) {
     fprintf(stderr, "FreeType could not load char (error %d) corresponding to codepoint 0x%"PRIx32"\n", ft_err, codepoint);
     return NULL;
   }
 
   // TODO: SDF, LCD
-  ft_err = FT_Render_Glyph(map.face->glyph, FT_RENDER_MODE_NORMAL);
+  ft_err = FT_Render_Glyph(map->face->glyph, FT_RENDER_MODE_NORMAL);
   if (ft_err) {
     fprintf(stderr, "FreeType could not render glyph (error %d) corresponding to codepoint 0x%"PRIx32"\n", ft_err, codepoint);
     return NULL;
   }
 
-  map.glyph_count += 1;
-  if (map.glyph_count >= map.glyph_capacity) {
+  map->glyph_count += 1;
+  if (map->glyph_count >= map->glyph_capacity) {
     fprintf(stderr, "TODO: Expand glyph map.");
     return NULL;
   }
 
+  entry->populated = true;
   entry->codepoint = codepoint;
-  entry->glyph_index = map.face->glyph->glyph_index;
-  entry->x = map.atlas_draw_offset + 1;
-  entry->bmp_w = map.face->glyph->bitmap.width;
-  entry->bmp_h = map.face->glyph->bitmap.rows;
-  entry->bmp_x = map.face->glyph->bitmap_left;
-  entry->bmp_y = map.face->glyph->bitmap_top;
-  entry->uvx = (float)entry->x / map.atlas_width;
-  entry->uvy = (float)entry->bmp_h / map.atlas_height;
-  entry->uvx_max = entry->uvx + ((float)entry->bmp_w / map.atlas_width);
+  entry->glyph_index = map->face->glyph->glyph_index;
+  entry->x = map->atlas_draw_offset + 1;
+  entry->bmp_w = map->face->glyph->bitmap.width;
+  entry->bmp_h = map->face->glyph->bitmap.rows;
+  entry->bmp_x = map->face->glyph->bitmap_left;
+  entry->bmp_y = map->face->glyph->bitmap_top;
+  entry->uvx = (float)entry->x / map->atlas_width;
+  entry->uvy = (float)entry->bmp_h / map->atlas_height;
+  entry->uvx_max = entry->uvx + ((float)entry->bmp_w / map->atlas_width);
   entry->uvy_max = 0;
   if (entry->uvx_max < entry->uvx) {
-    fprintf(stderr, "ERROR: uvx_max lte uvx: %f difference\n", ((float)entry->bmp_w / map.atlas_width));
+    fprintf(stderr, "ERROR: uvx_max lte uvx: %f difference\n", ((float)entry->bmp_w / map->atlas_width));
     return NULL;
   }
   if (entry->uvy_max > entry->uvy) {
     fprintf(stderr, "ERROR: uvy_max gte uvy\n");
     return NULL;
   }
-  if (map.atlas_draw_offset + entry->bmp_w >= map.atlas_width) {
+  if (map->atlas_draw_offset + entry->bmp_w >= map->atlas_width) {
     fprintf(stderr, "TODO: Expand glyph atlas texture width-wise.");
     return NULL;
   }
-  if (entry->bmp_h > map.atlas_height) {
+  if (entry->bmp_h > map->atlas_height) {
     fprintf(stderr, "TODO: Expand glyph atlas height-wise.");
     return NULL;
   }
-  glBindTexture(GL_TEXTURE_2D, map.atlas);
+  glBindTexture(GL_TEXTURE_2D, map->atlas);
   glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-  glTexSubImage2D(
-                  GL_TEXTURE_2D,
-                  0,
-                  entry->x,
-                  0,
-                  entry->bmp_w,
-                  entry->bmp_h,
-                  GL_RED,
-                  GL_UNSIGNED_BYTE,
-                  map.face->glyph->bitmap.buffer
-                  );
+  glTexSubImage2D(GL_TEXTURE_2D,
+    0,
+    entry->x,
+    0,
+    entry->bmp_w,
+    entry->bmp_h,
+    GL_RED,
+    GL_UNSIGNED_BYTE,
+    map->face->glyph->bitmap.buffer
+  );
   glGenerateMipmap(GL_TEXTURE_2D);
 
-  map.atlas_draw_offset += entry->bmp_w + 2;
+  map->atlas_draw_offset += entry->bmp_w + 2;
 
   return entry;
 }
 
-Glyph *glyph_map_find_or_add(GlyphMap map, uint32_t codepoint) {
-  Glyph *entry = glyph_map_entry(map, codepoint);
+Glyph *glyph_map_find_or_add(GlyphMap *map, uint32_t codepoint) {
+  Glyph *entry = glyph_map_entry(*map, codepoint);
   if (!entry) return NULL;
   if (entry->populated) return entry;
   else return glyph_map_populate(map, entry, codepoint);
@@ -334,9 +335,12 @@ Glyph *glyph_map_find_or_add(GlyphMap map, uint32_t codepoint) {
 typedef struct GLFace {
   // TODO: Allow multiple sets of these members corresponding to multiple font sizes.
 
+  char * filepath;
+
   // Hash map containing codepoint -> glyph rendering data.
   GlyphMap glyph_map;
   FT_Face ft_face;
+  hb_face_t *hb_face;
   hb_font_t *hb_font;
 } GLFace;
 
@@ -498,6 +502,11 @@ int create_gui() {
   // FIXME: idk lol, I'm not a unix guru
   const char *const facepath = "/usr/share/fonts/Iosevka.ttf";
 #endif
+  g.face.filepath = strdup(facepath);
+  if (!g.face.filepath) {
+    fprintf(stderr, "Could not duplicate facepath\n");
+    return CREATE_GUI_ERR;
+  }
   ft_err = FT_New_Face(g.ft, facepath, 0, &g.face.ft_face);
   if (ft_err) {
     fprintf(stderr, "Could not initialize freetype face from font file at %s, sorry\n", facepath);
@@ -505,9 +514,27 @@ int create_gui() {
   }
   FT_Set_Pixel_Sizes(g.face.ft_face, 0, GLYPH_ATLAS_HEIGHT);
 
+  hb_blob_t *hb_blob = hb_blob_create_from_file(g.face.filepath);
+  if (!hb_blob) {
+    fprintf(stderr, "Could not create harfbuzz blob from font file\n");
+    return CREATE_GUI_ERR;
+  }
+  g.face.hb_face = hb_face_create(hb_blob, 0);
+  if (!g.face.hb_face) {
+    fprintf(stderr, "Could not create harfbuzz face from font blob\n");
+    return CREATE_GUI_ERR;
+  }
+  hb_blob_destroy(hb_blob);
+  g.face.hb_font = hb_font_create(g.face.hb_face);
+  if (!g.face.hb_font) {
+    fprintf(stderr, "Could not create harfbuzz font from face\n");
+    return CREATE_GUI_ERR;
+  }
+  hb_font_set_ppem(g.face.hb_font, 0, GLYPH_ATLAS_HEIGHT);
+
   glyph_map_init(&g.face.glyph_map, g.face.ft_face);
 
-  g.scale = 1.0f;
+  g.scale = 0.2f;
 
   return CREATE_GUI_OK;
 }
@@ -516,6 +543,13 @@ void destroy_gui() {
   if (created) {
     fini_opengl();
     fini_glfw();
+
+    if (g.face.hb_font) hb_font_destroy(g.face.hb_font);
+    if (g.face.hb_face) hb_face_destroy(g.face.hb_face);
+    if (g.face.ft_face) FT_Done_Face(g.face.ft_face);
+    if (g.face.filepath) free(g.face.filepath);
+    // TODO: g.face.glyph_map
+
     created = 0;
   }
 }
@@ -538,28 +572,70 @@ static vec2 pixel_to_screen_coordinates(size_t x, size_t y) {
   return out;
 }
 
-static void draw_glyph(vec2 draw_position, uint32_t codepoint) {
-  if (draw_position.x < 0 || draw_position.y < 0 || draw_position.x >= g.width || draw_position.y >= g.height) {
-    //fprintf(stderr, "Draw position oob");
+/// This function has lost me my sanity, my sleep at nights, my non-
+/// white hair, and a leg. I do not recommend *ever* attempting to do
+/// *anything* like this.
+static void draw_glyph(vec2 draw_position, vec4 color, uint32_t codepoint) {
+  if (draw_position.x >= g.width || draw_position.y >= g.height) {
+    //fprintf(stderr, "Draw position oob\n");
     return;
   }
 
-  Glyph *glyph = glyph_map_find_or_add(g.face.glyph_map, 'E');
+  Glyph *glyph = glyph_map_find_or_add(&g.face.glyph_map, codepoint);
+  float glyph_width = glyph->bmp_w;
+  float glyph_height = glyph->bmp_h;
+  vec2 uv = {glyph->uvx,glyph->uvy};
+  vec2 uvmax = {glyph->uvx_max,glyph->uvy_max};
 
   draw_position.x += g.scale * glyph->bmp_x;
-  draw_position.y += g.scale * (glyph->bmp_y - glyph->bmp_h);
-  if (draw_position.x < 0 || draw_position.y < 0 || draw_position.x >= g.width || draw_position.y >= g.height) {
-    //fprintf(stderr, "Draw position oob 2");
+  draw_position.y += g.scale * (glyph->bmp_y - glyph_height);
+  if (draw_position.x < 0) {
+    if (draw_position.x + glyph_width < 0) {
+      fprintf(stderr, "Draw position off left side, not drawing\n");
+      return;
+    }
+    fprintf(stderr, "Reducing glyph width\n");
+    // Reduce glyph width
+    glyph_width += draw_position.x;
+    // Recalculate starting uv with new width
+    uv.x = (glyph->x + (-draw_position.x)) / GLYPH_ATLAS_WIDTH; //> FIXME: Use `map->atlas_width`; need `GlyphMap *map` parameter.
+    // NOTE: Not really needed since pixel_to_screen_coordinates truncates.
+    draw_position.x = 0;
+  }
+  if (draw_position.y < 0) {
+    if (draw_position.y + glyph_height < 0) {
+      fprintf(stderr, "Draw position off top side, not drawing\n");
+      return;
+    }
+    glyph_height -= (-draw_position.y / g.scale);
+    uv.y -= (-draw_position.y / g.scale) / GLYPH_ATLAS_HEIGHT; //> FIXME: Use `map->atlas_height`; need `GlyphMap *map` parameter.
+    // NOTE: Not really needed since pixel_to_screen_coordinates truncates.
+    draw_position.y = 0;
+  }
+  // Draw position past right/top edge means that there isn't anything to actually draw.
+  if (draw_position.x >= g.width || draw_position.y >= g.height) {
+    //fprintf(stderr, "Draw position oob 2: (%f %f)\n", draw_position.x, draw_position.y);
     return;
   }
-  const vec2 draw_position_max = (vec2){
-    .x = draw_position.x + (g.scale * glyph->bmp_w),
-    .y = draw_position.y + (g.scale * glyph->bmp_h),
+  vec2 draw_position_max = (vec2){
+    .x = draw_position.x + (g.scale * glyph_width),
+    .y = draw_position.y + (g.scale * glyph_height),
   };
 
-  if (draw_position_max.x < 0 || draw_position_max.y < 0 || draw_position_max.x >= g.width || draw_position_max.y >= g.height) {
-    //fprintf(stderr, "Draw pos max oob: (%f %f)   pos: (%f %f)\n", draw_position_max.x, draw_position_max.y, draw_position.x, draw_position.y);
-    return;
+  // If right and top bounds are less than the minimum left and bottom
+  // bounds (0), then that means the glyph is off of the screen entirely.
+  if (draw_position_max.x < 0 || draw_position_max.y < 0) return;
+
+  // If maximum is off the edge of the screen, we need to alter bitmap width/height and UV coordinates.
+  if (draw_position_max.x > g.width) {
+    float diff = draw_position_max.x - g.width;
+    glyph_width -= diff / g.scale;
+    // Use new glyph width to calculate maximum texture uv coordinate.
+    // FIXME: Use `map->atlas_width`; need `GlyphMap *map` parameter.
+    uvmax.x -= ((diff / g.scale) / GLYPH_ATLAS_WIDTH);
+    // Update maximum drawing position to be within bounds.
+    // NOTE: Not really needed since pixel_to_screen_coordinates truncates.
+    draw_position_max.x = g.width;
   }
 
   vec2 screen_position = pixel_to_screen_coordinates(draw_position.x, draw_position.y);
@@ -567,24 +643,147 @@ static void draw_glyph(vec2 draw_position, uint32_t codepoint) {
 
   const Vertex tl = (Vertex){
     .position = screen_position.x, screen_position_max.y,
-    .uv = { glyph->uvx, glyph->uvy_max },
-    .color = { 1.0, 1.0, 1.0, 1.0}
+    .uv = { uv.x, uvmax.y },
+    .color = color
   };
   const Vertex tr = (Vertex){
     .position = screen_position_max.x, screen_position_max.y,
-    .uv = { glyph->uvx_max, glyph->uvy_max },
-    .color = { 1.0, 1.0, 1.0, 1.0} };
+    .uv = { uvmax.x, uvmax.y },
+    .color = color
+  };
   const Vertex bl = (Vertex){
     .position = screen_position.x, screen_position.y,
-    .uv = { glyph->uvx, glyph->uvy },
-    .color = { 1.0, 1.0, 1.0, 1.0} };
+    .uv = { uv.x, uv.y },
+    .color = color
+  };
   const Vertex br = (Vertex){
     .position = screen_position_max.x, screen_position.y,
-    .uv = { glyph->uvx_max, glyph->uvy },
-    .color = { 1.0, 1.0, 1.0, 1.0} };
+    .uv = { uvmax.x, uv.y },
+    .color = color
+  };
 
   r_quad(&g.rend, tl, tr, bl, br);
 }
+
+
+#include <fribidi.h>
+
+// TODO: LTR vs RTL base direction when reordering
+/// Reorder input as UTF8 BIDI text into utf32 codepoints. Update length with amount of elements in output string.
+/// Caller responsible for freeing returnvalue when non-null.
+static uint32_t *bidi_reorder_utf8_to_utf32(const char *const input, size_t *length) {
+  // Convert utf8 to utf32
+  FriBidiChar *fri_input = malloc(sizeof(FriBidiChar) * *length);
+  FriBidiStrIndex fri_length = fribidi_charset_to_unicode(
+    FRIBIDI_CHAR_SET_UTF8, // character set to convert from
+    input,                 // input string encoded in char_set
+    *length,               // input string length
+    fri_input              // output Unicode string
+  );
+  *length = fri_length;
+  // Reorder utf32
+  FriBidiChar *fri_output = malloc(sizeof(FriBidiChar) * fri_length);
+  FriBidiParType base_type = FRIBIDI_TYPE_ON;
+  fribidi_log2vis(
+    fri_input,  //> Unicode input string
+    fri_length, //> Length of input string
+    &base_type, //> Input and output base direction (default)
+    fri_output, //> Unicode output string
+    NULL, //> map of positions in logical string to visual string
+    NULL, //> map of positions in visual string to logical string
+    NULL  //> even numbers indicate LTR characters, odd levels indicate RTL characters
+  );
+  free(fri_input);
+  return fri_output;
+
+  /*
+  printf("fri output: ");
+  for (size_t i = 0; i < fri_length; ++i) {
+    printf("0x%x ", fri_output[i]);
+  }
+  printf("\n");
+  */
+}
+
+// TODO: LTR vs RTL
+static hb_buffer_t *hb_xt_bf_create_utf32(const uint32_t *const utf32, const size_t length) {
+  hb_buffer_t *buf = hb_buffer_create();
+  hb_buffer_set_direction(buf, HB_DIRECTION_LTR);
+  hb_buffer_set_script(buf, HB_SCRIPT_UNKNOWN);
+  hb_buffer_set_language(buf, hb_language_from_string("en", -1));
+  hb_buffer_add_utf32(buf, utf32, length, 0, length);
+  if (!g.face.hb_font) {
+    fprintf(stderr, "Can not shape harfbuzz buffer with NULL harfbuzz font\n");
+    return NULL;
+  }
+  hb_shape(g.face.hb_font, buf, NULL, 0);
+  return buf;
+}
+
+// FIXME: Pass size of codepoints array.
+static void draw_shaped_hb_buffer(const size_t length, const uint32_t *const codepoints, hb_buffer_t *buf, const vec2 starting_position, const vec4 fg_color, const vec4 bg_color) {
+  unsigned int glyph_count = 0;
+  hb_glyph_info_t *glyph_info = hb_buffer_get_glyph_infos(buf, &glyph_count);
+  hb_glyph_position_t *glyph_pos = hb_buffer_get_glyph_positions(buf, &glyph_count);
+  vec2 pos = starting_position;
+  /*if (bg_color.w) {
+    for (unsigned int i = 0; i < glyph_count && i < length; ++i) {
+      vec2 draw_pos = pos;
+      static const float divisor = 64.0f;
+      draw_pos.x += g.scale * glyph_pos[i].x_offset / divisor;
+      draw_pos.y += g.scale * glyph_pos[i].y_offset / divisor;
+      vec2 draw_cursor_advance = {
+        g.scale * glyph_pos[i].x_advance / divisor,
+        g.scale * glyph_pos[i].y_advance / divisor
+      };
+      // TODO: Pass draw_cursor_advance.y when vertical
+      // TODO: Should just calculate full bounding box, then draw bg of that, rather than drawing background of each glyph, right?
+      // TODO: glyph_info[i].codepoint is wrong, it's actually a glyph index. WHY HARFBUZZ, WHY‽
+      draw_codepoint_background(codepoints[i], draw_pos, bg_color, pos, draw_cursor_advance.x);
+      pos.x += draw_cursor_advance.x;
+      pos.y += draw_cursor_advance.y;
+    }
+  }*/
+  if (fg_color.w) {
+    pos = starting_position;
+    for (unsigned int i = 0; i < glyph_count && i < length; ++i) {
+      vec2 draw_pos = pos;
+      static const float divisor = 4.0f;
+      draw_pos.x += g.scale * glyph_pos[i].x_offset / divisor;
+      draw_pos.y += g.scale * glyph_pos[i].y_offset / divisor;
+      vec2 draw_cursor_advance = {
+        g.scale * glyph_pos[i].x_advance / divisor,
+        g.scale * glyph_pos[i].y_advance / divisor
+      };
+      draw_glyph(draw_pos, fg_color, codepoints[i]);
+      pos.x += draw_cursor_advance.x;
+      pos.y += draw_cursor_advance.y;
+    }
+  }
+}
+
+
+static void render_utf32(const uint32_t *const input, size_t input_length, vec2 starting_position, vec4 fg_color, vec4 bg_color) {
+  hb_buffer_t *hb_buf = hb_xt_bf_create_utf32(input, input_length);
+  if (!hb_buf) {
+    fprintf(stderr, "Harfbuzz could not create buffer from reordered utf32 codepoints\n");
+    return;
+  }
+  draw_shaped_hb_buffer(input_length, input, hb_buf, starting_position, fg_color, bg_color);
+  hb_buffer_destroy(hb_buf);
+}
+
+static void render_utf8(const char *const input, size_t input_length, vec2 starting_position, vec4 fg_color, vec4 bg_color) {
+  uint32_t *utf32 = bidi_reorder_utf8_to_utf32(input, &input_length);
+  if (!utf32) {
+    fprintf(stderr, "BIDI could not reorder utf8 to utf32, sorry\n");
+    return;
+  }
+  render_utf32(utf32, input_length, starting_position, fg_color, bg_color);
+  free(utf32);
+}
+
+
 
 void draw_gui(GUIContext *ctx) {
   if (!ctx) return;
@@ -602,7 +801,14 @@ void draw_gui(GUIContext *ctx) {
   r_clear(&g.rend);
 
   vec2 draw_position = {0, 0};
-  draw_glyph(draw_position, 'E');
+  vec4 fg_color = {1.0, 1.0, 1.0, 1.0};
+  vec4 bg_color = {0.0, 0.0, 0.0, 0.0};
+  GUIWindow *window = ctx->windows;
+  while (window) {
+    const char *utf8 = ctx->windows->contents.string;
+    render_utf8(utf8, strlen(utf8), draw_position, fg_color, bg_color);
+    window = window->next;
+  }
 
   r_update(&g.rend);
 
@@ -640,8 +846,13 @@ int change_font(const char *path, size_t size) {
 }
 
 int change_font_size(size_t size) {
-  // TODO
-  return 1;
+  if (!size) return 1;
+  if (size > GLYPH_ATLAS_HEIGHT) {
+    fprintf(stderr, "TODO: Can not set size to %zu as it is greater than glyph atlas height %u; expand glyph atlas height.\n", size, GLYPH_ATLAS_HEIGHT);
+    return 1;
+  }
+  g.scale = (float)size / GLYPH_ATLAS_HEIGHT;
+  return 0;
 }
 
 void window_size(size_t *width, size_t *height) {

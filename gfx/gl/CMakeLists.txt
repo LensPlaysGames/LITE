@@ -5,13 +5,13 @@
 # |-- glfw
 # |-- harfbuzz
 # `-- OpenGL 3.3 or greater
+# Meson (python build system)
 
 # If trouble with submodules, or you just want to do it manually:
 #   $ cd libs
 #   $ git clone https://github.com/glfw/glfw
 #   $ git clone https://github.com/recp/cglm
 #   $ git clone https://github.com/freetype/freetype
-#   $ git clone https://github.com/harfbuzz/harfbuzz
 
 # GLAD
 add_library(
@@ -38,19 +38,18 @@ add_subdirectory(libs/cglm)
 find_package(OpenGL REQUIRED)
 
 # FREETYPE (Font handling, Codepoint -> Bitmap, basic layout)
+set(FT_DISABLE_HARFBUZZ TRUE CACHE BOOL "" FORCE)
 add_subdirectory(libs/freetype)
 
 # HARFBUZZ (Advanced layout, codepoint -> font glyph index)
-set(HB_HAVE_FREETYPE on)
-add_subdirectory(libs/harfbuzz)
-target_compile_options(harfbuzz PRIVATE -w)
-if (CMAKE_C_COMPILER_ID STREQUAL "GNU")
-  target_compile_options(harfbuzz PRIVATE -Wno-error=unused-variable)
-endif()
-
+#set(HB_HAVE_FREETYPE on)
+#add_subdirectory(libs/harfbuzz)
+#target_compile_options(harfbuzz PRIVATE -w)
+#if (CMAKE_C_COMPILER_ID STREQUAL "GNU")
+#  target_compile_options(harfbuzz PRIVATE -Wno-error=unused-variable)
+#endif()
 
 add_library(GL_LIB STATIC src/main.c src/shade.c)
-target_compile_definitions(GL_LIB PUBLIC HB_TINY)
 target_include_directories(
   GL_LIB
   PRIVATE
@@ -62,7 +61,6 @@ target_include_directories(
   libs/glfw/include
   libs/cglm/include
   libs/freetype/include
-  libs/harfbuzz/src
 )
 target_link_libraries(
   GL_LIB
@@ -72,51 +70,111 @@ target_link_libraries(
   glfw
   cglm
   freetype
-  harfbuzz
 )
 
-if (BIDI)
-  # GNU FRIBIDI (Logical to Visual reordering for bidirectional text display)
-  include(ExternalProject)
-  ExternalProject_Add(
-    ext_fribidi
-    PREFIX ${CMAKE_CURRENT_BINARY_DIR}/fribidi
-    GIT_REPOSITORY https://github.com/fribidi/fribidi.git
-    CONFIGURE_COMMAND meson setup . ../ext_fribidi -Dbin=false -Ddocs=false -Dtests=false
-    BUILD_COMMAND meson compile
-    INSTALL_COMMAND ""
-    TEST_COMMAND ""
-  )
+if(WIN32)
+  set(HARFBUZZ_DYLIB_PATH ${CMAKE_CURRENT_BINARY_DIR}/harfbuzz/src/ext_harfbuzz-build/src/libharfbuzz-0.dll CACHE STRING "" FORCE)
+elseif(APPLE)
+  set(HARFBUZZ_DYLIB_PATH ${CMAKE_CURRENT_BINARY_DIR}/harfbuzz/src/ext_harfbuzz-build/src/libharfbuzz-0.dylib CACHE STRING "" FORCE)
+else()
+  set(HARFBUZZ_DYLIB_PATH ${CMAKE_CURRENT_BINARY_DIR}/harfbuzz/src/ext_harfbuzz-build/src/libharfbuzz-0.so CACHE STRING "" FORCE)
+endif()
 
-  add_library(fribidi SHARED IMPORTED)
+include(ExternalProject)
+ExternalProject_Add(
+  ext_harfbuzz
+  PREFIX ${CMAKE_CURRENT_BINARY_DIR}/harfbuzz
+  GIT_REPOSITORY https://github.com/harfbuzz/harfbuzz.git
+  GIT_TAG main # works with 7.0.0
+  CONFIGURE_COMMAND meson setup . ../ext_harfbuzz -Dtests=disabled -Ddocs=disabled -Dintrospection=disabled
+  USES_TERMINAL_CONFIGURE true
+  BUILD_COMMAND meson compile
+  BUILD_BYPRODUCTS ${HARFBUZZ_DYLIB_PATH}
+  USES_TERMINAL_BUILD true
+  INSTALL_COMMAND ""
+  TEST_COMMAND ""
+)
+
+add_library(harfbuzz SHARED IMPORTED)
+add_dependencies(harfbuzz ext_harfbuzz)
+if (EXISTS ${CMAKE_CURRENT_BINARY_DIR}/harfbuzz/src/ext_harfbuzz/src)
+  target_include_directories(
+    harfbuzz
+    INTERFACE
+    ${CMAKE_CURRENT_BINARY_DIR}/harfbuzz/src/ext_harfbuzz/src
+  )
+endif()
+if(WIN32)
+  set_target_properties(
+    harfbuzz PROPERTIES
+    IMPORTED_LOCATION ${HARFBUZZ_DYLIB_PATH}.a
+    IMPORTED_IMPLIB ${HARFBUZZ_DYLIB_PATH}
+  )
+else()
+  set_target_properties(
+    harfbuzz PROPERTIES
+    IMPORTED_LOCATION ${HARFBUZZ_DYLIB_PATH}
+  )
+endif()
+target_link_libraries(GL_LIB PUBLIC harfbuzz)
+
+# GNU FRIBIDI (Logical to Visual reordering for bidirectional text display)
+if(WIN32)
+  set(FRIBIDI_DYLIB_PATH ${CMAKE_CURRENT_BINARY_DIR}/fribidi/src/ext_fribidi-build/lib/libfribidi-0.dll CACHE STRING "" FORCE)
+elseif(APPLE)
+  set(FRIBIDI_DYLIB_PATH ${CMAKE_CURRENT_BINARY_DIR}/fribidi/src/ext_fribidi-build/lib/libfribidi-0.dylib CACHE STRING "" FORCE)
+else()
+  set(FRIBIDI_DYLIB_PATH ${CMAKE_CURRENT_BINARY_DIR}/fribidi/src/ext_fribidi-build/lib/libfribidi-0.so CACHE STRING "" FORCE)
+endif()
+
+ExternalProject_Add(
+  ext_fribidi
+  PREFIX ${CMAKE_CURRENT_BINARY_DIR}/fribidi
+  GIT_REPOSITORY https://github.com/fribidi/fribidi.git
+  CONFIGURE_COMMAND meson setup . ../ext_fribidi -Dbin=false -Ddocs=false -Dtests=false
+  USES_TERMINAL_CONFIGURE true
+  BUILD_COMMAND meson compile
+  BUILD_BYPRODUCTS ${FRIBIDI_DYLIB_PATH}
+  USES_TERMINAL_BUILD true
+  INSTALL_COMMAND ""
+  TEST_COMMAND ""
+)
+
+add_library(fribidi SHARED IMPORTED)
+add_dependencies(fribidi ext_fribidi)
+if (EXISTS ${CMAKE_CURRENT_BINARY_DIR}/fribidi/src/ext_fribidi/lib)
   target_include_directories(
     fribidi
     INTERFACE
-    ${CMAKE_BINARY_DIR}/fribidi/src/ext_fribidi/lib
-    ${CMAKE_BINARY_DIR}/fribidi/src/ext_fribidi-build/lib
-    ${CMAKE_BINARY_DIR}/fribidi/src/ext_fribidi-build/gen.tab
+    ${CMAKE_CURRENT_BINARY_DIR}/fribidi/src/ext_fribidi/lib
   )
-  if(WIN32)
-    set_target_properties(
-      fribidi PROPERTIES
-      IMPORTED_LOCATION ${CMAKE_BINARY_DIR}/fribidi/src/ext_fribidi-build/lib/libfribidi-0.dll.a
-      IMPORTED_IMPLIB ${CMAKE_BINARY_DIR}/fribidi/src/ext_fribidi-build/lib/libfribidi-0.dll
-    )
-  elseif(APPLE)
-    set_target_properties(
-      fribidi PROPERTIES
-      IMPORTED_LOCATION ${CMAKE_BINARY_DIR}/fribidi/src/ext_fribidi-build/lib/libfribidi-0.dylib
-    )
-  else()
-    set_target_properties(
-      fribidi PROPERTIES
-      IMPORTED_LOCATION ${CMAKE_BINARY_DIR}/fribidi/src/ext_fribidi-build/lib/libfribidi-0.so
-    )
-  endif()
-
-  target_compile_definitions(GL_LIB PUBLIC BIDI)
-  target_link_libraries(GL_LIB fribidi)
 endif()
-
+if (EXISTS   ${CMAKE_CURRENT_BINARY_DIR}/fribidi/src/ext_fribidi-build/gen.tab)
+  target_include_directories(
+    fribidi
+    INTERFACE
+      ${CMAKE_CURRENT_BINARY_DIR}/fribidi/src/ext_fribidi-build/gen.tab
+  )
+endif()
+if (EXISTS ${CMAKE_CURRENT_BINARY_DIR}/fribidi/src/ext_fribidi-build/lib)
+  target_include_directories(
+    fribidi
+    INTERFACE
+    ${CMAKE_CURRENT_BINARY_DIR}/fribidi/src/ext_fribidi-build/lib
+)
+endif()
+if(WIN32)
+  set_target_properties(
+    fribidi PROPERTIES
+    IMPORTED_LOCATION ${CMAKE_CURRENT_BINARY_DIR}/fribidi/src/ext_fribidi-build/lib/libfribidi-0.dll.a
+    IMPORTED_IMPLIB ${FRIBIDI_DYLIB_PATH}
+  )
+else()
+  set_target_properties(
+    fribidi PROPERTIES
+    IMPORTED_LOCATION ${FRIBIDI_DYLIB_PATH}
+  )
+endif()
+target_link_libraries(GL_LIB PUBLIC fribidi)
 
 set(LITE_GFX_LIBRARY GL_LIB CACHE INTERNAL "" FORCE)
