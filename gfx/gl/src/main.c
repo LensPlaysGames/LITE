@@ -16,6 +16,17 @@
 
 #include <shade.h>
 
+static size_t count_lines(char *str) {
+  if (!str) return 0;
+  size_t line_count = 0;
+  char *string_iterator = str;
+  do {
+    line_count += 1;
+    string_iterator = strchr(string_iterator + 1, '\n');
+  } while (string_iterator);
+  return line_count;
+}
+
 typedef struct GLColor {
   float r;
   float g;
@@ -282,7 +293,7 @@ static Glyph *glyph_map_populate(GlyphMap *map, Glyph *entry, uint32_t codepoint
   entry->bmp_y = map->face->glyph->bitmap_top;
   entry->uvx = (float)entry->x / map->atlas_width;
   entry->uvy = (float)entry->bmp_h / map->atlas_height;
-  entry->uvx_max = entry->uvx + ((float)entry->bmp_w / map->atlas_width);
+  entry->uvx_max = entry->uvx + ((double)entry->bmp_w / map->atlas_width);
   entry->uvy_max = 0;
   if (entry->uvx_max < entry->uvx) {
     fprintf(stderr, "ERROR: uvx_max lte uvx: %f difference\n", ((float)entry->bmp_w / map->atlas_width));
@@ -396,6 +407,15 @@ static int init_glfw() {
     return CREATE_GUI_ERR;
   }
   glfwSetFramebufferSizeCallback(g.window, framebuffer_size_callback);
+  int w;
+  int h;
+  glfwGetFramebufferSize(g.window, &w, &h);
+  if (w < 0 || h < 0) {
+    fprintf(stderr, "Could not get size of framebuffer\n");
+    return CREATE_GUI_ERR;
+  }
+  g.width = (size_t)w;
+  g.height = (size_t)h;
   glfwSetKeyCallback(g.window, key_callback);
   glfwMakeContextCurrent(g.window);
   return CREATE_GUI_OK;
@@ -497,10 +517,12 @@ int create_gui() {
     return CREATE_GUI_ERR;
   }
 #ifdef _WIN32
-  const char *const facepath = "C:/Windows/Fonts/arial.ttf";
+  const char *const facepath = "C:/Windows/Fonts/DejaVuSansMono.ttf";
 #elif defined(__unix__)
-  // FIXME: idk lol, I'm not a unix guru
-  const char *const facepath = "/usr/share/fonts/Iosevka.ttf";
+  // TODO: Unix kind of sucks at a unified font interface, so we'll
+  // have to use one packaged with LITE instead of defaulting to a
+  // known system font...
+  const char *const facepath = "/usr/share/fonts/DroidSansMono.ttf";
 #endif
   g.face.filepath = strdup(facepath);
   if (!g.face.filepath) {
@@ -512,7 +534,8 @@ int create_gui() {
     fprintf(stderr, "Could not initialize freetype face from font file at %s, sorry\n", facepath);
     return CREATE_GUI_ERR;
   }
-  FT_Set_Pixel_Sizes(g.face.ft_face, 0, GLYPH_ATLAS_HEIGHT);
+  size_t font_height = GLYPH_ATLAS_HEIGHT;
+  FT_Set_Pixel_Sizes(g.face.ft_face, 0, font_height);
 
   hb_blob_t *hb_blob = hb_blob_create_from_file(g.face.filepath);
   if (!hb_blob) {
@@ -530,11 +553,17 @@ int create_gui() {
     fprintf(stderr, "Could not create harfbuzz font from face\n");
     return CREATE_GUI_ERR;
   }
-  hb_font_set_ppem(g.face.hb_font, 0, GLYPH_ATLAS_HEIGHT);
+  hb_font_set_scale(g.face.hb_font, font_height * 64, font_height * 64);
 
   glyph_map_init(&g.face.glyph_map, g.face.ft_face);
 
-  g.scale = 0.2f;
+  // TODO: Get rid of this. I *guess* it could be argued that rendering
+  // the glyphs at a high resolution and then scaling them is a good
+  // thing. In practice, it just makes it really hard to know when to
+  // apply the scaling, as there are already a million god-damned
+  // invisible unit conversions that make me want to bawl my eyes out
+  // so yeah.
+  g.scale = 1.0 / 19.6;
 
   return CREATE_GUI_OK;
 }
@@ -576,47 +605,72 @@ static vec2 pixel_to_screen_coordinates(size_t x, size_t y) {
 /// white hair, and a leg. I do not recommend *ever* attempting to do
 /// *anything* like this.
 static void draw_glyph(vec2 draw_position, vec4 color, uint32_t codepoint) {
+  // TODO: Ensure draw_position_max is also oob.
   if (draw_position.x >= g.width || draw_position.y >= g.height) {
     //fprintf(stderr, "Draw position oob\n");
     return;
   }
 
+  // glyph bitmap is upside down in glyph atlas. uvy is larger than
+  // uvy_max in order to flip it right way up... This is mainly due
+  // to FreeType using top left as (0, 0) origin, where OpenGL uses
+  // bottom left as origin.
+
+  // draw_position is the pixel position we should draw the glyph at.
+
   Glyph *glyph = glyph_map_find_or_add(&g.face.glyph_map, codepoint);
   float glyph_width = glyph->bmp_w;
   float glyph_height = glyph->bmp_h;
-  vec2 uv = {glyph->uvx,glyph->uvy};
-  vec2 uvmax = {glyph->uvx_max,glyph->uvy_max};
+  vec2 uv = {glyph->uvx,glyph->uvy}; //> bottom left
+  vec2 uvmax = {glyph->uvx_max,glyph->uvy_max}; //> top right
 
+  //fprintf(stderr, "'%c':  w:%.2f  h:%.2f  x:%"PRId64"  y:%"PRId64"\n", codepoint, glyph_width, glyph_height, glyph->bmp_x, glyph->bmp_y);
+  // FIXME: I think this may be wrong, as it causes characters to grow and shrink oddly...
   draw_position.x += g.scale * glyph->bmp_x;
-  draw_position.y += g.scale * (glyph->bmp_y - glyph_height);
-  if (draw_position.x < 0) {
-    if (draw_position.x + glyph_width < 0) {
-      fprintf(stderr, "Draw position off left side, not drawing\n");
-      return;
+
+  // bmp_y == top side bearing (distance from baseline to top of glyph) in unscaled bitmap pixels
+  // glyph_height == vertical size of glyph in unscaled bitmap pixels
+  // If we were drawing from the top left, we would just start drawing
+  // at bmp_y, but because OpenGL is bottom left in origin, we have to
+  // set the draw position to this number *subtract* the height of the
+  // glyph we are going to draw, leaving us at the bottom left corner.
+  // FIXME: I think something may be wrong with this calculation, or
+  // something. While it does align glyphs like 'y', it causes a lot of
+  // things to just be misaligned (like `most`).
+  double diff_y_height = glyph->bmp_y - glyph_height;
+  //fprintf(stderr, "%c: y-height=%f\n", codepoint, diff_y_height);
+  draw_position.y += g.scale * diff_y_height;
+
+  { // Truncate draw positions off left and bottom sides
+    if (draw_position.x < 0) {
+      if (draw_position.x + (g.scale * glyph_width) < 0) {
+        //fprintf(stderr, "Draw position off left side, not drawing\n");
+        return;
+      }
+      //fprintf(stderr, "Reducing glyph width\n");
+      // Reduce glyph width
+      glyph_width -= (-draw_position.x / g.scale);
+      // Recalculate starting uv with new width
+      uv.x += (-draw_position.x / g.scale) / GLYPH_ATLAS_WIDTH; //> FIXME: Use `map->atlas_width`; need `GlyphMap *map` parameter.
+      draw_position.x = 0;
     }
-    fprintf(stderr, "Reducing glyph width\n");
-    // Reduce glyph width
-    glyph_width += draw_position.x;
-    // Recalculate starting uv with new width
-    uv.x = (glyph->x + (-draw_position.x)) / GLYPH_ATLAS_WIDTH; //> FIXME: Use `map->atlas_width`; need `GlyphMap *map` parameter.
-    // NOTE: Not really needed since pixel_to_screen_coordinates truncates.
-    draw_position.x = 0;
-  }
-  if (draw_position.y < 0) {
-    if (draw_position.y + glyph_height < 0) {
-      fprintf(stderr, "Draw position off top side, not drawing\n");
-      return;
+    if (draw_position.y < 0) {
+      if (draw_position.y + (g.scale * glyph_height) < 0) {
+        //fprintf(stderr, "Draw position off top side, not drawing\n");
+        return;
+      }
+      glyph_height -= (-draw_position.y / g.scale);
+      uv.y -= (-draw_position.y / g.scale) / GLYPH_ATLAS_HEIGHT; //> FIXME: Use `map->atlas_height`; need `GlyphMap *map` parameter.
+      draw_position.y = 0;
     }
-    glyph_height -= (-draw_position.y / g.scale);
-    uv.y -= (-draw_position.y / g.scale) / GLYPH_ATLAS_HEIGHT; //> FIXME: Use `map->atlas_height`; need `GlyphMap *map` parameter.
-    // NOTE: Not really needed since pixel_to_screen_coordinates truncates.
-    draw_position.y = 0;
   }
+
   // Draw position past right/top edge means that there isn't anything to actually draw.
   if (draw_position.x >= g.width || draw_position.y >= g.height) {
     //fprintf(stderr, "Draw position oob 2: (%f %f)\n", draw_position.x, draw_position.y);
     return;
   }
+
   vec2 draw_position_max = (vec2){
     .x = draw_position.x + (g.scale * glyph_width),
     .y = draw_position.y + (g.scale * glyph_height),
@@ -626,16 +680,27 @@ static void draw_glyph(vec2 draw_position, vec4 color, uint32_t codepoint) {
   // bounds (0), then that means the glyph is off of the screen entirely.
   if (draw_position_max.x < 0 || draw_position_max.y < 0) return;
 
-  // If maximum is off the edge of the screen, we need to alter bitmap width/height and UV coordinates.
-  if (draw_position_max.x > g.width) {
-    float diff = draw_position_max.x - g.width;
-    glyph_width -= diff / g.scale;
-    // Use new glyph width to calculate maximum texture uv coordinate.
-    // FIXME: Use `map->atlas_width`; need `GlyphMap *map` parameter.
-    uvmax.x -= ((diff / g.scale) / GLYPH_ATLAS_WIDTH);
-    // Update maximum drawing position to be within bounds.
-    // NOTE: Not really needed since pixel_to_screen_coordinates truncates.
-    draw_position_max.x = g.width;
+  { // Truncate draw positions off right and top sides
+    if (draw_position_max.x > g.width) {
+      float diff = draw_position_max.x - g.width;
+      glyph_width -= diff / g.scale;
+      // Use new glyph width to calculate maximum texture uv coordinate.
+      // FIXME: Use `map->atlas_width`; need `GlyphMap *map` parameter.
+      uvmax.x -= ((diff / g.scale) / GLYPH_ATLAS_WIDTH);
+      // Update maximum drawing position to be within bounds.
+      // NOTE: Not really needed since pixel_to_screen_coordinates truncates.
+      draw_position_max.x = g.width;
+    }
+    if (draw_position_max.y > g.height) {
+      float diff = draw_position_max.y - g.height;
+      glyph_height -= diff / g.scale;
+      // Use new glyph width to calculate maximum texture uv coordinate.
+      // FIXME: Use `map->atlas_width`; need `GlyphMap *map` parameter.
+      uvmax.y -= ((diff / g.scale) / GLYPH_ATLAS_HEIGHT);
+      // Update maximum drawing position to be within bounds.
+      // NOTE: Not really needed since pixel_to_screen_coordinates truncates.
+      draw_position_max.y = g.height;
+    }
   }
 
   vec2 screen_position = pixel_to_screen_coordinates(draw_position.x, draw_position.y);
@@ -705,12 +770,16 @@ static uint32_t *bidi_reorder_utf8_to_utf32(const char *const input, size_t *len
   */
 }
 
+static float line_height_in_pixels(FT_Face f) {
+  return g.scale * ((double)f->size->metrics.height / 64.0);
+}
+
 // TODO: LTR vs RTL
 static hb_buffer_t *hb_xt_bf_create_utf32(const uint32_t *const utf32, const size_t length) {
   hb_buffer_t *buf = hb_buffer_create();
   hb_buffer_set_direction(buf, HB_DIRECTION_LTR);
   hb_buffer_set_script(buf, HB_SCRIPT_UNKNOWN);
-  hb_buffer_set_language(buf, hb_language_from_string("en", -1));
+  hb_buffer_set_language(buf, hb_language_get_default());
   hb_buffer_add_utf32(buf, utf32, length, 0, length);
   if (!g.face.hb_font) {
     fprintf(stderr, "Can not shape harfbuzz buffer with NULL harfbuzz font\n");
@@ -723,13 +792,13 @@ static hb_buffer_t *hb_xt_bf_create_utf32(const uint32_t *const utf32, const siz
 // FIXME: Pass size of codepoints array.
 static void draw_shaped_hb_buffer(const size_t length, const uint32_t *const codepoints, hb_buffer_t *buf, const vec2 starting_position, const vec4 fg_color, const vec4 bg_color) {
   unsigned int glyph_count = 0;
-  hb_glyph_info_t *glyph_info = hb_buffer_get_glyph_infos(buf, &glyph_count);
   hb_glyph_position_t *glyph_pos = hb_buffer_get_glyph_positions(buf, &glyph_count);
+  const double divisor = 64.0;
   vec2 pos = starting_position;
   /*if (bg_color.w) {
     for (unsigned int i = 0; i < glyph_count && i < length; ++i) {
       vec2 draw_pos = pos;
-      static const float divisor = 64.0f;
+      const double divisor = 64.0;
       draw_pos.x += g.scale * glyph_pos[i].x_offset / divisor;
       draw_pos.y += g.scale * glyph_pos[i].y_offset / divisor;
       vec2 draw_cursor_advance = {
@@ -738,7 +807,6 @@ static void draw_shaped_hb_buffer(const size_t length, const uint32_t *const cod
       };
       // TODO: Pass draw_cursor_advance.y when vertical
       // TODO: Should just calculate full bounding box, then draw bg of that, rather than drawing background of each glyph, right?
-      // TODO: glyph_info[i].codepoint is wrong, it's actually a glyph index. WHY HARFBUZZ, WHY‽
       draw_codepoint_background(codepoints[i], draw_pos, bg_color, pos, draw_cursor_advance.x);
       pos.x += draw_cursor_advance.x;
       pos.y += draw_cursor_advance.y;
@@ -747,17 +815,13 @@ static void draw_shaped_hb_buffer(const size_t length, const uint32_t *const cod
   if (fg_color.w) {
     pos = starting_position;
     for (unsigned int i = 0; i < glyph_count && i < length; ++i) {
-      vec2 draw_pos = pos;
-      static const float divisor = 4.0f;
-      draw_pos.x += g.scale * glyph_pos[i].x_offset / divisor;
-      draw_pos.y += g.scale * glyph_pos[i].y_offset / divisor;
-      vec2 draw_cursor_advance = {
-        g.scale * glyph_pos[i].x_advance / divisor,
-        g.scale * glyph_pos[i].y_advance / divisor
+      vec2 draw_pos = {
+        pos.x + ((glyph_pos[i].x_offset / divisor) * g.scale),
+        pos.y + ((glyph_pos[i].y_offset / divisor) * g.scale),
       };
       draw_glyph(draw_pos, fg_color, codepoints[i]);
-      pos.x += draw_cursor_advance.x;
-      pos.y += draw_cursor_advance.y;
+      pos.x += (glyph_pos[i].x_advance / divisor) * g.scale;
+      pos.y += (glyph_pos[i].y_advance / divisor) * g.scale;
     }
   }
 }
@@ -783,10 +847,63 @@ static void render_utf8(const char *const input, size_t input_length, vec2 start
   free(utf32);
 }
 
+static void render_lines_utf8(const char *const input, size_t input_length, vec2 starting_position, vec4 fg_color, vec4 bg_color) {
+  // Get to end of line.
+  const char *string = input;
+  size_t offset = 0;
+  size_t rendered_offset = 0;
+  size_t last_newline_offset = -1;
+  vec2 destination = starting_position;
+  char cr_skip = 0;
+  for (;;) {
 
+    char c = *string;
+    if (c == '\r' && *(string + 1) == '\n') {
+      cr_skip = 1;
+    } else if (c == '\n') {
+      size_t start_of_line_offset = last_newline_offset + 1; // TODO: + horizontal_offset
+
+      // Current line hidden entirely by horizontal scrolling
+      if (start_of_line_offset > offset) break;
+
+      // Calculate amount of bytes within the current line.
+      size_t bytes_to_render = offset - last_newline_offset;
+      // Exclude newline (LF or CRLF)
+      bytes_to_render -= 1 + cr_skip;
+      if (input[start_of_line_offset] != '\0') {
+        // Render entire line using defaults.
+        render_utf8(input + start_of_line_offset, bytes_to_render, destination, fg_color, bg_color);
+      }
+
+      cr_skip = 0;
+      destination.y -= line_height_in_pixels(g.face.ft_face); // TODO: Better face selection
+      last_newline_offset = offset;
+      // TODO: Use bounding rectangle parameter to properly calculate out-of-bounds.
+      // Stop if drawing offscreen entirely.
+      if (destination.y <= 0 - line_height_in_pixels(g.face.ft_face)) break;
+    }
+    string++;
+    offset++;
+    if (offset >= input_length) break;
+  }
+  // Draw from last_newline_offset to offset (handle bytes at end of string with no newline or null terminator)
+  if (last_newline_offset != offset) {
+    size_t start_of_line_offset = last_newline_offset + 1; // TODO: + horizontal_offset
+    // Hidden entirely by horizontal scrolling
+    if (start_of_line_offset > offset) return;
+    // Calculate amount of bytes that have yet to be drawn.
+    size_t bytes_to_render = offset - last_newline_offset;
+    // Exclude newline (LF or CRLF)
+    bytes_to_render -= 1 + cr_skip;
+    if (input[start_of_line_offset] != '\0') {
+      // Render entire line using defaults.
+      render_utf8(input + start_of_line_offset, bytes_to_render, destination, fg_color, bg_color);
+    }
+  }
+}
 
 void draw_gui(GUIContext *ctx) {
-  if (!ctx) return;
+  if (!created || !ctx) return;
   if (ctx->title) {
     glfwSetWindowTitle(g.window, ctx->title);
     ctx->title = NULL;
@@ -800,13 +917,23 @@ void draw_gui(GUIContext *ctx) {
 
   r_clear(&g.rend);
 
-  vec2 draw_position = {0, 0};
+  size_t footline_line_count = count_lines(ctx->footline.string);
+  size_t footline_height = line_height_in_pixels(g.face.ft_face) * footline_line_count;
+
+  size_t contents_height = g.height - footline_height;
+
+  // TODO: Use above data about layout to feed proper bounds to rendering functions...
+
   vec4 fg_color = {1.0, 1.0, 1.0, 1.0};
   vec4 bg_color = {0.0, 0.0, 0.0, 0.0};
   GUIWindow *window = ctx->windows;
   while (window) {
-    const char *utf8 = ctx->windows->contents.string;
-    render_utf8(utf8, strlen(utf8), draw_position, fg_color, bg_color);
+    const char *utf8 = window->contents.string;
+    vec2 draw_position = {
+      (window->posx / 100.0) * g.width,
+      ((1 + g.height) - ((window->posy / 100.0) * g.height)) - line_height_in_pixels(g.face.ft_face),
+    };
+    render_lines_utf8(utf8, strlen(utf8), draw_position, fg_color, bg_color);
     window = window->next;
   }
 
@@ -851,7 +978,19 @@ int change_font_size(size_t size) {
     fprintf(stderr, "TODO: Can not set size to %zu as it is greater than glyph atlas height %u; expand glyph atlas height.\n", size, GLYPH_ATLAS_HEIGHT);
     return 1;
   }
-  g.scale = (float)size / GLYPH_ATLAS_HEIGHT;
+  // TODO: This sucks. Should create new font from current one, set new
+  // size, allocate new glyphmap, etc, then use that font. Save old one
+  // in case we need to switch back to it.
+  FT_Error ft_err = FT_Set_Pixel_Sizes(g.face.ft_face, 0, size);
+  if (ft_err) {
+    fprintf(stderr, "[GFX]: An error occured when trying to set pixel size of face using FT_Set_Pixel_Sizes");
+    return 1;
+  }
+  hb_font_set_scale(g.face.hb_font, size * 64, size * 64);
+
+  g.face.glyph_map.glyph_count = 0;
+  memset(g.face.glyph_map.glyphs, 0, sizeof(*g.face.glyph_map.glyphs) * g.face.glyph_map.glyph_capacity);
+
   return 0;
 }
 
