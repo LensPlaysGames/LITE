@@ -630,6 +630,8 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
     string[max_size - 1] = '\0';
     handle_keydown(string);
   }
+  // Re-entering gui_loop is sketchy
+  if (action == GLFW_REPEAT) gui_loop();
 # undef max_size
 }
 void window_refresh_callback(GLFWwindow *window) {
@@ -1571,8 +1573,8 @@ void draw_gui(GUIContext *ctx) {
 int do_gui(GUIContext *ctx) {
   if (!ctx) return 0;
 
-  handle_events();
-  if (glfwWindowShouldClose(g.window)) return 0;
+  //handle_events();
+  //if (glfwWindowShouldClose(g.window)) return 0;
 
   draw_gui(ctx);
 
