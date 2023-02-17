@@ -868,6 +868,10 @@ static void draw_codepoint_background(vec2 draw_position, vec2 draw_cursor_posit
 
   float glyph_width = glyph->bmp_w;
   float glyph_height = glyph->bmp_h;
+  // TODO: It is *absolutely idiotic* to draw a block glyph for the
+  // background. We should just make a g.smpl that has a solid-color
+  // shader that we can use, and we won't have to deal with sampling a
+  // texture or UVs at all.
   Glyph *block_glyph = glyph_map_find_or_add(&g.face.glyph_map, '-');
   if (!block_glyph) return;
   // TODO: Scale small offset based on glyph atlas size.
@@ -1030,6 +1034,9 @@ static void draw_codepoint(vec2 draw_position, vec4 color, uint32_t codepoint) {
     return;
   }
 
+  // floor (TODO: handle vert. text)
+  draw_position.x = (size_t)draw_position.x + 0.5;
+
   vec2 draw_position_max = (vec2){
     .x = draw_position.x + (g.scale * glyph_width),
     .y = draw_position.y + (g.scale * glyph_height),
@@ -1061,6 +1068,9 @@ static void draw_codepoint(vec2 draw_position, vec4 color, uint32_t codepoint) {
       draw_position_max.y = g.height;
     }
   }
+
+  // floor (TODO: handle vert. text)
+  draw_position_max.x = (size_t)draw_position_max.x + 0.5;
 
   vec2 screen_position = pixel_to_screen_coordinates(draw_position.x, draw_position.y);
   vec2 screen_position_max = pixel_to_screen_coordinates(draw_position_max.x, draw_position_max.y);
