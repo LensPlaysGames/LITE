@@ -109,7 +109,10 @@ static void r_vertex(Renderer *r, Vertex v) {
   }
   // Expand if need be
   if (r->vertex_count + 1 >= r->vertex_capacity) {
-    r->vertex_capacity <<= 1; // multiply by 2
+    size_t new_capacity = r->vertex_capacity * 2;
+    printf("[GFX]:TEXT_RENDER: Vertex capacity increasing from %zu to %zu (%zu to %zu bytes)\n",
+           r->vertex_capacity, new_capacity, sizeof(Vertex) * r->vertex_capacity, sizeof(Vertex) * new_capacity);
+    r->vertex_capacity = new_capacity;
     Vertex *new_vertices = realloc(r->vertices, sizeof(Vertex) * r->vertex_capacity);
     if (!new_vertices) {
       fprintf(stderr, "[GFX]:ERROR: Could not reallocate more vertices...\n");
@@ -684,7 +687,7 @@ static int init_opengl() {
   glGenBuffers(1, &g.rend.vbo);
 
   g.rend.vertex_count = 0;
-  g.rend.vertex_capacity = ((2 << 16) / sizeof(Vertex));
+  g.rend.vertex_capacity = ((2 << 20) / sizeof(Vertex));
   g.rend.vertices = malloc(sizeof(*g.rend.vertices) * g.rend.vertex_capacity);
 
   glBindVertexArray(g.rend.vao);
