@@ -209,12 +209,8 @@ int handle_character_dn_modifiers(Atom current_keymap, size_t *keybind_recurse_c
 
 void handle_keydown(char *keystring) {
   int debug_keybinding = env_non_nil(*genv(), make_sym("DEBUG/KEYBINDING"));
-  if (debug_keybinding) {
-    printf("Keydown: %s\n", keystring ? keystring : "NULL");
-  }
-  if (!keystring) {
-    return;
-  }
+  if (debug_keybinding) printf("Keydown: %s\n", keystring ? keystring : "NULL");
+  if (!keystring) return;
   const size_t keybind_recurse_limit = 256;
   size_t keybind_recurse_count = 0;
   // Get current keymap from LISP environment.

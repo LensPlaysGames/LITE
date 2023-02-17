@@ -1,4 +1,6 @@
+#include <api.h>
 #include <gui.h>
+#include <keystrings.h>
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
@@ -8,6 +10,7 @@
 #include <hb.h>
 #include <hb-ft.h>
 
+#include <ctype.h>
 #include <inttypes.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -378,13 +381,230 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
   g.height = (size_t)height;
   glViewport(0, 0, g.width, g.height);
 }
+// Returns GUI_MODKEY_MAX for any key that is not a modifier,
+// otherwise returns the corresponding GUI_MODKEY_* enum.
+static GUIModifierKey is_modifier(int key) {
+  switch (key) {
+  default: return GUI_MODKEY_MAX;
+  case GLFW_KEY_LEFT_SUPER:    return GUI_MODKEY_LSUPER;
+  case GLFW_KEY_RIGHT_SUPER:   return GUI_MODKEY_RSUPER;
+  case GLFW_KEY_LEFT_CONTROL:  return GUI_MODKEY_LCTRL;
+  case GLFW_KEY_RIGHT_CONTROL: return GUI_MODKEY_RCTRL;
+  case GLFW_KEY_LEFT_ALT:      return GUI_MODKEY_LALT;
+  case GLFW_KEY_RIGHT_ALT:     return GUI_MODKEY_RALT;
+  case GLFW_KEY_LEFT_SHIFT:    return GUI_MODKEY_LSHIFT;
+  case GLFW_KEY_RIGHT_SHIFT:   return GUI_MODKEY_RSHIFT;
+  }
+}
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
-  // TODO: Lots of keystring stuff...
+  GUIModifierKey mod;
+  if ((mod = is_modifier(key)) != GUI_MODKEY_MAX) {
+    if (action == GLFW_PRESS)
+      handle_modifier_dn(mod);
+    else if (action == GLFW_RELEASE)
+      handle_modifier_up(mod);
+    return;
+  }
+
+  // GLFW is stupid and sends uppercase letters no matter what for some ungodly reason.
+  if ((mods & GLFW_MOD_SHIFT) == 0 && isupper(key))
+    key = tolower(key);
+
+  # define max_size 32
+  char string[max_size] = {0};
   if (action == GLFW_PRESS) {
     switch (key) {
-    default: return;
+    case GLFW_KEY_ENTER:
+      strncpy(string, LITE_KEYSTRING_RETURN, max_size);
+      break;
+    case GLFW_KEY_BACKSPACE:
+      strncpy(string, LITE_KEYSTRING_BACKSPACE, max_size);
+      break;
+    case GLFW_KEY_TAB:
+      strncpy(string, LITE_KEYSTRING_TAB, max_size);
+      break;
+    case GLFW_KEY_CAPS_LOCK:
+      strncpy(string, LITE_KEYSTRING_CAPSLOCK, max_size);
+      break;
+    case GLFW_KEY_ESCAPE:
+      strncpy(string, LITE_KEYSTRING_ESCAPE, max_size);
+      break;
+    case GLFW_KEY_INSERT:
+      strncpy(string, LITE_KEYSTRING_INSERT, max_size);
+      break;
+    case GLFW_KEY_DELETE:
+      strncpy(string, LITE_KEYSTRING_DELETE, max_size);
+      break;
+    case GLFW_KEY_HOME:
+      strncpy(string, LITE_KEYSTRING_HOME, max_size);
+      break;
+    case GLFW_KEY_END:
+      strncpy(string, LITE_KEYSTRING_END, max_size);
+      break;
+    case GLFW_KEY_PAGE_UP:
+      strncpy(string, LITE_KEYSTRING_PAGE_UP, max_size);
+      break;
+    case GLFW_KEY_PAGE_DOWN:
+      strncpy(string, LITE_KEYSTRING_PAGE_DOWN, max_size);
+      break;
+    case GLFW_KEY_LEFT:
+      strncpy(string, LITE_KEYSTRING_LEFT_ARROW, max_size);
+      break;
+    case GLFW_KEY_RIGHT:
+      strncpy(string, LITE_KEYSTRING_RIGHT_ARROW, max_size);
+      break;
+    case GLFW_KEY_UP:
+      strncpy(string, LITE_KEYSTRING_UP_ARROW, max_size);
+      break;
+    case GLFW_KEY_DOWN:
+      strncpy(string, LITE_KEYSTRING_DOWN_ARROW, max_size);
+      break;
+    case GLFW_KEY_SCROLL_LOCK:
+      strncpy(string, LITE_KEYSTRING_SCROLL_LOCK, max_size);
+      break;
+    case GLFW_KEY_PAUSE:
+      strncpy(string, LITE_KEYSTRING_PAUSE, max_size);
+      break;
+    case GLFW_KEY_PRINT_SCREEN:
+      strncpy(string, LITE_KEYSTRING_PRINT_SCREEN, max_size);
+      break;
+    case GLFW_KEY_NUM_LOCK:
+      strncpy(string, LITE_KEYSTRING_NUMPAD_LOCK, max_size);
+      break;
+    case GLFW_KEY_F1:
+      strncpy(string, LITE_KEYSTRING_F1, max_size);
+      break;
+    case GLFW_KEY_F2:
+      strncpy(string, LITE_KEYSTRING_F2, max_size);
+      break;
+    case GLFW_KEY_F3:
+      strncpy(string, LITE_KEYSTRING_F3, max_size);
+      break;
+    case GLFW_KEY_F4:
+      strncpy(string, LITE_KEYSTRING_F4, max_size);
+      break;
+    case GLFW_KEY_F5:
+      strncpy(string, LITE_KEYSTRING_F5, max_size);
+      break;
+    case GLFW_KEY_F6:
+      strncpy(string, LITE_KEYSTRING_F6, max_size);
+      break;
+    case GLFW_KEY_F7:
+      strncpy(string, LITE_KEYSTRING_F7, max_size);
+      break;
+    case GLFW_KEY_F8:
+      strncpy(string, LITE_KEYSTRING_F8, max_size);
+      break;
+    case GLFW_KEY_F9:
+      strncpy(string, LITE_KEYSTRING_F9, max_size);
+      break;
+    case GLFW_KEY_F10:
+      strncpy(string, LITE_KEYSTRING_F10, max_size);
+      break;
+    case GLFW_KEY_F11:
+      strncpy(string, LITE_KEYSTRING_F11, max_size);
+      break;
+    case GLFW_KEY_F12:
+      strncpy(string, LITE_KEYSTRING_F12, max_size);
+      break;
+    case GLFW_KEY_F13:
+      strncpy(string, LITE_KEYSTRING_F13, max_size);
+      break;
+    case GLFW_KEY_F14:
+      strncpy(string, LITE_KEYSTRING_F14, max_size);
+      break;
+    case GLFW_KEY_F15:
+      strncpy(string, LITE_KEYSTRING_F15, max_size);
+      break;
+    case GLFW_KEY_F16:
+      strncpy(string, LITE_KEYSTRING_F16, max_size);
+      break;
+    case GLFW_KEY_F17:
+      strncpy(string, LITE_KEYSTRING_F17, max_size);
+      break;
+    case GLFW_KEY_F18:
+      strncpy(string, LITE_KEYSTRING_F18, max_size);
+      break;
+    case GLFW_KEY_F19:
+      strncpy(string, LITE_KEYSTRING_F19, max_size);
+      break;
+    case GLFW_KEY_F20:
+      strncpy(string, LITE_KEYSTRING_F20, max_size);
+      break;
+    case GLFW_KEY_F21:
+      strncpy(string, LITE_KEYSTRING_F21, max_size);
+      break;
+    case GLFW_KEY_F22:
+      strncpy(string, LITE_KEYSTRING_F22, max_size);
+      break;
+    case GLFW_KEY_F23:
+      strncpy(string, LITE_KEYSTRING_F23, max_size);
+      break;
+    case GLFW_KEY_F24:
+      strncpy(string, LITE_KEYSTRING_F24, max_size);
+      break;
+    case GLFW_KEY_KP_0:
+      strncpy(string, LITE_KEYSTRING_NUMPAD_0, max_size);
+      break;
+    case GLFW_KEY_KP_1:
+      strncpy(string, LITE_KEYSTRING_NUMPAD_1, max_size);
+      break;
+    case GLFW_KEY_KP_2:
+      strncpy(string, LITE_KEYSTRING_NUMPAD_2, max_size);
+      break;
+    case GLFW_KEY_KP_3:
+      strncpy(string, LITE_KEYSTRING_NUMPAD_3, max_size);
+      break;
+    case GLFW_KEY_KP_4:
+      strncpy(string, LITE_KEYSTRING_NUMPAD_4, max_size);
+      break;
+    case GLFW_KEY_KP_5:
+      strncpy(string, LITE_KEYSTRING_NUMPAD_5, max_size);
+      break;
+    case GLFW_KEY_KP_6:
+      strncpy(string, LITE_KEYSTRING_NUMPAD_6, max_size);
+      break;
+    case GLFW_KEY_KP_7:
+      strncpy(string, LITE_KEYSTRING_NUMPAD_7, max_size);
+      break;
+    case GLFW_KEY_KP_8:
+      strncpy(string, LITE_KEYSTRING_NUMPAD_8, max_size);
+      break;
+    case GLFW_KEY_KP_9:
+      strncpy(string, LITE_KEYSTRING_NUMPAD_0, max_size);
+      break;
+      // Unclear whether this means the decimal key (as in the radix)
+      // or if it means the full stop key/dot '.'.
+    case GLFW_KEY_KP_DECIMAL:
+      strncpy(string, LITE_KEYSTRING_NUMPAD_DOT, max_size);
+      break;
+    case GLFW_KEY_KP_ENTER:
+      strncpy(string, LITE_KEYSTRING_NUMPAD_RETURN, max_size);
+      break;
+    case GLFW_KEY_KP_ADD:
+      strncpy(string, LITE_KEYSTRING_NUMPAD_PLUS, max_size);
+      break;
+    case GLFW_KEY_KP_SUBTRACT:
+      strncpy(string, LITE_KEYSTRING_NUMPAD_MINUS, max_size);
+      break;
+    case GLFW_KEY_KP_MULTIPLY:
+      strncpy(string, LITE_KEYSTRING_NUMPAD_MULTIPLY, max_size);
+      break;
+    case GLFW_KEY_KP_DIVIDE:
+      strncpy(string, LITE_KEYSTRING_NUMPAD_DIVIDE, max_size);
+      break;
+    case GLFW_KEY_KP_EQUAL:
+      strncpy(string, LITE_KEYSTRING_NUMPAD_EQUALS, max_size);
+      break;
+    default:
+      memcpy(string, &key, sizeof(key));
+      string[sizeof(key)] = '\0';
+      break;
     }
+    string[max_size - 1] = '\0';
+    handle_keydown(string);
   }
+# undef max_size
 }
 
 
@@ -771,7 +991,7 @@ static uint32_t *bidi_reorder_utf8_to_utf32(const char *const input, size_t *len
 }
 
 static float line_height_in_pixels(FT_Face f) {
-  return g.scale * ((double)f->size->metrics.height / 64.0);
+  return g.scale * (f->size->metrics.height / 64.0);
 }
 
 // TODO: LTR vs RTL
@@ -789,8 +1009,47 @@ static hb_buffer_t *hb_xt_bf_create_utf32(const uint32_t *const utf32, const siz
   return buf;
 }
 
-// FIXME: Pass size of codepoints array.
-static void draw_shaped_hb_buffer(const size_t length, const uint32_t *const codepoints, hb_buffer_t *buf, const vec2 starting_position, const vec4 fg_color, const vec4 bg_color) {
+/// Return size of shaped harfbuzz buffer in screen pixels
+static vec2 measure_shaped_hb_buffer(const size_t length, const uint32_t *const codepoints, hb_buffer_t *const buf) {
+  unsigned int glyph_count = 0;
+  hb_glyph_position_t *glyph_pos = hb_buffer_get_glyph_positions(buf, &glyph_count);
+  vec2 pos = {0};
+  GLfloat least_x = 0;
+  GLfloat most_x = 0;
+  GLfloat least_y = 0;
+  GLfloat most_y = 0;
+  for (unsigned int i = 0; i < glyph_count; ++i) {
+    static const double divisor = 64.0;
+    pos.x += g.scale * glyph_pos[i].x_advance / divisor;
+    pos.y += g.scale * glyph_pos[i].y_advance / divisor;
+    if (pos.x < least_x) least_x = pos.x;
+    if (pos.x > most_x) most_x = pos.x;
+    if (pos.y < least_y) least_y = pos.y;
+    if (pos.y > most_y) most_y = pos.y;
+    Glyph *glyph = glyph_map_find_or_add(&g.face.glyph_map, codepoints[i]);
+    vec2 draw_pos = pos;
+    draw_pos.x += g.scale * glyph_pos[i].x_offset / divisor;
+    draw_pos.y += g.scale * glyph_pos[i].y_offset / divisor;
+    if (draw_pos.x < least_x) least_x = draw_pos.x;
+    if (draw_pos.x > most_x) most_x = draw_pos.x;
+    if (draw_pos.y < least_y) least_y = draw_pos.y;
+    if (draw_pos.y > most_y) most_y = draw_pos.y;
+    vec2 draw_pos_max = (vec2){
+      .x = draw_pos.x + (g.scale * glyph->bmp_w),
+      .y = draw_pos.y + (g.scale * glyph->bmp_h),
+    };
+    if (draw_pos_max.x < least_x) least_x = draw_pos_max.x;
+    if (draw_pos_max.x > most_x) most_x = draw_pos_max.x;
+    if (draw_pos_max.y < least_y) least_y = draw_pos_max.y;
+    if (draw_pos_max.y > most_y) most_y = draw_pos_max.y;
+  }
+  return (vec2){
+    .x = most_x - least_x,
+    .y = most_y - least_y,
+  };
+}
+
+static void draw_shaped_hb_buffer(const size_t length, const uint32_t *const codepoints, hb_buffer_t *const buf, const vec2 starting_position, const vec4 fg_color, const vec4 bg_color) {
   unsigned int glyph_count = 0;
   hb_glyph_position_t *glyph_pos = hb_buffer_get_glyph_positions(buf, &glyph_count);
   const double divisor = 64.0;
@@ -798,7 +1057,6 @@ static void draw_shaped_hb_buffer(const size_t length, const uint32_t *const cod
   /*if (bg_color.w) {
     for (unsigned int i = 0; i < glyph_count && i < length; ++i) {
       vec2 draw_pos = pos;
-      const double divisor = 64.0;
       draw_pos.x += g.scale * glyph_pos[i].x_offset / divisor;
       draw_pos.y += g.scale * glyph_pos[i].y_offset / divisor;
       vec2 draw_cursor_advance = {
@@ -1002,9 +1260,19 @@ void window_size(size_t *width, size_t *height) {
 
 void window_size_row_col(size_t *rows, size_t *cols) {
   if (!rows || !cols) return;
-  // TODO: measure
-  *rows = 1;
-  *cols = 1;
+  uint32_t M = 'M';
+  hb_buffer_t *hb_buf = hb_xt_bf_create_utf32(&M, 1);
+  if (!hb_buf) {
+    fprintf(stderr, "Harfbuzz could not create buffer from utf32 codepoints to get size of 'M'\n");
+    return;
+  }
+  vec2 emsize = measure_shaped_hb_buffer(1, &M, hb_buf);
+  // Prevent divide by zero
+  if (emsize.x == 0 || emsize.y == 0) return;
+  hb_buffer_destroy(hb_buf);
+  window_size(cols, rows);
+  *cols /= emsize.x;
+  *rows /= emsize.y;
 }
 
 void change_window_size(size_t width, size_t height) {
@@ -1015,9 +1283,23 @@ void change_window_size(size_t width, size_t height) {
   // Need to get pixel coordinates and screen coordinates, compare to
   // get ratio (separately for each coordinate), then multiply input by
   // that in order to set proper size...
-  //glfwSetFramebufferSize(g.window, g.width, g.height);
+  int fb_width;
+  int fb_height;
+  glfwGetFramebufferSize(g.window, &fb_width, &fb_height);
+  // Prevent divide by zero
+  if (!fb_width || !fb_height) return;
 
-  //glViewport(0, 0, g.width, g.height);
+  int win_width;
+  int win_height;
+  glfwGetWindowSize(g.window, &win_width, &win_height);
+
+  // for every 1 fb_width there are win_to_fb_w win_widths...
+  double win_to_fb_w = (double)win_width / fb_width;
+  double win_to_fb_h = (double)win_height / fb_height;
+
+  glfwSetWindowSize(g.window, g.width * win_to_fb_w, g.height * win_to_fb_h);
+
+  glViewport(0, 0, g.width, g.height);
 }
 
 void set_clipboard_utf8(const char *data) {
