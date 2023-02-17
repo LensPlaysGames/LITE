@@ -63,6 +63,7 @@ typedef struct vec4 {
   GLfloat w;
 } vec4;
 #define vec4_from_gl(c) (vec4){ .x = c.r, .y = c.g, .z = c.b, .w = c.a }
+#define vec4_from_gui(c) (vec4){ .x = (double)c.r / UINT8_MAX, .y = (double)c.g / UINT8_MAX, .z = (double)c.b / UINT8_MAX, .w = (double)c.a / UINT8_MAX }
 
 typedef struct Vertex {
   vec2 position;
@@ -1421,9 +1422,7 @@ static void draw_gui_string_within_rect(const GUIString gui_string, vec2 xy, vec
           */
 
           // Get colors for propertized text from text property.
-          GLColor prop_fg = glcolor_from_gui(it->fg);
-          GLColor prop_bg = glcolor_from_gui(it->bg);
-          render_utf32(propertized_text, propertized_text_length, prop_xy, vec4_from_gl(prop_fg), vec4_from_gl(prop_bg));
+          render_utf32(propertized_text, propertized_text_length, prop_xy, vec4_from_gui(it->fg), vec4_from_gui(it->bg));
           free(propertized_text);
         }
       }
