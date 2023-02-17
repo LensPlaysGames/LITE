@@ -275,6 +275,7 @@ Glyph *glyph_map_entry(GlyphMap map, uint32_t codepoint) {
       return entry;
     }
   }
+  fprintf(stderr, "[GFX]:ERROR: Out of glyph entries in glyph map. TODO: Expand glyph map capacity\n");
   return NULL;
 }
 
@@ -322,11 +323,11 @@ static Glyph *glyph_map_populate(GlyphMap *map, Glyph *entry, uint32_t codepoint
     return NULL;
   }
   if (map->atlas_draw_offset + entry->bmp_w >= map->atlas_width) {
-    fprintf(stderr, "TODO: Expand glyph atlas texture width-wise.");
+    fprintf(stderr, "TODO: Expand glyph atlas texture width-wise.\n");
     return NULL;
   }
   if (entry->bmp_h > map->atlas_height) {
-    fprintf(stderr, "TODO: Expand glyph atlas height-wise.");
+    fprintf(stderr, "TODO: Expand glyph atlas height-wise.\n");
     return NULL;
   }
   glBindTexture(GL_TEXTURE_2D, map->atlas);
@@ -799,7 +800,8 @@ int create_gui() {
   // apply the scaling, as there are already a million god-damned
   // invisible unit conversions that make me want to bawl my eyes out
   // so yeah.
-  g.scale = 1.0 / 19.6;
+  //g.scale = 1.0 / 19.6;
+  g.scale = 1.0 / 32;
 
   return CREATE_GUI_OK;
 }
@@ -851,15 +853,17 @@ static void draw_codepoint_background(vec2 draw_position, vec2 draw_cursor_posit
   };
 
   Glyph *glyph = glyph_map_find_or_add(&g.face.glyph_map, codepoint);
+  if (!glyph) return;
   float new_posx = draw_position.x + g.scale * glyph->bmp_x;
   if (new_posx < bg_pos.x) bg_pos.x = new_posx;
 
   float glyph_width = glyph->bmp_w;
   float glyph_height = glyph->bmp_h;
   Glyph *block_glyph = glyph_map_find_or_add(&g.face.glyph_map, '-');
+  if (!block_glyph) return;
   // TODO: Scale small offset based on glyph atlas size.
-  const vec2 uv = {block_glyph->uvx, block_glyph->uvy};
-  const vec2 uvmax = {block_glyph->uvx_max, block_glyph->uvy_max};
+  const vec2 uv = {block_glyph->uvx + 0.005, block_glyph->uvy - 0.005};
+  const vec2 uvmax = {block_glyph->uvx_max - 0.005, block_glyph->uvy_max + 0.005};
 
   // TODO: Handle vertical by doing line height calculation for x and using advance for y.
   vec2 bg_posmax = (vec2){
@@ -958,6 +962,7 @@ static void draw_codepoint(vec2 draw_position, vec4 color, uint32_t codepoint) {
   // draw_position is the pixel position we should draw the glyph at.
 
   Glyph *glyph = glyph_map_find_or_add(&g.face.glyph_map, codepoint);
+  if (!glyph) return;
   float glyph_width = glyph->bmp_w;
   float glyph_height = glyph->bmp_h;
   vec2 uv = {glyph->uvx,glyph->uvy}; //> bottom left
@@ -1133,8 +1138,8 @@ static vec2 measure_shaped_hb_buffer(const size_t length, const uint32_t *const 
   GLfloat most_x = 0;
   GLfloat least_y = 0;
   GLfloat most_y = 0;
+  static const double divisor = 64.0;
   for (unsigned int i = 0; i < glyph_count && i < length; ++i) {
-    static const double divisor = 64.0;
     pos.x += g.scale * glyph_pos[i].x_advance / divisor;
     pos.y += g.scale * glyph_pos[i].y_advance / divisor;
     if (pos.x < least_x) least_x = pos.x;
@@ -1142,6 +1147,7 @@ static vec2 measure_shaped_hb_buffer(const size_t length, const uint32_t *const 
     if (pos.y < least_y) least_y = pos.y;
     if (pos.y > most_y) most_y = pos.y;
     Glyph *glyph = glyph_map_find_or_add(&g.face.glyph_map, codepoints[i]);
+    if (!glyph) continue;
     vec2 draw_pos = pos;
     draw_pos.x += g.scale * glyph_pos[i].x_offset / divisor;
     draw_pos.y += g.scale * glyph_pos[i].y_offset / divisor;
@@ -1518,18 +1524,13 @@ void draw_gui(GUIContext *ctx) {
       ((1 + g.height) - ((window->posy / 100.0) * g.height)) - line_height_in_pixels(g.face.ft_face),
     };
 
-    // TODO: function that does the following:
-    // - Render each line (much like render_lines_utf8), and all of it's text properties (see gfx/sdl2/sdl.c)
-    // - Stop drawing when outside of given bounds (calculated from window position + size)
-    /*
-    char* utf8 = window->contents.string;
-    render_lines_utf8(utf8, strlen(utf8), draw_position, fg_color, bg_color);
-    */
-    // TODO: Take window position and size into account
     draw_gui_string_within_rect(window->contents, draw_position, (vec2){.x = g.width - draw_position.x, .y = draw_position.y}, ctx->cr_char);
 
     window = window->next;
   }
+
+  vec2 footline_draw_pos = (vec2){0, line_height_in_pixels(g.face.ft_face) * 0.3};
+  draw_gui_string_within_rect(ctx->footline, footline_draw_pos, (vec2){g.width, footline_draw_pos.y + footline_height}, ctx->cr_char);
 
   r_update(&g.rend);
 
