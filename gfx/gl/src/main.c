@@ -187,9 +187,9 @@ uint32_t hash_perm32(uint32_t x) {
 #define glyph_map_hash hash_perm32
 #endif
 
-// By default, make an 8 megabyte glyph atlas.
+// By default, make a 16 megabyte glyph atlas.
 #ifndef GLYPH_ATLAS_WIDTH
-# define GLYPH_ATLAS_WIDTH (2 << 13)
+# define GLYPH_ATLAS_WIDTH (2 << 14)
 #endif
 #ifndef GLYPH_ATLAS_HEIGHT
 // Hopefully one glyph is never taller than this, otherwise it will
