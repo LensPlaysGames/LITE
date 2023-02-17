@@ -37,9 +37,13 @@ typedef struct GLColor {
   float a;
 } GLColor, GLColour;
 
-#define glcolor_from_gui(c) (GLColor){ .r = c.r / UINT8_MAX, .g = c.g / UINT8_MAX, .b = c.b / UINT8_MAX, .a = c.a / UINT8_MAX }
-#define guicolor_from_gl(c) (GUIColor){ .r = c.r * UINT8_MAX, .g = c.g * UINT8_MAX, .b = c.b * UINT8_MAX, .a = c.a * UINT8_MAX }
+#define glcolor_from_gui(c) (GLColor){ .r = (double)c.r / UINT8_MAX, .g = (double)c.g / UINT8_MAX, .b = (double)c.b / UINT8_MAX, .a = (double)c.a / UINT8_MAX }
+#define guicolor_from_gl(c) (GUIColor){ .r = (double)c.r * UINT8_MAX, .g = (double)c.g * UINT8_MAX, .b = (double)c.b * UINT8_MAX, .a = (double)c.a * UINT8_MAX }
 
+// These are backup, in case no default property colors are set in the context.
+// TODO: Move into state struct
+static GLColor fg = { 1, 1, 1, 1 };
+static GLColor bg = { (double)22 / UINT8_MAX, (double)23 / UINT8_MAX, (double)24 / UINT8_MAX, 0.5 };
 
 typedef struct vec2 {
   GLfloat x;
@@ -58,6 +62,7 @@ typedef struct vec4 {
   GLfloat z;
   GLfloat w;
 } vec4;
+#define vec4_from_gl(c) (vec4){ .x = c.r, .y = c.g, .z = c.b, .w = c.a }
 
 typedef struct Vertex {
   vec2 position;
@@ -358,6 +363,7 @@ typedef struct GLFace {
   hb_font_t *hb_font;
 } GLFace;
 
+/// STATE
 struct {
   GLColor bg;
 
@@ -412,7 +418,7 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 
   # define max_size 32
   char string[max_size] = {0};
-  if (action == GLFW_PRESS) {
+  if (action == GLFW_PRESS || action == GLFW_REPEAT) {
     switch (key) {
     case GLFW_KEY_ENTER:
       strncpy(string, LITE_KEYSTRING_RETURN, max_size);
@@ -821,15 +827,118 @@ static vec2 pixel_to_screen_coordinates(size_t x, size_t y) {
   return out;
 }
 
+static float line_height_in_pixels(FT_Face f) {
+  return g.scale * (f->size->metrics.height / 64.0);
+}
+
+static void draw_codepoint_background(vec2 draw_position, vec2 draw_cursor_position, float draw_cursor_advance, vec4 color, uint32_t codepoint) {
+  if (draw_cursor_position.x >= g.width || draw_cursor_position.y >= g.height) return;
+
+  float line_height = line_height_in_pixels(g.face.ft_face);
+  vec2 bg_pos = (vec2){
+    draw_cursor_position.x,
+    draw_cursor_position.y - line_height / 3.0,
+  };
+
+  Glyph *glyph = glyph_map_find_or_add(&g.face.glyph_map, codepoint);
+  float new_posx = draw_position.x + g.scale * glyph->bmp_x;
+  if (new_posx < bg_pos.x) bg_pos.x = new_posx;
+
+  float glyph_width = glyph->bmp_w;
+  float glyph_height = glyph->bmp_h;
+  Glyph *block_glyph = glyph_map_find_or_add(&g.face.glyph_map, '-');
+  // TODO: Scale small offset based on glyph atlas size.
+  const vec2 uv = {block_glyph->uvx, block_glyph->uvy};
+  const vec2 uvmax = {block_glyph->uvx_max, block_glyph->uvy_max};
+
+  // TODO: Handle vertical by doing line height calculation for x and using advance for y.
+  vec2 bg_posmax = (vec2){
+    bg_pos.x + draw_cursor_advance,
+    bg_pos.y + line_height + 2,
+  };
+
+  { // Truncate draw positions off left and bottom sides
+    if (bg_pos.x < 0) {
+      if (bg_pos.x + (g.scale * glyph_width) < 0) {
+        //fprintf(stderr, "Draw position off left side, not drawing\n");
+        return;
+      }
+      //fprintf(stderr, "Reducing glyph width\n");
+      // Reduce glyph width
+      glyph_width -= (-bg_pos.x / g.scale);
+      bg_pos.x = 0;
+    }
+    if (bg_pos.y < 0) {
+      if (bg_pos.y + (g.scale * glyph_height) < 0) {
+        //fprintf(stderr, "Draw position off top side, not drawing\n");
+        return;
+      }
+      glyph_height -= (-bg_pos.y / g.scale);
+      bg_pos.y = 0;
+    }
+  }
+
+  // Draw position past right/top edge means that there isn't anything to actually draw.
+  if (bg_pos.x >= g.width || bg_pos.y >= g.height) {
+    //fprintf(stderr, "Draw position oob 2: (%f %f)\n", draw_position.x, draw_position.y);
+    return;
+  }
+
+  // If right and top bounds are less than the minimum left and bottom
+  // bounds (0), then that means the glyph is off of the screen entirely.
+  if (bg_posmax.x < 0 || bg_posmax.y < 0) return;
+
+  { // Truncate draw positions off right and top sides
+    if (bg_posmax.x > g.width) {
+      float diff = bg_posmax.x - g.width;
+      glyph_width -= diff / g.scale;
+      // Update maximum drawing position to be within bounds.
+      // NOTE: Not really needed since pixel_to_screen_coordinates truncates.
+      bg_posmax.x = g.width;
+    }
+    if (bg_posmax.y > g.height) {
+      float diff = bg_posmax.y - g.height;
+      glyph_height -= diff / g.scale;
+      // Update maximum drawing position to be within bounds.
+      // NOTE: Not really needed since pixel_to_screen_coordinates truncates.
+      bg_posmax.y = g.height;
+    }
+  }
+
+  vec2 screen_position = pixel_to_screen_coordinates(bg_pos.x, bg_pos.y);
+  vec2 screen_position_max = pixel_to_screen_coordinates(bg_posmax.x, bg_posmax.y);
+
+  const Vertex tl = (Vertex){
+    .position = screen_position.x, screen_position_max.y,
+    .uv = { uv.x, uvmax.y },
+    .color = color
+  };
+  const Vertex tr = (Vertex){
+    .position = screen_position_max.x, screen_position_max.y,
+    .uv = { uvmax.x, uvmax.y },
+    .color = color
+  };
+  const Vertex bl = (Vertex){
+    .position = screen_position.x, screen_position.y,
+    .uv = { uv.x, uv.y },
+    .color = color
+  };
+  const Vertex br = (Vertex){
+    .position = screen_position_max.x, screen_position.y,
+    .uv = { uvmax.x, uv.y },
+    .color = color
+  };
+
+  r_quad(&g.rend, tl, tr, bl, br);
+}
+
 /// This function has lost me my sanity, my sleep at nights, my non-
 /// white hair, and a leg. I do not recommend *ever* attempting to do
 /// *anything* like this.
-static void draw_glyph(vec2 draw_position, vec4 color, uint32_t codepoint) {
-  // TODO: Ensure draw_position_max is also oob.
-  if (draw_position.x >= g.width || draw_position.y >= g.height) {
-    //fprintf(stderr, "Draw position oob\n");
-    return;
-  }
+/// Draw UNICODE codepoint with given COLOR, and the MINIMUM STARTING
+/// POSITION set to draw_position.
+static void draw_codepoint(vec2 draw_position, vec4 color, uint32_t codepoint) {
+  if (draw_position.x >= g.width || draw_position.y >= g.height) return;
 
   // glyph bitmap is upside down in glyph atlas. uvy is larger than
   // uvy_max in order to flip it right way up... This is mainly due
@@ -990,10 +1099,6 @@ static uint32_t *bidi_reorder_utf8_to_utf32(const char *const input, size_t *len
   */
 }
 
-static float line_height_in_pixels(FT_Face f) {
-  return g.scale * (f->size->metrics.height / 64.0);
-}
-
 // TODO: LTR vs RTL
 static hb_buffer_t *hb_xt_bf_create_utf32(const uint32_t *const utf32, const size_t length) {
   hb_buffer_t *buf = hb_buffer_create();
@@ -1018,7 +1123,7 @@ static vec2 measure_shaped_hb_buffer(const size_t length, const uint32_t *const 
   GLfloat most_x = 0;
   GLfloat least_y = 0;
   GLfloat most_y = 0;
-  for (unsigned int i = 0; i < glyph_count; ++i) {
+  for (unsigned int i = 0; i < glyph_count && i < length; ++i) {
     static const double divisor = 64.0;
     pos.x += g.scale * glyph_pos[i].x_advance / divisor;
     pos.y += g.scale * glyph_pos[i].y_advance / divisor;
@@ -1044,7 +1149,7 @@ static vec2 measure_shaped_hb_buffer(const size_t length, const uint32_t *const 
     if (draw_pos_max.y > most_y) most_y = draw_pos_max.y;
   }
   return (vec2){
-    .x = most_x - least_x,
+    .x = pos.x,
     .y = most_y - least_y,
   };
 }
@@ -1054,7 +1159,7 @@ static void draw_shaped_hb_buffer(const size_t length, const uint32_t *const cod
   hb_glyph_position_t *glyph_pos = hb_buffer_get_glyph_positions(buf, &glyph_count);
   const double divisor = 64.0;
   vec2 pos = starting_position;
-  /*if (bg_color.w) {
+  if (bg_color.w) {
     for (unsigned int i = 0; i < glyph_count && i < length; ++i) {
       vec2 draw_pos = pos;
       draw_pos.x += g.scale * glyph_pos[i].x_offset / divisor;
@@ -1065,11 +1170,11 @@ static void draw_shaped_hb_buffer(const size_t length, const uint32_t *const cod
       };
       // TODO: Pass draw_cursor_advance.y when vertical
       // TODO: Should just calculate full bounding box, then draw bg of that, rather than drawing background of each glyph, right?
-      draw_codepoint_background(codepoints[i], draw_pos, bg_color, pos, draw_cursor_advance.x);
+      draw_codepoint_background(draw_pos, pos, draw_cursor_advance.x, bg_color, codepoints[i]);
       pos.x += draw_cursor_advance.x;
       pos.y += draw_cursor_advance.y;
     }
-  }*/
+  }
   if (fg_color.w) {
     pos = starting_position;
     for (unsigned int i = 0; i < glyph_count && i < length; ++i) {
@@ -1077,7 +1182,7 @@ static void draw_shaped_hb_buffer(const size_t length, const uint32_t *const cod
         pos.x + ((glyph_pos[i].x_offset / divisor) * g.scale),
         pos.y + ((glyph_pos[i].y_offset / divisor) * g.scale),
       };
-      draw_glyph(draw_pos, fg_color, codepoints[i]);
+      draw_codepoint(draw_pos, fg_color, codepoints[i]);
       pos.x += (glyph_pos[i].x_advance / divisor) * g.scale;
       pos.y += (glyph_pos[i].y_advance / divisor) * g.scale;
     }
@@ -1103,6 +1208,213 @@ static void render_utf8(const char *const input, size_t input_length, vec2 start
   }
   render_utf32(utf32, input_length, starting_position, fg_color, bg_color);
   free(utf32);
+}
+
+static bool utf8_continuation_byte(unsigned char c) {
+  return (c >> 6) & 2; // c & 0b01000000
+}
+
+static size_t utf8_count(const char *input, size_t max_byte_reach) {
+  size_t idx = 0;
+  size_t out = 0;
+  while (*input && idx < max_byte_reach) {
+    if (!utf8_continuation_byte(*input)) out += 1;
+    idx += 1;
+  }
+  return out;
+}
+
+/// \param xy X and Y coordinate position of bottom left of bounding box
+/// \param wh Width and Height of bounding box (bottom and left side lengths, respectively)
+static void draw_gui_string_within_rect(const GUIString gui_string, vec2 xy, vec2 wh, char cr_char) {
+  if (!gui_string.string || gui_string.string[0] == '\0') {
+    return;
+  }
+
+  // Iterator into contents of GUIString.
+  char *string = gui_string.string;
+  // Byte offset of `string` iterator into GUIString.
+  size_t offset = 0;
+  // Byte offset of newline previous to `offset` in GUIString.
+  size_t last_newline_offset = -1;
+
+  size_t string_length = strlen(gui_string.string);
+
+  // Handle vertical line offset by skipping by newlines.
+  size_t vertical_skip_count = gui_string.vertical_offset;
+  while (vertical_skip_count) {
+    if (*string == '\n') {
+      last_newline_offset = offset;
+      vertical_skip_count -= 1;
+    }
+    if (*string == '\0') {
+      // Vertical scrolling has skipped entire GUIString.
+      return;
+    }
+    string += 1;
+    offset += 1;
+  }
+
+  vec2 draw_pos = xy;
+  char cr_skip = 0;
+  size_t line_height = line_height_in_pixels(g.face.ft_face);
+  while (1) {
+    // TODO: What to display \r as when cr_char isn't valid?
+    if (*string == '\r') {
+      if (cr_char >= ' ') {
+        *string = cr_char;
+      } else if (*(string + 1) == '\n') {
+        cr_skip = 1;
+      }
+    } else if (*string == '\n' || *string == '\0') {
+      // Byte offset of start of line we are currently at the end of.
+      // Add horizontal offset here. If that makes start past or equal
+      // to end, skip line but increment destination height.
+      size_t start_of_line_offset = gui_string.horizontal_offset + last_newline_offset + 1;
+
+      if (start_of_line_offset > offset) {
+        goto at_end_of_line;
+      }
+
+      // Render entire line using defaults.
+      // Calculate amount of bytes within the current line.
+      size_t bytes_to_render = offset - start_of_line_offset;
+      if (cr_skip) {
+        cr_skip = 0;
+        if (bytes_to_render) {
+          bytes_to_render -= 1;
+        }
+      }
+      // Skip empty lines.
+      char *line_text = gui_string.string + start_of_line_offset;
+      if (*line_text != '\0') {
+        // TODO: Ensure this only draws within bounds
+        size_t length = utf8_count(line_text, bytes_to_render);
+        render_utf8(line_text, length, draw_pos, vec4_from_gl(fg), vec4_from_gl(bg));
+      }
+
+      // Render text properties over current line.
+      for (GUIStringProperty *it = gui_string.properties; it; it = it->next) {
+
+        // Skip if property is not within current line.
+        if (it->offset > offset || it->offset + it->length <= start_of_line_offset) {
+          continue;
+        }
+
+        // How far the text property starts within the current line (byte index).
+        size_t offset_within_line = 0;
+        if (it->offset > start_of_line_offset) {
+          offset_within_line = it->offset - start_of_line_offset;
+        }
+
+        // Get draw position.
+        vec2 prop_xy = draw_pos;
+        size_t codepoint_count = utf8_count(line_text, offset_within_line);
+        if (offset_within_line != 0 && codepoint_count) {
+          uint32_t* codepoints = bidi_reorder_utf8_to_utf32(line_text, &codepoint_count);
+          if (codepoints) {
+
+            /*
+            // Print skipped codepoints
+            fprintf(stderr, "\nSkipping: ");
+            fprintf(stderr, "%x", codepoints[0]);
+            for (size_t i = 1; i < codepoint_count; ++i) {
+              fprintf(stderr, ", %x", codepoints[i]);
+            }
+            fprintf(stderr, "\n");
+            */
+
+            hb_buffer_t *buf = hb_xt_bf_create_utf32(codepoints, codepoint_count);
+
+            // We don't want to move draw position up by height of
+            // skipped text, only past it. NOTE: This would probably
+            // need to be for `y` in vertical layouts?
+            prop_xy.x += measure_shaped_hb_buffer(codepoint_count, codepoints, buf).x;
+
+            hb_buffer_destroy(buf);
+            free(codepoints);
+          }
+        }
+
+        // Calculate the length of the propertized text, in bytes.
+        // We can't just use the iterator's length because of
+        // multi-line text properties.
+        size_t propertized_text_length = it->length;
+        if (it->offset < start_of_line_offset) {
+          propertized_text_length -= start_of_line_offset - it->offset;
+        }
+
+        // If property extends past end of line, truncate it.
+        if (it->offset + it->length > offset) {
+          propertized_text_length = offset - it->offset;
+        }
+
+        // Calculate the length of the propertized text, in utf8 codepoints.
+        propertized_text_length = utf8_count(line_text + offset_within_line, propertized_text_length);
+        if (!propertized_text_length) {
+          continue;
+        }
+
+        // Create utf32 codepoints from utf8 guistring
+        uint32_t *propertized_text = bidi_reorder_utf8_to_utf32(line_text + offset_within_line, &propertized_text_length);
+        if (propertized_text) {
+          // Handle empty lines propertized (insert space).
+          if (propertized_text[0] == '\0') {
+            free(propertized_text);
+            propertized_text = calloc(2, sizeof(*propertized_text));
+            if (!propertized_text) {
+              fprintf(stderr, "[GFX] ERROR: malloc() failed: OOM\n");
+              exit(1);
+            }
+            propertized_text[0] = ' ';
+            propertized_text_length = 2;
+          } else if (propertized_text[0] == '\n') {
+            propertized_text[0] = ' ';
+          }
+          // Get colors for propertized text from text property.
+          GLColor prop_fg = glcolor_from_gui(it->fg);
+          GLColor prop_bg = glcolor_from_gui(it->bg);
+          // Render propertized text.
+          /*
+          // Print propertized text codepoints
+          size_t i = 0;
+          if (propertized_text_length) {
+            i += 1;
+            fprintf(stderr, "%x", propertized_text[i]);
+          }
+          for (; i < propertized_text_length; ++i) {
+            fprintf(stderr, ", %x", propertized_text[i]);
+          }
+          fprintf(stderr, "\n");
+          */
+
+          render_utf32(propertized_text, propertized_text_length, prop_xy, vec4_from_gl(prop_fg), vec4_from_gl(prop_bg));
+          free(propertized_text);
+        }
+      }
+
+    at_end_of_line:
+
+
+      draw_pos.y -= line_height;
+      wh.y -= line_height;
+      draw_pos.x = xy.x;
+      last_newline_offset = offset;
+
+      /*
+      fprintf(stderr, "draw_pos.y: %.2f\n", draw_pos.y);
+      fprintf(stderr, "wh.y: %.2f\n", wh.y);
+      fprintf(stderr, "line height: %zu\n", line_height);
+      */
+
+      // No more room to draw text in output rectangle, stop now.
+      if (wh.y <= 0) break;
+    }
+    if (*string == '\0') break;
+    string += 1;
+    offset += 1;
+  }
+
 }
 
 static void render_lines_utf8(const char *const input, size_t input_length, vec2 starting_position, vec4 fg_color, vec4 bg_color) {
@@ -1167,6 +1479,10 @@ void draw_gui(GUIContext *ctx) {
     ctx->title = NULL;
   }
 
+  // Update default text property from context.
+  fg = glcolor_from_gui(ctx->default_property.fg);
+  bg = glcolor_from_gui(ctx->default_property.bg);
+
   glClearColor(g.bg.r, g.bg.g, g.bg.b, g.bg.a);
   glClear(GL_COLOR_BUFFER_BIT);
 
@@ -1186,12 +1502,22 @@ void draw_gui(GUIContext *ctx) {
   vec4 bg_color = {0.0, 0.0, 0.0, 0.0};
   GUIWindow *window = ctx->windows;
   while (window) {
-    const char *utf8 = window->contents.string;
+    // display contents gui string
     vec2 draw_position = {
       (window->posx / 100.0) * g.width,
       ((1 + g.height) - ((window->posy / 100.0) * g.height)) - line_height_in_pixels(g.face.ft_face),
     };
+
+    // TODO: function that does the following:
+    // - Render each line (much like render_lines_utf8), and all of it's text properties (see gfx/sdl2/sdl.c)
+    // - Stop drawing when outside of given bounds (calculated from window position + size)
+    /*
+    char* utf8 = window->contents.string;
     render_lines_utf8(utf8, strlen(utf8), draw_position, fg_color, bg_color);
+    */
+    // TODO: Take window position and size into account
+    draw_gui_string_within_rect(window->contents, draw_position, (vec2){.x = g.width - draw_position.x, .y = draw_position.y}, ctx->cr_char);
+
     window = window->next;
   }
 

@@ -315,6 +315,7 @@ static inline void draw_gui_string_into_surface_within_rect
   // Byte offset of `string` iterator into GUIString.
   size_t offset = 0;
   // Byte offset of newline previous to `offset` in GUIString.
+  // Used in start of line calculation. `start_of_line_offset = last_newline_offset + 1`
   size_t last_newline_offset = -1;
 
   // Handle vertical line offset by skipping by newlines.
