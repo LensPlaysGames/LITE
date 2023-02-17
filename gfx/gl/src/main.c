@@ -89,6 +89,16 @@ typedef struct Renderer {
   GLuint shader;
 } Renderer;
 
+static void r_clear(Renderer *r) {
+  r->vertex_count = 0;
+}
+
+static void r_update(Renderer *r) {
+  glBindVertexArray(r->vao);
+  glBindBuffer(GL_ARRAY_BUFFER, r->vbo);
+  glBufferSubData(GL_ARRAY_BUFFER, 0, r->vertex_count * sizeof(Vertex), r->vertices);
+}
+
 static void r_vertex(Renderer *r, Vertex v) {
   if (!r->vertices) {
     r->vertex_count = 0;
@@ -104,11 +114,10 @@ static void r_vertex(Renderer *r, Vertex v) {
       fprintf(stderr, "[GFX]:ERROR: Could not reallocate more vertices...\n");
       return;
     }
+    r->vertices = new_vertices;
     glBindVertexArray(r->vao);
     glBindBuffer(GL_ARRAY_BUFFER, r->vbo);
     glBufferData(GL_ARRAY_BUFFER, r->vertex_capacity * sizeof(Vertex), r->vertices, GL_DYNAMIC_DRAW);
-
-    r->vertices = new_vertices;
   }
   r->vertices[r->vertex_count++] = v;
 }
@@ -122,16 +131,6 @@ static void r_tri(Renderer *r, Vertex a, Vertex b, Vertex c) {
 static void r_quad(Renderer *r, Vertex tl, Vertex tr, Vertex bl, Vertex br) {
   r_tri(r, bl, tl, br);
   r_tri(r, br, tl, tr);
-}
-
-static void r_update(Renderer *r) {
-  glBindVertexArray(r->vao);
-  glBindBuffer(GL_ARRAY_BUFFER, r->vbo);
-  glBufferSubData(GL_ARRAY_BUFFER, 0, r->vertex_count * sizeof(Vertex), r->vertices);
-}
-
-static void r_clear(Renderer *r) {
-  r->vertex_count = 0;
 }
 
 
@@ -187,7 +186,7 @@ uint32_t hash_perm32(uint32_t x) {
 #define glyph_map_hash hash_perm32
 #endif
 
-// By default, make a 16 megabyte glyph atlas.
+// By default, make an 8 megabyte glyph atlas.
 #ifndef GLYPH_ATLAS_WIDTH
 # define GLYPH_ATLAS_WIDTH (2 << 14)
 #endif
@@ -195,7 +194,7 @@ uint32_t hash_perm32(uint32_t x) {
 // Hopefully one glyph is never taller than this, otherwise it will
 // cause a major slowdown in having to reallocate a new buffer and
 // copy data...
-# define GLYPH_ATLAS_HEIGHT (2 << 8)
+# define GLYPH_ATLAS_HEIGHT (2 << 7)
 #endif
 
 /// Set min/mag texture filters based on whether or not we want to use
@@ -242,6 +241,12 @@ void glyph_map_init(GlyphMap *map, FT_Face face) {
     GL_UNSIGNED_BYTE,
     NULL
   );
+}
+
+void glyph_map_fini(GlyphMap *map) {
+  if (!map) return;
+  if (map->glyphs) free(map->glyphs);
+  glDeleteTextures(1, &map->atlas);
 }
 
 /// Return matching or free entry.
@@ -794,14 +799,8 @@ int create_gui() {
 
   glyph_map_init(&g.face.glyph_map, g.face.ft_face);
 
-  // TODO: Get rid of this. I *guess* it could be argued that rendering
-  // the glyphs at a high resolution and then scaling them is a good
-  // thing. In practice, it just makes it really hard to know when to
-  // apply the scaling, as there are already a million god-damned
-  // invisible unit conversions that make me want to bawl my eyes out
-  // so yeah.
   //g.scale = 1.0 / 19.6;
-  g.scale = 1.0 / 32;
+  g.scale = 1.0 / 16;
 
   return CREATE_GUI_OK;
 }
@@ -815,7 +814,7 @@ void destroy_gui() {
     if (g.face.hb_face) hb_face_destroy(g.face.hb_face);
     if (g.face.ft_face) FT_Done_Face(g.face.ft_face);
     if (g.face.filepath) free(g.face.filepath);
-    // TODO: g.face.glyph_map
+    glyph_map_fini(&g.face.glyph_map);
 
     created = 0;
   }
@@ -862,8 +861,14 @@ static void draw_codepoint_background(vec2 draw_position, vec2 draw_cursor_posit
   Glyph *block_glyph = glyph_map_find_or_add(&g.face.glyph_map, '-');
   if (!block_glyph) return;
   // TODO: Scale small offset based on glyph atlas size.
-  const vec2 uv = {block_glyph->uvx + 0.005, block_glyph->uvy - 0.005};
-  const vec2 uvmax = {block_glyph->uvx_max - 0.005, block_glyph->uvy_max + 0.005};
+  const vec2 uv = {
+    block_glyph->uvx + (((double)block_glyph->bmp_w / 8) / GLYPH_ATLAS_WIDTH),
+    block_glyph->uvy - ((1 + (double)block_glyph->bmp_h / 8) / GLYPH_ATLAS_HEIGHT)
+  };
+  const vec2 uvmax = {
+    block_glyph->uvx_max - (((double)block_glyph->bmp_w / 8) / GLYPH_ATLAS_WIDTH),
+    block_glyph->uvy_max + ((1 + (double)block_glyph->bmp_h / 8) / GLYPH_ATLAS_HEIGHT)
+  };
 
   // TODO: Handle vertical by doing line height calculation for x and using advance for y.
   vec2 bg_posmax = (vec2){
@@ -1305,7 +1310,7 @@ static void draw_gui_string_within_rect(const GUIString gui_string, vec2 xy, vec
       char *line_text = gui_string.string + start_of_line_offset;
       if (*line_text != '\0') {
         // TODO: Ensure this only draws within bounds
-        size_t length = utf8_count(line_text, bytes_to_render);
+        size_t length = utf8_count(line_text, offset - start_of_line_offset);
         render_utf8(line_text, length, draw_pos, vec4_from_gl(fg), vec4_from_gl(bg));
       }
 
@@ -1361,18 +1366,28 @@ static void draw_gui_string_within_rect(const GUIString gui_string, vec2 xy, vec
         }
 
         // If property extends past end of line, truncate it.
-        if (it->offset + it->length > offset) {
+        if (it->length > 1 && it->offset + it->length > offset) {
           propertized_text_length = offset - it->offset;
         }
 
-        // Calculate the length of the propertized text, in utf8 codepoints.
-        propertized_text_length = utf8_count(line_text + offset_within_line, propertized_text_length);
+        // TODO: It seems there may be some issue with
+        // propertized_text_length calculation, as obvious when viewing
+        // `#lite_scratchpad#` with C tree sitter mode enabled.
+
+        char *prop_offset = line_text + offset_within_line;
+
+        // Handle single-length property at end of buffer after utf32 conversion; skip utf8 count.
+        if (!(propertized_text_length == 1 && *prop_offset == '\0')) {
+          // Calculate the length of the propertized text, in utf8 codepoints.
+          propertized_text_length = utf8_count(prop_offset, propertized_text_length);
+        }
+
         if (!propertized_text_length) {
           continue;
         }
 
         // Create utf32 codepoints from utf8 guistring
-        uint32_t *propertized_text = bidi_reorder_utf8_to_utf32(line_text + offset_within_line, &propertized_text_length);
+        uint32_t *propertized_text = bidi_reorder_utf8_to_utf32(prop_offset, &propertized_text_length);
         if (propertized_text) {
           // Handle empty lines propertized (insert space).
           if (propertized_text[0] == '\0') {
@@ -1383,13 +1398,10 @@ static void draw_gui_string_within_rect(const GUIString gui_string, vec2 xy, vec
               exit(1);
             }
             propertized_text[0] = ' ';
-            propertized_text_length = 2;
+            propertized_text_length = 1;
           } else if (propertized_text[0] == '\n') {
             propertized_text[0] = ' ';
           }
-          // Get colors for propertized text from text property.
-          GLColor prop_fg = glcolor_from_gui(it->fg);
-          GLColor prop_bg = glcolor_from_gui(it->bg);
           // Render propertized text.
           /*
           // Print propertized text codepoints
@@ -1404,6 +1416,9 @@ static void draw_gui_string_within_rect(const GUIString gui_string, vec2 xy, vec
           fprintf(stderr, "\n");
           */
 
+          // Get colors for propertized text from text property.
+          GLColor prop_fg = glcolor_from_gui(it->fg);
+          GLColor prop_bg = glcolor_from_gui(it->bg);
           render_utf32(propertized_text, propertized_text_length, prop_xy, vec4_from_gl(prop_fg), vec4_from_gl(prop_bg));
           free(propertized_text);
         }
@@ -1514,22 +1529,23 @@ void draw_gui(GUIContext *ctx) {
 
   // TODO: Use above data about layout to feed proper bounds to rendering functions...
 
-  vec4 fg_color = {1.0, 1.0, 1.0, 1.0};
-  vec4 bg_color = {0.0, 0.0, 0.0, 0.0};
-  GUIWindow *window = ctx->windows;
-  while (window) {
-    // display contents gui string
-    vec2 draw_position = {
-      (window->posx / 100.0) * g.width,
-      ((1 + g.height) - ((window->posy / 100.0) * g.height)) - line_height_in_pixels(g.face.ft_face),
-    };
+  if (contents_height) {
+    GUIWindow *window = ctx->windows;
+    while (window) {
+      // display contents gui string
+      vec2 draw_position = {
+        (window->posx / 100.0) * g.width,
+        ((1 + g.height) - ((window->posy / 100.0) * g.height)) - line_height_in_pixels(g.face.ft_face),
+      };
 
-    draw_gui_string_within_rect(window->contents, draw_position, (vec2){.x = g.width - draw_position.x, .y = draw_position.y}, ctx->cr_char);
+      draw_gui_string_within_rect(window->contents, draw_position, (vec2){.x = g.width - draw_position.x, .y = draw_position.y}, ctx->cr_char);
 
-    window = window->next;
+      window = window->next;
+    }
   }
 
-  vec2 footline_draw_pos = (vec2){0, line_height_in_pixels(g.face.ft_face) * 0.3};
+  // TODO: Calculate this position in a way that allows multiline footlines to work.
+  vec2 footline_draw_pos = (vec2){0, (footline_line_count - 1) * line_height_in_pixels(g.face.ft_face) + line_height_in_pixels(g.face.ft_face) * 0.3};
   draw_gui_string_within_rect(ctx->footline, footline_draw_pos, (vec2){g.width, footline_draw_pos.y + footline_height}, ctx->cr_char);
 
   r_update(&g.rend);
@@ -1584,6 +1600,7 @@ int change_font_size(size_t size) {
   hb_font_set_scale(g.face.hb_font, size * 64, size * 64);
 
   g.face.glyph_map.glyph_count = 0;
+  g.face.glyph_map.atlas_draw_offset = 0;
   memset(g.face.glyph_map.glyphs, 0, sizeof(*g.face.glyph_map.glyphs) * g.face.glyph_map.glyph_capacity);
 
   return 0;
