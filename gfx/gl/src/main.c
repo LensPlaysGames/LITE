@@ -628,6 +628,9 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
   }
 # undef max_size
 }
+void window_refresh_callback(GLFWwindow *window) {
+  draw_gui(gui_ctx());
+}
 
 
 static int init_glfw() {
@@ -648,6 +651,7 @@ static int init_glfw() {
     fprintf(stderr, "Could not create GLFW window");
     return CREATE_GUI_ERR;
   }
+  glfwSetWindowRefreshCallback(g.window, window_refresh_callback);
   glfwSetFramebufferSizeCallback(g.window, framebuffer_size_callback);
   int w;
   int h;
