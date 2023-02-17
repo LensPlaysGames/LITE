@@ -46,8 +46,8 @@ You should probably call `utf8-backward-char` instead of this."
 
 (defun utf8-backward-char ()
   "Decrement point of `CURRENT-BUFFER` by one utf8 codepoint."
-  (if (and (eq (byte-at-point current-buffer) "\\n")
-           (eq (byte-before-point current-buffer) "\\r"))
+  (if (and (eq (buffer-index current-buffer (- (buffer-point current-buffer) 1)) "\\n")
+           (eq (buffer-index current-buffer (- (buffer-point current-buffer) 2)) "\\r"))
       (backward-bytes 2)
       (utf8-backward-char-impl))
   (cursor-keep-on-screen (active-window))
