@@ -94,11 +94,21 @@ static void r_vertex(Renderer *r, Vertex v) {
     r->vertex_count = 0;
     // Megabyte of vertices.
     r->vertex_capacity = ((1 << 20) / sizeof(Vertex));
-    r->vertices = malloc(sizeof(*r->vertices) * r->vertex_capacity);
+    r->vertices = malloc(sizeof(Vertex) * r->vertex_capacity);
   }
+  // Expand if need be
   if (r->vertex_count + 1 >= r->vertex_capacity) {
-    // TODO: Expand, try again.
-    return;
+    r->vertex_capacity <<= 1; // multiply by 2
+    Vertex *new_vertices = realloc(r->vertices, sizeof(Vertex) * r->vertex_capacity);
+    if (!new_vertices) {
+      fprintf(stderr, "[GFX]:ERROR: Could not reallocate more vertices...\n");
+      return;
+    }
+    glBindVertexArray(r->vao);
+    glBindBuffer(GL_ARRAY_BUFFER, r->vbo);
+    glBufferData(GL_ARRAY_BUFFER, r->vertex_capacity * sizeof(Vertex), r->vertices, GL_DYNAMIC_DRAW);
+
+    r->vertices = new_vertices;
   }
   r->vertices[r->vertex_count++] = v;
 }
