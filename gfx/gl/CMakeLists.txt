@@ -64,16 +64,19 @@ target_link_libraries(
   freetype
 )
 
+set(HARFBUZZ_BUILD_SRC_PATH ${CMAKE_CURRENT_BINARY_DIR}/harfbuzz/src/ext_harfbuzz-build/src CACHE STRING "" FORCE)
 if(WIN32)
   if (MSVC)
-    set(HARFBUZZ_DYLIB_PATH ${CMAKE_CURRENT_BINARY_DIR}/harfbuzz/src/ext_harfbuzz-build/src/harfbuzz.dll CACHE STRING "" FORCE)
+    set(HARFBUZZ_DYLIB_PATH ${HARFBUZZ_BUILD_SRC_PATH}/harfbuzz.dll CACHE STRING "" FORCE)
+    set(HARFBUZZ_DYLIB_LINK_PATH ${HARFBUZZ_BUILD_SRC_PATH}/harfbuzz.lib CACHE STRING "" FORCE)
   else()
-    set(HARFBUZZ_DYLIB_PATH ${CMAKE_CURRENT_BINARY_DIR}/harfbuzz/src/ext_harfbuzz-build/src/libharfbuzz-0.dll CACHE STRING "" FORCE)
+    set(HARFBUZZ_DYLIB_PATH ${HARFBUZZ_BUILD_SRC_PATH}/libharfbuzz-0.dll CACHE STRING "" FORCE)
+    set(HARFBUZZ_DYLIB_LINK_PATH ${HARFBUZZ_BUILD_SRC_PATH}/libharfbuzz.dll.a CACHE STRING "" FORCE)
   endif()
 elseif(APPLE)
-  set(HARFBUZZ_DYLIB_PATH ${CMAKE_CURRENT_BINARY_DIR}/harfbuzz/src/ext_harfbuzz-build/src/libharfbuzz-0.dylib CACHE STRING "" FORCE)
+  set(HARFBUZZ_DYLIB_PATH ${HARFBUZZ_BUILD_SRC_PATH}/libharfbuzz-0.dylib CACHE STRING "" FORCE)
 else()
-  set(HARFBUZZ_DYLIB_PATH ${CMAKE_CURRENT_BINARY_DIR}/harfbuzz/src/ext_harfbuzz-build/src/libharfbuzz-0.so CACHE STRING "" FORCE)
+  set(HARFBUZZ_DYLIB_PATH ${HARFBUZZ_BUILD_SRC_PATH}/libharfbuzz-0.so CACHE STRING "" FORCE)
 endif()
 
 include(ExternalProject)
@@ -87,7 +90,7 @@ ExternalProject_Add(
   BUILD_COMMAND meson compile
   BUILD_BYPRODUCTS ${HARFBUZZ_DYLIB_PATH}
   USES_TERMINAL_BUILD true
-  INSTALL_COMMAND ""
+  INSTALL_COMMAND ${CMAKE_COMMAND} -E copy ${HARFBUZZ_DYLIB_PATH} ${EXECUTABLE_OUTPUT_PATH}
   TEST_COMMAND ""
 )
 
@@ -101,11 +104,6 @@ if (EXISTS ${CMAKE_CURRENT_BINARY_DIR}/harfbuzz/src/ext_harfbuzz/src)
   )
 endif()
 if(WIN32)
-  if(MSVC)
-    set(HARFBUZZ_DYLIB_LINK_PATH ${CMAKE_CURRENT_BINARY_DIR}/harfbuzz/src/ext_harfbuzz-build/src/harfbuzz.lib CACHE STRING "" FORCE)
-  else()
-    set(HARFBUZZ_DYLIB_LINK_PATH ${HARFBUZZ_DYLIB_PATH}.a  CACHE STRING "" FORCE)
-  endif()
   set_target_properties(
     harfbuzz PROPERTIES
     IMPORTED_IMPLIB ${HARFBUZZ_DYLIB_LINK_PATH}
@@ -120,16 +118,19 @@ endif()
 target_link_libraries(GL_LIB PUBLIC harfbuzz)
 
 # GNU FRIBIDI (Logical to Visual reordering for bidirectional text display)
+set(FRIBIDI_BUILD_LIB_PATH ${CMAKE_CURRENT_BINARY_DIR}/fribidi/src/ext_fribidi-build/lib)
 if(WIN32)
   if (MSVC)
-    set(FRIBIDI_DYLIB_PATH ${CMAKE_CURRENT_BINARY_DIR}/fribidi/src/ext_fribidi-build/lib/fribidi-0.dll CACHE STRING "" FORCE)
+    set(FRIBIDI_DYLIB_PATH ${FRIBIDI_BUILD_LIB_PATH}/fribidi-0.dll CACHE STRING "" FORCE)
+    set(FRIBIDI_DYLIB_LINK_PATH ${FRIBIDI_BUILD_LIB_PATH}/fribidi.lib CACHE STRING "" FORCE)
   else()
-    set(FRIBIDI_DYLIB_PATH ${CMAKE_CURRENT_BINARY_DIR}/fribidi/src/ext_fribidi-build/lib/libfribidi-0.dll CACHE STRING "" FORCE)
+    set(FRIBIDI_DYLIB_PATH ${FRIBIDI_BUILD_LIB_PATH}/libfribidi-0.dll CACHE STRING "" FORCE)
+    set(FRIBIDI_DYLIB_LINK_PATH ${FRIBIDI_BUILD_LIB_PATH}/libfribidi.dll.a  CACHE STRING "" FORCE)
   endif()
 elseif(APPLE)
-  set(FRIBIDI_DYLIB_PATH ${CMAKE_CURRENT_BINARY_DIR}/fribidi/src/ext_fribidi-build/lib/libfribidi-0.dylib CACHE STRING "" FORCE)
+  set(FRIBIDI_DYLIB_PATH ${FRIBIDI_BUILD_LIB_PATH}/libfribidi-0.dylib CACHE STRING "" FORCE)
 else()
-  set(FRIBIDI_DYLIB_PATH ${CMAKE_CURRENT_BINARY_DIR}/fribidi/src/ext_fribidi-build/lib/libfribidi-0.so CACHE STRING "" FORCE)
+  set(FRIBIDI_DYLIB_PATH ${FRIBIDI_BUILD_LIB_PATH}/libfribidi-0.so CACHE STRING "" FORCE)
 endif()
 
 ExternalProject_Add(
@@ -141,7 +142,7 @@ ExternalProject_Add(
   BUILD_COMMAND meson compile
   BUILD_BYPRODUCTS ${FRIBIDI_DYLIB_PATH}
   USES_TERMINAL_BUILD true
-  INSTALL_COMMAND ""
+  INSTALL_COMMAND ${CMAKE_COMMAND} -E copy ${FRIBIDI_DYLIB_PATH} ${EXECUTABLE_OUTPUT_PATH}
   TEST_COMMAND ""
 )
 
@@ -169,11 +170,6 @@ if (EXISTS ${CMAKE_CURRENT_BINARY_DIR}/fribidi/src/ext_fribidi-build/lib)
 )
 endif()
 if(WIN32)
-  if(MSVC)
-    set(FRIBIDI_DYLIB_LINK_PATH ${CMAKE_CURRENT_BINARY_DIR}/fribidi/src/ext_fribidi-build/lib/fribidi.lib CACHE STRING "" FORCE)
-  else()
-    set(FRIBIDI_DYLIB_LINK_PATH ${FRIBIDI_DYLIB_PATH}.a  CACHE STRING "" FORCE)
-  endif()
   set_target_properties(
     fribidi PROPERTIES
     IMPORTED_IMPLIB ${FRIBIDI_DYLIB_LINK_PATH}
