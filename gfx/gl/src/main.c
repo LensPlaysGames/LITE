@@ -407,7 +407,7 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
   }
 
   // GLFW is stupid and sends uppercase letters no matter what for some ungodly reason.
-  if ((mods & GLFW_MOD_SHIFT) == 0 && isupper(key))
+  if (key < UINT8_MAX && (mods & GLFW_MOD_SHIFT) == 0 && isupper(key))
     key = tolower(key);
 
   # define max_size 32

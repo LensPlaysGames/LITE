@@ -41,14 +41,6 @@ find_package(OpenGL REQUIRED)
 set(FT_DISABLE_HARFBUZZ TRUE CACHE BOOL "" FORCE)
 add_subdirectory(libs/freetype)
 
-# HARFBUZZ (Advanced layout, codepoint -> font glyph index)
-#set(HB_HAVE_FREETYPE on)
-#add_subdirectory(libs/harfbuzz)
-#target_compile_options(harfbuzz PRIVATE -w)
-#if (CMAKE_C_COMPILER_ID STREQUAL "GNU")
-#  target_compile_options(harfbuzz PRIVATE -Wno-error=unused-variable)
-#endif()
-
 add_library(GL_LIB STATIC src/main.c src/shade.c)
 target_include_directories(
   GL_LIB
@@ -73,7 +65,11 @@ target_link_libraries(
 )
 
 if(WIN32)
-  set(HARFBUZZ_DYLIB_PATH ${CMAKE_CURRENT_BINARY_DIR}/harfbuzz/src/ext_harfbuzz-build/src/libharfbuzz-0.dll CACHE STRING "" FORCE)
+  if (MSVC)
+    set(HARFBUZZ_DYLIB_PATH ${CMAKE_CURRENT_BINARY_DIR}/harfbuzz/src/ext_harfbuzz-build/src/harfbuzz.dll CACHE STRING "" FORCE)
+  else()
+    set(HARFBUZZ_DYLIB_PATH ${CMAKE_CURRENT_BINARY_DIR}/harfbuzz/src/ext_harfbuzz-build/src/libharfbuzz-0.dll CACHE STRING "" FORCE)
+  endif()
 elseif(APPLE)
   set(HARFBUZZ_DYLIB_PATH ${CMAKE_CURRENT_BINARY_DIR}/harfbuzz/src/ext_harfbuzz-build/src/libharfbuzz-0.dylib CACHE STRING "" FORCE)
 else()
@@ -105,10 +101,15 @@ if (EXISTS ${CMAKE_CURRENT_BINARY_DIR}/harfbuzz/src/ext_harfbuzz/src)
   )
 endif()
 if(WIN32)
+  if(MSVC)
+    set(HARFBUZZ_DYLIB_LINK_PATH ${CMAKE_CURRENT_BINARY_DIR}/harfbuzz/src/ext_harfbuzz-build/src/harfbuzz.lib CACHE STRING "" FORCE)
+  else()
+    set(HARFBUZZ_DYLIB_LINK_PATH ${HARFBUZZ_DYLIB_PATH}.a  CACHE STRING "" FORCE)
+  endif()
   set_target_properties(
     harfbuzz PROPERTIES
-    IMPORTED_LOCATION ${HARFBUZZ_DYLIB_PATH}.a
-    IMPORTED_IMPLIB ${HARFBUZZ_DYLIB_PATH}
+    IMPORTED_IMPLIB ${HARFBUZZ_DYLIB_LINK_PATH}
+    IMPORTED_LOCATION ${HARFBUZZ_DYLIB_PATH}
   )
 else()
   set_target_properties(
@@ -120,7 +121,11 @@ target_link_libraries(GL_LIB PUBLIC harfbuzz)
 
 # GNU FRIBIDI (Logical to Visual reordering for bidirectional text display)
 if(WIN32)
-  set(FRIBIDI_DYLIB_PATH ${CMAKE_CURRENT_BINARY_DIR}/fribidi/src/ext_fribidi-build/lib/libfribidi-0.dll CACHE STRING "" FORCE)
+  if (MSVC)
+    set(FRIBIDI_DYLIB_PATH ${CMAKE_CURRENT_BINARY_DIR}/fribidi/src/ext_fribidi-build/lib/fribidi-0.dll CACHE STRING "" FORCE)
+  else()
+    set(FRIBIDI_DYLIB_PATH ${CMAKE_CURRENT_BINARY_DIR}/fribidi/src/ext_fribidi-build/lib/libfribidi-0.dll CACHE STRING "" FORCE)
+  endif()
 elseif(APPLE)
   set(FRIBIDI_DYLIB_PATH ${CMAKE_CURRENT_BINARY_DIR}/fribidi/src/ext_fribidi-build/lib/libfribidi-0.dylib CACHE STRING "" FORCE)
 else()
@@ -149,7 +154,7 @@ if (EXISTS ${CMAKE_CURRENT_BINARY_DIR}/fribidi/src/ext_fribidi/lib)
     ${CMAKE_CURRENT_BINARY_DIR}/fribidi/src/ext_fribidi/lib
   )
 endif()
-if (EXISTS   ${CMAKE_CURRENT_BINARY_DIR}/fribidi/src/ext_fribidi-build/gen.tab)
+if (EXISTS ${CMAKE_CURRENT_BINARY_DIR}/fribidi/src/ext_fribidi-build/gen.tab)
   target_include_directories(
     fribidi
     INTERFACE
@@ -164,10 +169,15 @@ if (EXISTS ${CMAKE_CURRENT_BINARY_DIR}/fribidi/src/ext_fribidi-build/lib)
 )
 endif()
 if(WIN32)
+  if(MSVC)
+    set(FRIBIDI_DYLIB_LINK_PATH ${CMAKE_CURRENT_BINARY_DIR}/fribidi/src/ext_fribidi-build/lib/fribidi.lib CACHE STRING "" FORCE)
+  else()
+    set(FRIBIDI_DYLIB_LINK_PATH ${FRIBIDI_DYLIB_PATH}.a  CACHE STRING "" FORCE)
+  endif()
   set_target_properties(
     fribidi PROPERTIES
-    IMPORTED_LOCATION ${CMAKE_CURRENT_BINARY_DIR}/fribidi/src/ext_fribidi-build/lib/libfribidi-0.dll.a
-    IMPORTED_IMPLIB ${FRIBIDI_DYLIB_PATH}
+    IMPORTED_IMPLIB ${FRIBIDI_DYLIB_LINK_PATH}
+    IMPORTED_LOCATION ${FRIBIDI_DYLIB_PATH}
   )
 else()
   set_target_properties(
