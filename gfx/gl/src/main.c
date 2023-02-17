@@ -1593,12 +1593,12 @@ void window_size_row_col(size_t *rows, size_t *cols) {
     return;
   }
   vec2 emsize = measure_shaped_hb_buffer(1, &M, hb_buf);
+  hb_buffer_destroy(hb_buf);
   // Prevent divide by zero
   if (emsize.x == 0 || emsize.y == 0) return;
-  hb_buffer_destroy(hb_buf);
   window_size(cols, rows);
+  *rows /= line_height_in_pixels(g.face.ft_face);
   *cols /= emsize.x;
-  *rows /= emsize.y;
 }
 
 void change_window_size(size_t width, size_t height) {
