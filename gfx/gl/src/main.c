@@ -802,7 +802,7 @@ int create_gui() {
     fprintf(stderr, "Could not initialize freetype face from font file at %s, sorry\n", facepath);
     return CREATE_GUI_ERR;
   }
-  size_t font_height = GLYPH_ATLAS_HEIGHT;
+  size_t font_height = 18;
   FT_Set_Pixel_Sizes(g.face.ft_face, 0, font_height);
 
   hb_blob_t *hb_blob = hb_blob_create_from_file(g.face.filepath);
@@ -826,7 +826,8 @@ int create_gui() {
   glyph_map_init(&g.face.glyph_map, g.face.ft_face);
 
   //g.scale = 1.0 / 19.6;
-  g.scale = 1.0 / 16;
+  //g.scale = 1.0 / 16;
+  g.scale = 1;
 
   return CREATE_GUI_OK;
 }
@@ -1610,6 +1611,9 @@ int change_font(const char *path, size_t size) {
 
 int change_font_size(size_t size) {
   if (!size) return 1;
+
+  size *= 1 / g.scale;
+
   if (size > GLYPH_ATLAS_HEIGHT) {
     fprintf(stderr, "TODO: Can not set size to %zu as it is greater than glyph atlas height %u; expand glyph atlas height.\n", size, GLYPH_ATLAS_HEIGHT);
     return 1;
