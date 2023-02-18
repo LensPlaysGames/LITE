@@ -55,9 +55,9 @@ Error gcol_generic_allocation(Atom *ref, void *payload) {
   generic_allocations = galloc;
   generic_allocations_count += 1;
 
-  if (ref->galloc) {
-    galloc->more = ref->galloc;
-  }
+  galloc->ref = *ref;
+
+  galloc->more = ref->galloc;
   ref->galloc = galloc;
 
   return ok;
@@ -99,6 +99,12 @@ void gcol_mark(Atom *root) {
   }
 }
 
+static size_t mark = 1;
+size_t gcol_explicit_frame(void) {
+  if (mark == SIZE_MAX) mark = 1;
+  return ++mark;
+}
+
 void gcol_mark_explicit(Atom *root) {
   if (nilp(*root)) {
     return;
@@ -106,7 +112,11 @@ void gcol_mark_explicit(Atom *root) {
   if (root->galloc) {
     GenericAllocation *galloc = root->galloc;
     while (galloc) {
-      galloc->mark = 2;
+      // Overwrite unmarked or regularly marked atoms, but don't
+      // overwrite explicitly marked.
+      if (galloc->mark <= 1) {
+        galloc->mark = mark;
+      }
       galloc = galloc->more;
     }
   }
@@ -114,8 +124,8 @@ void gcol_mark_explicit(Atom *root) {
   if (pairp(*root) || closurep(*root) || macrop(*root)) {
     ConsAllocation *alloc = (ConsAllocation *)
       ((char *)root->value.pair - offsetof(ConsAllocation, pair));
-    if (!alloc || alloc->mark == 2) { return; }
-    alloc->mark = 2;
+    if (!alloc || alloc->mark > 1) { return; }
+    alloc->mark = mark;
     gcol_mark_explicit(&car(*root));
     gcol_mark_explicit(&cdr(*root));
   }
@@ -129,20 +139,23 @@ void gcol_mark_explicit(Atom *root) {
       }
       ++index;
     }
+    // TODO: Use continuation here instead of recursion (replace root).
     if (envp(root->value.env->parent)) {
       gcol_mark_explicit(&root->value.env->parent);
     }
   }
 }
 
-void gcol_unmark(Atom *root) {
+void gcol_unmark(Atom *root, size_t mark_num) {
   if (nilp(*root)) {
     return;
   }
   if (root->galloc) {
     GenericAllocation *galloc = root->galloc;
     while (galloc) {
-      galloc->mark = 0;
+      if (galloc->mark == mark_num) {
+        galloc->mark = 0;
+      }
       galloc = galloc->more;
     }
   }
@@ -151,9 +164,11 @@ void gcol_unmark(Atom *root) {
     ConsAllocation *alloc = (ConsAllocation *)
       ((char *)root->value.pair - offsetof(ConsAllocation, pair));
     if (alloc->mark == 0) { return; }
-    alloc->mark = 0;
-    gcol_unmark(&car(*root));
-    gcol_unmark(&cdr(*root));
+    if (alloc->mark == mark_num) {
+      alloc->mark = 0;
+      gcol_unmark(&car(*root), mark_num);
+      gcol_unmark(&cdr(*root), mark_num);
+    }
   }
   if (envp(*root)) {
     size_t index = 0;
@@ -161,12 +176,12 @@ void gcol_unmark(Atom *root) {
     while (index < root->value.env->data_capacity) {
       entry = root->value.env->data + index;
       if (entry->key) {
-        gcol_unmark(&entry->value);
+        gcol_unmark(&entry->value, mark_num);
       }
       ++index;
     }
     if (envp(root->value.env->parent)) {
-      gcol_unmark(&root->value.env->parent);
+      gcol_unmark(&root->value.env->parent, mark_num);
     }
   }
 }
@@ -238,8 +253,8 @@ void gcol_generic(void) {
 }
 
 void gcol(void) {
-  gcol_generic();
   gcol_cons();
+  gcol_generic();
 }
 
 void print_gcol_data(void) {
@@ -289,6 +304,12 @@ Atom cons(Atom car_atom, Atom cdr_atom) {
   newpair.value.pair = &alloc->pair;
   car(newpair) = car_atom;
   cdr(newpair) = cdr_atom;
+
+  // TODO: Move pair allocations to generic allocation system...
+  // TODO: Make it not crash when we use generic allocation system...
+  // Register allocated pair in garbage collector.
+  //gcol_generic_allocation(&newpair, (void *)newpair.value.pair);
+
   return newpair;
 }
 

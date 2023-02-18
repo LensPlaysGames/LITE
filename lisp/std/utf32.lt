@@ -5,21 +5,25 @@
 (defun utf32-forward-char ()
   "Increment point of `CURRENT-BUFFER` by one utf32 codepoint."
   (forward-bytes 4)
+  (cursor-keep-on-screen (active-window))
   current-buffer)
 
 (defun utf32-backward-char ()
   "Decrement point of `CURRENT-BUFFER` by one utf32 codepoint."
   (backward-bytes 4)
+  (cursor-keep-on-screen (active-window))
   current-buffer)
 
 (defun utf32-remove-char ()
   "Remove the bytes representing the utf32 codepoint of `CURRENT-BUFFER` ending just before point."
   (remove 4)
+  (cursor-keep-on-screen (active-window))
   current-buffer)
 
 (defun utf32-remove-char-forward ()
   "Remove the bytes representing the next utf32 codepoint of `CURRENT-BUFFER` starting at point."
   (remove-forward 4)
+  (cursor-keep-on-screen (active-window))
   current-buffer)
 
 (defun utf32-backspace ()
@@ -38,6 +42,7 @@ or, if mark is active and a region is selected, remove the entire region."
               (remove-forward length)
               ;; Point is past mark, remove backward.
               (remove length)))
+        (cursor-keep-on-screen (active-window))
         current-buffer)
       ;; Mark isn't active, no region selected---remove a single byte backwards.
       (utf32-remove-char)))

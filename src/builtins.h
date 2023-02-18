@@ -8,13 +8,14 @@ struct Error;
   extern const char *const builtin_##name##_docstring; \
   struct Error builtin_##name(Atom arguments, Atom *result)
 
-
 struct Atom;
 typedef struct Atom Atom;
 
 builtin(quit_lisp);
 
 builtin(docstring);
+
+builtin(tree_sitter_update);
 
 // TYPES
 
@@ -103,6 +104,7 @@ builtin(buffer_redo);
 
 builtin(buffer_set_point);
 builtin(buffer_point);
+builtin(buffer_row_col);
 
 builtin(buffer_index);
 builtin(buffer_string);
@@ -153,6 +155,7 @@ builtin(change_font);
 builtin(change_font_size);
 
 builtin(window_size);
+builtin(window_rows_cols);
 builtin(change_window_size);
 builtin(change_window_mode);
 
@@ -162,6 +165,8 @@ builtin(scroll_up);
 builtin(scroll_down);
 builtin(scroll_left);
 builtin(scroll_right);
+
+builtin(cursor_keep_on_screen);
 
 #undef builtin
 

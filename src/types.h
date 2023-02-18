@@ -68,6 +68,7 @@ typedef struct Environment {
   size_t data_count;
   size_t data_capacity;
   struct EnvironmentValue *data;
+  GenericAllocation *galloc_data;
 } Environment;
 
 static const Atom nil = { ATOM_TYPE_NIL,     { 0 }, NULL, NULL };
@@ -104,7 +105,7 @@ static const Atom nil = { ATOM_TYPE_NIL,     { 0 }, NULL, NULL };
 typedef struct ConsAllocation {
   struct ConsAllocation *next;
   Pair pair;
-  char mark;
+  size_t mark;
 } ConsAllocation;
 
 extern ConsAllocation *global_pair_allocations;
@@ -114,8 +115,9 @@ extern size_t pair_allocations_freed;
 typedef struct GenericAllocation {
   struct GenericAllocation *next;
   struct GenericAllocation *more;
+  Atom ref;
   void *payload;
-  char mark;
+  size_t mark;
 } GenericAllocation;
 
 extern GenericAllocation *generic_allocations;
@@ -150,6 +152,8 @@ Error gcol_generic_allocation(Atom *ref, void *payload);
  */
 void gcol_mark(Atom *root);
 
+size_t gcol_explicit_frame();
+
 /** Just like gcol_mark() except it won't be unmarked at next gcol().
  *
  * Mark atoms that are accessible from a given root as in-use,
@@ -169,7 +173,7 @@ void gcol_mark_explicit(Atom *root);
  *
  * DO NOT CALL WITH NULL ARGUMENT!
  */
-void gcol_unmark(Atom *root);
+void gcol_unmark(Atom *root, size_t mark_num);
 
 /** Do a garbage collection.
  *
@@ -178,14 +182,14 @@ void gcol_unmark(Atom *root);
  *
  * Both ConsAllocation and GenericAllocation are handled.
  */
-void gcol();
+void gcol(void);
 
 /** Print all data collected surrounding garbage collection.
  *
  * This includes amount of created and freed allocations for both types
  * of allocation (pair/cons and generic).
  */
-void print_gcol_data();
+void print_gcol_data(void);
 
 //================================================================ END garbage_collection
 

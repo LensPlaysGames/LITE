@@ -1,0 +1,69 @@
+(set tree-sitter-language "c")
+;; FG/BG RGBA pairs
+(set comment '((127 131 136 255) (22 23 24 255)))
+(set variable      '((128 255 253 255) (22 23 24 255)))
+(set type          '(( 44 171 255 255) (22 23 24 255)))
+(set function_name '((255 235 187 255) (22 23 24 255)))
+(set keyword       '((221 100 244 255) (22 23 24 255)))
+(set operator      '(( 10 255 141 255) (22 23 24 255)))
+(set delimiter     '((228 235 232 255) (22 23 24 255)))
+(set constant      '((206 255 255 255) (22 23 24 255)))
+(set string        '((255 238  32 255) (22 23 24 255)))
+(set escape        '((255 253 128 255) (22 23 24 255)))
+(set err-color     '((231  17  17 255) (22 23 24 255)))
+(tree-sitter-update
+ tree-sitter-language
+ `(("(comment) @x" ,comment)
+
+   ("(true) @x" ,constant)
+   ("(false) @x" ,constant)
+   ("(null) @x" ,constant)
+
+   ("[ \\"break\\" \\"case\\" \\"const\\" \\"continue\\" \\"default\\" \\"do\\" \\"else\\" \\"enum\\" \\"extern\\" \\"for\\" \\"goto\\" \\"if\\" \\"long\\" \\"register\\" \\"return\\" \\"short\\" \\"signed\\" \\"sizeof\\" \\"static\\" \\"struct\\" \\"switch\\" \\"typedef\\" \\"union\\" \\"unsigned\\" \\"volatile\\" \\"while\\" ] @x" ,keyword) ;
+
+   ("[ \\"=\\" \\"-\\" \\"*\\" \\"/\\" \\"+\\" \\"%\\" \\"~\\" \\"|\\" \\"&\\" \\"^\\" \\"<<\\" \\">>\\" \\"->\\" \\".\\" \\"<\\" \\"<=\\" \\">=\\" \\">\\" \\"==\\" \\"!=\\" \\"!\\" \\"&&\\" \\"||\\" \\"-=\\" \\"+=\\" \\"*=\\" \\"/=\\" \\"%=\\" \\"|=\\" \\"&=\\" \\"^=\\" \\">>=\\" \\"<<=\\" \\"--\\" \\"++\\" ]" ,operator) ;
+
+   ("(string_literal)    @x" ,string)
+   ("(system_lib_string) @x" ,string)
+
+   ("(number_literal) @x" ,constant)
+   ("(char_literal)   @x" ,constant)
+
+   ("(primitive_type)  @x" ,type)
+   ("(type_identifier) @x" ,type)
+   ("(sized_type_specifier) @x" ,type)
+
+   ("(declaration
+            declarator: (_) @x)" ,variable)
+   ("(field_declaration
+            declarator: (_) @x)" ,escape)
+   ("(function_definition
+            declarator: (_) @x)" ,function_name)
+
+   ("(assignment_expression
+            left: (identifier) @x)" ,variable)
+   ("(assignment_expression
+            left: (field_expression field: (_) @x))" ,escape)
+   ("(assignment_expression
+            left: (pointer_expression (identifier) @x))" ,variable)
+   ("(assignment_expression
+            left: (subscript_expression (identifier) @x))" ,variable)
+
+   ("(call_expression
+            function: (identifier) @x) " ,function_name)
+
+   ("(identifier) @x" ,variable)
+
+   ("(labeled_statement
+            label: (statement_identifier) @x)" ,constant)
+
+   ("(ERROR) @x" ,err-color)
+
+   ("(escape_sequence) @x" ,escape)
+
+   ("(field_identifier) @x" ,escape)
+   ("(enumerator name: (identifier) @x)" ,escape)
+
+   ("[ \\",\\" \\":\\" \\";\\" \\"(\\" \\")\\" \\"[\\" \\"]\\" \\"{\\" \\"}\\" ] @x" ,delimiter) ;
+   ))
+

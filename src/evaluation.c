@@ -47,12 +47,25 @@ void print_stackframe(Atom stack, int depth) {
 Error evaluate_next_expression(Atom *stack, Atom *expr, Atom *environment) {
   *environment = list_get(*stack, 1);
   Atom body = list_get(*stack, 5);
+  if (!pairp(body)) {
+    MAKE_ERROR(err, ERROR_GENERIC, body,
+               "Malformed stack body, can not continue evaluation.",
+               NULL);
+    return err;
+  }
   *expr = car(body);
+  // Update body to have current expression removed.
   body = cdr(body);
+  list_set(*stack, 5, body);
+
+  // Body completely evaluated, attempt to finish evaluating parent stack.
+  // TODO: Is this correct? I feel like it's not, since we still have
+  // the last expression to evaluate before this stack frame is done,
+  // right? body being nil here is after it's updated, which means expr
+  // still needs evaluated, which means we're technically not done with
+  // the stack... right?
   if (nilp(body)) {
     *stack = car(*stack);
-  } else {
-    list_set(*stack, 5, body);
   }
   return ok;
 }
@@ -386,6 +399,14 @@ Error evaluate_expression(Atom expr, Atom environment, Atom *result) {
     F(&environment);                            \
     F(&stack);                                  \
     F(buf_table())
+
+#define UNMARK_ALL_GCOL_THINGS(n)               \
+    gcol_unmark(&expr, n);                      \
+    gcol_unmark(result, n);                     \
+    gcol_unmark(genv(), n);                     \
+    gcol_unmark(&environment, n);               \
+    gcol_unmark(&stack, n);                     \
+    gcol_unmark(buf_table(), n)
 
   // These numbers are tailored to free around twenty mebibytes at a time,
   // and to have both of the reasons for garbage collection actually used.
@@ -731,6 +752,9 @@ Error evaluate_expression(Atom expr, Atom environment, Atom *result) {
           continue;
         } else {
           // Evaluate operator before application.
+          // *Not* setting the stack operator here is on purpose; it
+          // means that evaluate_return_value will understand that the
+          // return value it has is actually the operator.
           stack = make_frame(stack, environment, arguments);
           expr = operator;
           continue;
@@ -744,20 +768,19 @@ Error evaluate_expression(Atom expr, Atom environment, Atom *result) {
           arguments = cons(environment, arguments);
         }
 
-        // TODO: This is horrible, but the code is unusable slow otherwise.
-        // Explicitly mark call stack in gcol for recursively
-        // evaluating builtins.
         char needs_explicit =
           operator.value.builtin.function == builtin_apply
           || operator.value.builtin.function == builtin_evaluate_file
           || operator.value.builtin.function == builtin_evaluate_string
           || operator.value.builtin.function == builtin_read_prompted;
+        size_t mark = 0;
         if (needs_explicit) {
+          mark = gcol_explicit_frame();
           FOR_ALL_GCOL_THINGS(gcol_mark_explicit);
         }
         err = (*operator.value.builtin.function)(arguments, result);
         if (needs_explicit) {
-          FOR_ALL_GCOL_THINGS(gcol_unmark);
+          UNMARK_ALL_GCOL_THINGS(mark);
         }
         if (err.type) {
           if (err.type == ERROR_ARGUMENTS) {
@@ -781,4 +804,5 @@ Error evaluate_expression(Atom expr, Atom environment, Atom *result) {
   } while (!err.type);
   return err;
 #undef FOR_ALL_GCOL_THINGS
+#undef UNMARK_ALL_GCOL_THINGS
 }

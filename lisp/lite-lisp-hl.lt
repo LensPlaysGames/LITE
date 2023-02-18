@@ -1,0 +1,16 @@
+(set tree-sitter-language "lite_lisp")
+;; FG/BG RGBA pairs
+(set comment       '((127 131 136 255) (22 23 24 255)))
+(set keyword       '((221 100 244 255) (22 23 24 255)))
+(set operator      '(( 10 255 141 255) (22 23 24 255)))
+(set delimiter     '((228 235 232 255) (22 23 24 255)))
+(set number        '((206 255 255 255) (22 23 24 255)))
+(tree-sitter-update
+ tree-sitter-language
+ `(("(comment) @x" ,comment)
+   ("(string) @x" ((255 238  32 255) (22 23 24 255)))
+   ("(number) @x" ,number)
+   ("[ \\"if\\" \\"when\\" \\"unless\\" \\"define\\" \\"set\\" \\"let\\" \\"defun\\" \\"defmacro\\" \\"macro\\" ] @x" ,keyword)
+   ("[ \\"'\\" \\"`\\" \\",\\" \\",@\\" ] @x" ,operator)
+   ("[ \\"(\\" \\")\\" ] @x" ,delimiter)
+   ))

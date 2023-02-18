@@ -35,6 +35,7 @@ Otherwise, return nil."
   (if (utf16-point-at-surrogate-pair-p)
       (forward-bytes 4)
       (forward-bytes 2))
+  (cursor-keep-on-screen (active-window))
   current-buffer)
 
 (defun utf16-backward-char ()
@@ -42,6 +43,7 @@ Otherwise, return nil."
   (backward-bytes 2)
   (when (utf16-point-in-surrogate-pair-p)
     (backward-bytes 2))
+  (cursor-keep-on-screen (active-window))
   current-buffer)
 
 (defun utf16-remove-char ()
@@ -49,6 +51,7 @@ Otherwise, return nil."
   (backward-bytes 2)
   (when (utf16-point-in-surrogate-pair-p)
     (backward-bytes 2))
+  (cursor-keep-on-screen (active-window))
   current-buffer)
 
 (defun utf16-remove-char-forward ()
@@ -56,6 +59,7 @@ Otherwise, return nil."
   (if (utf16-point-at-surrogate-pair-p)
       (remove-forward 4)
       (remove-forward 2))
+  (cursor-keep-on-screen (active-window))
   current-buffer)
 
 (defun utf16-backspace ()
@@ -74,6 +78,7 @@ or, if mark is active and a region is selected, remove the entire region."
               (remove-forward length)
               ;; Point is past mark, remove backward.
               (remove length)))
+        (cursor-keep-on-screen (active-window))
         current-buffer)
       ;; Mark isn't active, no region selected---remove a single byte backwards.
       (utf16-remove-char)))

@@ -2,6 +2,10 @@
 ;;; Depends on:
 ;;; -> basics.lt
 ;;; -> lists.lt
+;;; -> ascii.lt
+;;; -> utf8.lt
+;;; -> utf16.lt
+;;; -> utf32.lt
 
 (defmacro keymap-push (given-alist key value)
   "Define GIVEN-ALIST to an alist with KEY associated to VALUE, no checking for duplicates."
@@ -31,13 +35,21 @@
 
 (set keymap (make-simple-keymap) "The global keymap containing keybindings.")
 
-(defun nav-ascii ()
+(defun nav-byte ()
   "Alter navigation functions to use byte based movement."
   (keymap-set keymap "<backspace>" '(backspace))
   (keymap-set keymap "<delete>"    '(remove-forward 1))
   (let ((ctrl-keymap (get-keymap-or-make-simple keymap "CTRL")))
     (keymap-set ctrl-keymap "f" '(forward-byte))
     (keymap-set ctrl-keymap "b" '(backward-byte))))
+
+(defun nav-ascii ()
+  "Alter navigation functions to use ASCII based movement."
+  (keymap-set keymap "<backspace>" '(ascii-backspace))
+  (keymap-set keymap "<delete>"    '(ascii-remove-char-forward))
+  (let ((ctrl-keymap (get-keymap-or-make-simple keymap "CTRL")))
+    (keymap-set ctrl-keymap "f" '(ascii-forward-char))
+    (keymap-set ctrl-keymap "b" '(ascii-backward-char))))
 
 (defun nav-utf8 ()
   "Alter navigation functions to use utf8 based movement."
@@ -192,6 +204,8 @@
     (keymap-push ctrl-shft-keymap "d" "<backspace>")
     (keymap-push ctrl-keymap "d" "<delete>")
 
+    (keymap-push ctrl-keymap "t" '(transpose-byte))
+
     ;; ctrl keybinds: Buffer navigation
     (keymap-push ctrl-keymap " " '(set-or-toggle-mark))
 
@@ -214,6 +228,11 @@
     ;; ctrl keybinds: Prompted
     (keymap-push ctrl-keymap "i" '(search-forward))
     (keymap-push ctrl-keymap "r" '(search-backward))
+
+    ;; ctrl-alts keybinds: Buffer navigation
+    (keymap-push ctrl-alts-keymap "," '(progn (set-point 0) (cursor-keep-on-screen (active-window)) current-buffer))
+    (keymap-push ctrl-alts-keymap "." '(progn (set-point 0) (forward-bytes 999999999999)
+                                        (cursor-keep-on-screen (active-window)) current-buffer))
 
     ;; ctrl-alts keybinds: font size
     (keymap-push ctrl-alts-keymap "=" '(size-reset))

@@ -23,12 +23,19 @@ project(LITE VERSION ${LITE_VERSION} LANGUAGES ${LITE_LANGUAGES})
 option(
   LITE_GFX
   "Should LITE be built with graphical abilities (GUI)?"
-  OFF
+  ON
 )
 
+option(
+  TREE_SITTER
+  "Should LITE be built with libtreesitter?"
+  ON
+)
+
+# TODO I remember hearing /something/ about not needing braces here?
 if (${LITE_GFX})
   add_subdirectory(gfx)
-endif ()
+endif()
 
 add_executable(
   LITE
@@ -81,6 +88,32 @@ if (NOT MSVC)
     -pedantic
   )
 endif()
+
+if (${TREE_SITTER})
+  if (NOT TS_DIR)
+    message(FATAL_ERROR "[31mTS_DIR *must* be set to the filepath to the tree sitter repository[m
+https://github.com/tree-sitter/tree-sitter.git")
+  endif()
+
+  # Statically build libtree-sitter into the executable
+  target_sources(
+    LITE
+    PRIVATE
+    ${TS_DIR}/lib/src/lib.c
+  )
+  target_include_directories(
+    LITE
+    PRIVATE
+    ${TS_DIR}/lib/src
+    ${TS_DIR}/lib/include
+  )
+  target_compile_definitions(
+    LITE
+    PRIVATE
+    TREE_SITTER
+  )
+endif()
+
 
 # Doxygen Documentation Target
 find_program(DOXYGEN_PROGRAM doxygen)

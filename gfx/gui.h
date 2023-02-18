@@ -20,8 +20,7 @@ typedef struct GUIColor {
   uint8_t g;
   uint8_t b;
   uint8_t a;
-} GUIColor;
-#define GUIColour GUIColor
+} GUIColor, GUIColour;
 
 typedef struct GUIStringProperty {
   size_t id;
@@ -67,6 +66,7 @@ typedef struct GUIContext {
 enum CreateGUIReturnValue {
   CREATE_GUI_OK = 0,
   CREATE_GUI_ALREADY_CREATED = 3,
+  CREATE_GUI_ERR,
 };
 
 /** Attempt to initialize and create the GUI.
@@ -75,6 +75,7 @@ enum CreateGUIReturnValue {
  *
  * @retval CREATE_GUI_OK Successful creation of GUI.
  * @retval CREATE_GUI_ALREADY_CREATED Can not create two GUIs.
+ * @retval CREATE_GUI_ERR Attempted to but could not create GUI.
  */
 int create_gui();
 void destroy_gui();
@@ -91,12 +92,16 @@ int handle_events();
 int do_gui(GUIContext *ctx);
 
 /// @return Zero upon success.
-int change_font(char *path, size_t size);
+int change_font(const char *path, size_t size);
 
 /// @return Zero upon success.
 int change_font_size(size_t size);
 
+/// @return Window size in pixels.
 void window_size(size_t *width, size_t *height);
+
+/// @return Window size in character rows and columns, approximately.
+void window_size_row_col(size_t *rows, size_t *cols);
 
 /// @return Zero upon success.
 void change_window_size(size_t width, size_t height);

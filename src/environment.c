@@ -14,8 +14,8 @@
 
 char user_quit = 0;
 
-Atom env_create(Atom parent, size_t initial_capacity) {
-  Environment *env = calloc(1, sizeof(*env));
+Atom env_create_nofree(Atom parent, size_t initial_capacity) {
+  Environment *env = calloc(1, sizeof *env);
   if (!env) {
     fprintf(stderr, "env_create() could not allocate new environment.");
     exit(9);
@@ -23,7 +23,7 @@ Atom env_create(Atom parent, size_t initial_capacity) {
   env->parent = parent;
   env->data_count = 0;
   env->data_capacity = initial_capacity;
-  env->data = calloc(1, initial_capacity * sizeof(*env->data));
+  env->data = calloc(1, initial_capacity * sizeof *env->data);
   if (!env->data) {
     fprintf(stderr, "env_create() could not allocate new hash table.");
     exit(9);
@@ -35,8 +35,14 @@ Atom env_create(Atom parent, size_t initial_capacity) {
   out.docstring = NULL;
   out.value.env = env;
 
-  gcol_generic_allocation(&out, out.value.env->data);
+  return out;
+}
+
+Atom env_create(Atom parent, size_t initial_capacity) {
+  Atom out = env_create_nofree(parent, initial_capacity);
   gcol_generic_allocation(&out, out.value.env);
+  gcol_generic_allocation(&out, out.value.env->data);
+  out.value.env->galloc_data = out.galloc;
   return out;
 }
 
@@ -129,6 +135,9 @@ static void env_expand(Environment *table) {
   EnvironmentValue *old_data = table->data;
   table->data = new_data;
   table->data_capacity = new_capacity;
+  if (table->galloc_data) {
+    table->galloc_data->payload = new_data;
+  }
 
   // Rehash all values from old table into new table. This is needed
   // because the index where the symbol is stored is a function of the
@@ -260,6 +269,7 @@ Atom default_environment(void) {
 
   defbuiltin(quit_lisp);
   defbuiltin(docstring);
+  defbuiltin(tree_sitter_update);
 
   defbuiltin(car);
   defbuiltin(cdr);
@@ -336,6 +346,7 @@ Atom default_environment(void) {
   defbuiltin(buffer_current_line);
   defbuiltin(buffer_set_point);
   defbuiltin(buffer_point);
+  defbuiltin(buffer_row_col);
   defbuiltin(buffer_index);
   defbuiltin(buffer_seek_byte);
   defbuiltin(buffer_seek_past_byte);
@@ -370,6 +381,7 @@ Atom default_environment(void) {
   defbuiltin(change_font_size);
 
   defbuiltin(window_size);
+  defbuiltin(window_rows_cols);
   defbuiltin(change_window_size);
   defbuiltin(change_window_mode);
 
@@ -379,6 +391,7 @@ Atom default_environment(void) {
   defbuiltin(scroll_left);
   defbuiltin(scroll_right);
 
+  defbuiltin(cursor_keep_on_screen);
 
   env_set(environment, make_sym((char *)"PLATFORM"),
 #         if defined(__FreeBSD__)

@@ -88,7 +88,7 @@ static inline void draw_bg() {
   SDL_RenderClear(grender);
 }
 
-int change_font(char *path, size_t size) {
+int change_font(const char *path, size_t size) {
   if (!path) { return 1; }
 
   TTF_Font *working_font = NULL;
@@ -247,14 +247,15 @@ int create_gui() {
            );
     return 1;
   }
-  font_height = TTF_FontHeight(font);
-  if (!font_height) {
+  int fheight = TTF_FontHeight(font);
+  if (fheight <= 0) {
     printf("GFX::SDL: SDL_ttf could not get height of font.\n"
            "        : %s\n"
            , TTF_GetError()
            );
     return 1;
   }
+  font_height = fheight;
   printf("GFX::SDL: SDL_ttf Initialized\n");
   return CREATE_GUI_OK;
 }
@@ -314,6 +315,7 @@ static inline void draw_gui_string_into_surface_within_rect
   // Byte offset of `string` iterator into GUIString.
   size_t offset = 0;
   // Byte offset of newline previous to `offset` in GUIString.
+  // Used in start of line calculation. `start_of_line_offset = last_newline_offset + 1`
   size_t last_newline_offset = -1;
 
   // Handle vertical line offset by skipping by newlines.
@@ -339,14 +341,19 @@ static inline void draw_gui_string_into_surface_within_rect
   // must use a copy to prevent clobbering our data.
   SDL_Rect destination = srcrect;
   SDL_Rect destination_copy = destination;
+  char cr_skip = 0;
   while (1) {
     // TODO: What to display \r as when cr_char isn't valid?
-    if (*string == '\r' && cr_char >= ' ') {
-      *string = cr_char;
+    if (*string == '\r') {
+      if (cr_char >= ' ') {
+        *string = cr_char;
+      } else if (*(string + 1) == '\n') {
+        cr_skip = 1;
+      }
     } else if (*string == '\n' || *string == '\0') {
       // Byte offset of start of line we are currently at the end of.
-      // TODO: Add horizontal offset here. If that makes start past
-      // or equal to end, skip line but increment destination height.
+      // Add horizontal offset here. If that makes start past or equal
+      // to end, skip line but increment destination height.
       size_t start_of_line_offset = gui_string.horizontal_offset + last_newline_offset + 1;
       size_t line_height = font_height;
 
@@ -357,13 +364,21 @@ static inline void draw_gui_string_into_surface_within_rect
       // Render entire line using defaults.
       // Calculate amount of bytes within the current line.
       size_t bytes_to_render = offset - start_of_line_offset;
+      if (cr_skip) {
+        cr_skip = 0;
+        if (bytes_to_render) {
+          bytes_to_render -= 1;
+        }
+      }
       char *line_text = allocate_string_span
         (gui_string.string, start_of_line_offset, bytes_to_render);
+#ifndef NDEBUG
       if (!line_text) {
         fprintf(stderr,
                 "GFX::SDL2::ERROR: Could not allocate string span for line text.");
         return;
       }
+#endif
       // Skip empty lines.
       if (line_text[0] != '\0') {
         // Use FreeType subpixel LCD rendering, if possible.
@@ -468,13 +483,9 @@ static inline void draw_gui_string_into_surface_within_rect
       last_newline_offset = offset;
 
       // No more room to draw text in output rectangle, stop now.
-      if (destination.h <= 0) {
-        break;
-      }
+      if (destination.h <= 0) break;
     }
-    if (*string == '\0') {
-      break;
-    }
+    if (*string == '\0') break;
     string += 1;
     offset += 1;
   }
@@ -914,11 +925,10 @@ int handle_event(SDL_Event *event) {
 HOTFUNCTION
 int handle_events() {
   SDL_Event event;
-  int open = 1;
-  while (open && SDL_PollEvent(&event)) {
-    open = handle_event(&event);
+  while (SDL_PollEvent(&event)) {
+    if (!handle_event(&event)) return 0;
   }
-  return open;
+  return 1;
 }
 
 // Returns a boolean-like integer value (0 is false).
@@ -963,6 +973,16 @@ void destroy_gui() {
 void window_size(size_t *width, size_t *height) {
   SDL_GetWindowSize(gwindow, (int *)width, (int *)height);
 }
+
+void window_size_row_col(size_t *rows, size_t *cols) {
+  size_t char_w = 0;
+  size_t char_h = 0;
+  TTF_SizeText(font, "M", &char_w, &char_h);
+  window_size(cols, rows);
+  *rows /= char_h;
+  *cols /= char_w;
+}
+
 
 void change_window_size(size_t width, size_t height) {
   SDL_SetWindowSize(gwindow, width, height);

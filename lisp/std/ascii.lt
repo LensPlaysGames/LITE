@@ -1,0 +1,67 @@
+;;; LITE LISP ASCII UTILITIES
+;;; Depends on:
+;;; -> basics.lt
+
+(defun ascii-forward-char ()
+  "Increment point of `CURRENT-BUFFER` by one ASCII character.
+If cursor is at a \\r\\n, then move two bytes. Otherwise, move one."
+  (if (and (eq (byte-at-point current-buffer) "\\r")
+           (eq (byte-after-point current-buffer) "\\n"))
+      (forward-bytes 2)
+      (forward-byte))
+  (cursor-keep-on-screen (active-window))
+  current-buffer)
+
+(defun ascii-backward-char ()
+  "Decrement point of `CURRENT-BUFFER` by one ASCII character.
+If cursor is after a \\r\\n, then move two bytes. Otherwise, move one."
+  (backward-byte)
+  (when (and (eq (byte-at-point current-buffer) "\\n")
+             (eq (byte-before-point current-buffer) "\\r"))
+    (backward-byte))
+  (cursor-keep-on-screen (active-window))
+  current-buffer)
+
+(defun ascii-remove-char ()
+  "Remove the bytes representing the ASCII character of `CURRENT-BUFFER` ending just before point."
+  (if (and (eq (buffer-index current-buffer (- (buffer-point current-buffer) 1)) "\\n")
+           (eq (buffer-index current-buffer (- (buffer-point current-buffer) 2)) "\\r"))
+      (remove 2)
+      (remove 1))
+  (cursor-keep-on-screen (active-window))
+  current-buffer)
+
+(defun ascii-remove-char-forward ()
+  "Remove the bytes representing the next ascii codepoint point of `CURRENT-BUFFER` starting at point."
+  (if (and (eq (byte-at-point current-buffer) "\\r")
+           (eq (byte-after-point current-buffer) "\\n"))
+      (remove-forward 2)
+      (if (and (eq (byte-at-point current-buffer) "\\n")
+               (eq (byte-before-point current-buffer) "\\r"))
+          (progn
+            (backward-byte)
+            (remove-forward 2))
+          (remove-forward 1)))
+  (cursor-keep-on-screen (active-window))
+  current-buffer)
+
+(defun ascii-backspace ()
+  "Remove the ascii codepoint behind the cursor in the current buffer,
+or, if mark is active and a region is selected, remove the entire region."
+  (if (buffer-mark-active current-buffer)
+      ;; Mark is active, a region is selected.
+      (let ((mark (mark))
+            (p (point))
+            (length (region-length)))
+        ;; Don't remove anything if region is of zero-length
+        (unless (= length 0)
+          ;; Determine if we need to remove forward or backward from point.
+          (if (> mark p)
+              ;; Mark is past point, remove forward.
+              (remove-forward length)
+              ;; Point is past mark, remove backward.
+              (remove length)))
+        (cursor-keep-on-screen (active-window))
+        current-buffer)
+      ;; Mark isn't active, no region selected---remove a single byte backwards.
+      (ascii-remove-char)))

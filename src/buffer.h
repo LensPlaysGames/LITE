@@ -57,6 +57,8 @@ typedef struct Buffer {
   size_t mark_byte; // Highest bit denotes activation
 
   BufferHistory history;
+
+  char modified;
 } Buffer;
 
 /** Open file or create new if one doesn't exist.
@@ -103,6 +105,17 @@ Error buffer_remove_byte_forward(Buffer *buffer);
 
 Error buffer_undo(Buffer *buffer);
 Error buffer_redo(Buffer *buffer);
+
+/** Get row/col coordinates of offset within BUFFER.
+ *
+ * @param[in] buffer
+ *   The buffer to calculate the position within.
+ * @param[in] offset
+ *   The byte position within buffer to calculate position of.
+ * @param[out] row
+ * @param[out] col
+ */
+Error buffer_row_col(Buffer buffer, size_t offset, size_t *row, size_t *col);
 
 /** Get BUFFER's mark byte offset.
  *
@@ -251,14 +264,5 @@ void buffer_print(Buffer buffer);
 Error buffer_save(Buffer buffer);
 
 void buffer_free(Buffer* buffer);
-
-/** Create and initialize a buffer atom and return it, if possible.
- *
- * @param[in] path
- *   The file path the returned buffer will be visiting.
- *
- * @return A buffer initialized at path, or panic the program (exit).
- */
-Atom initialize_buffer_or_panic(const char *const path);
 
 #endif /* LITE_BUFFER_H */

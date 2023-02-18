@@ -1,0 +1,55 @@
+* Build Steps
+
+First of all, let me just say this: I have had a lot of frustration surrounding the build process of this particular graphical library. Mostly due to the fact that it relies on non-CMake projects (ones using Meson, instead), and that causes a huge headache because there is almost zero CMake -> Meson operability. So, before we get started: **be warned: this is not an easy library to build**.
+
+** Prerequisites
+
+The standard: a C compiler, CMake, git.
+
+- OpenGL 3.3 or greater
+
+- Meson (requires Python)
+
+  I don't really like requiring Python, however there are dependencies that have no alternatives, so we must use the Meson build system...
+
+** 1
+
+Clone (some) dependencies' sources from Git into the `libs` subdirectory.
+
+#+begin_src shell
+  cd libs
+  git clone https://github.com/glfw/glfw
+  git clone https://github.com/recp/cglm
+  git clone https://github.com/freetype/freetype
+#+end_src
+
+With all of these cloned, we are ready to move on. There /are/ more dependencies, however they are automatically handled by CMake due to more complex build system requirements.
+
+** 2
+
+Generate a build tree for LITE GFX.
+
+NOTE: Do this from the top level directory of the LITE repository; *not* in the directory this README resides within.
+
+#+begin_src
+  cmake -B bldgl -DTS_DIR=/absolute/path/to/tree-sitter -DLITE_GFX_IMPLEMENTATION_SUBDIR=gfx/gl
+  cmake --build bldgl
+#+end_src
+
+*BE AWARE:* This build will fail with an error regarding `hb.h` not found or maybe `fribidi.h`, depending on the order things run in. *This is expected*, and a requirement of CMake and Meson interop that isn't very pretty. All you have to do is run the came `cmake --build bldgl` a few times, and all of the dependencies should "work themselves out" (some targets generate files that other targets depend on, but CMake refuses to run the dependency before validating files exist).
+
+#+begin_example
+D:/Programming/C/lite_gfx/gfx/gl/src/main.c:8:10: fatal error: hb.h: No such file or directory
+    8 | #include <hb.h>
+#+end_example
+
+*This error (or one much like it) is expected*; to fix it, simply configure CMake again; this should then allow you to do as many builds as you want, from then on.
+
+#+begin_src
+  cmake -B bldgl -DTS_DIR=/absolute/path/to/tree-sitter -DLITE_GFX_IMPLEMENTATION_SUBDIR=gfx/gl
+  cmake --build bldgl
+#+end_src
+
+When it successfully builds, the LITE executable is in the `bin` subdirectory at the top level of the repository. Run like `bin/LITE`.
+
+I am truly sorry to force you to deal with the unexpected build system shenanigans with having to run it twice and all that. Will readily accept PRs that allow an avoidance of this nonsense.

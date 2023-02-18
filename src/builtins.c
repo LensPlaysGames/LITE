@@ -17,9 +17,13 @@
 #include <utility.h>
 
 #ifdef LITE_GFX
-#  include <api.h>
-#  include <gfx.h>
-#  include <gui.h>
+# include <api.h>
+# include <gfx.h>
+# include <gui.h>
+#endif
+
+#ifdef TREE_SITTER
+# include <tree_sitter.h>
 #endif
 
 #define ARG_ERR(args) do {                              \
@@ -2351,6 +2355,58 @@ Error builtin_window_size(Atom arguments, Atom *result) {
   return ok;
 }
 
+const char *const builtin_window_rows_cols_name = "WINDOW-ROWS-COLS";
+const char *const builtin_window_rows_cols_docstring =
+  "(window-rows-cols)\n"
+  "\n"
+  "Return a pair containing the graphical window's size in character rows and columns, approximately.";
+Error builtin_window_rows_cols(Atom arguments, Atom *result) {
+  NO_ARGS(arguments);
+#ifdef LITE_GFX
+  size_t rows = 0;
+  size_t cols = 0;
+  window_size_row_col(&rows, &cols);
+  *result = cons(make_int((integer_t)rows), make_int((integer_t)cols));
+#endif
+  return ok;
+}
+
+const char *const builtin_buffer_row_col_name = "BUFFER-ROW-COL";
+const char *const builtin_buffer_row_col_docstring =
+  "(buffer-row-col BUFFER BYTE-OFFSET)\n"
+  "\n"
+  "Return a pair containing BYTE-OFFSET's position within buffer in rows and columns.";
+Error builtin_buffer_row_col(Atom arguments, Atom *result) {
+  TWO_ARGS(arguments);
+#ifdef LITE_GFX
+  Atom buffer = car(arguments);
+  Atom offset = car(cdr(arguments));
+  if (!bufferp(buffer) || !integerp(offset) || offset.value.integer < 0) {
+    MAKE_ERROR(err_type, ERROR_TYPE,
+               arguments,
+               "BUFFER-ROW-COL requires a buffer argument followed by an integer argument",
+               NULL);
+    return err_type;
+  }
+  if (offset.value.integer == 0) {
+    *result = cons(make_int(0), make_int(0));
+    return ok;
+  }
+
+  if (offset.value.integer >= (integer_t)buffer.value.buffer->rope->weight) {
+    offset.value.integer = (integer_t)buffer.value.buffer->rope->weight - 1;
+  }
+
+  integer_t rows;
+  integer_t cols;
+  buffer_row_col(*buffer.value.buffer, (size_t)offset.value.integer,
+                 (size_t *)&rows, (size_t *)&cols);
+  *result = cons(make_int(rows), make_int(cols));
+
+#endif
+  return ok;
+}
+
 const char *const builtin_change_window_size_name = "CHANGE-WINDOW-SIZE";
 const char *const builtin_change_window_size_docstring =
   "(change-window-size WIDTH HEIGHT)\n"
@@ -2438,7 +2494,7 @@ Error builtin_scroll_up(Atom arguments, Atom *result) {
                  NULL);
       return err_type;
     }
-    if (car(arguments).value.integer > 0) {
+    if (car(arguments).value.integer >= 0) {
       offset = car(arguments).value.integer;
     }
   }
@@ -2480,7 +2536,7 @@ Error builtin_scroll_down(Atom arguments, Atom *result) {
       return err_type;
     }
     // Only use argument to set offset if it is positive.
-    if (car(arguments).value.integer > 0) {
+    if (car(arguments).value.integer >= 0) {
       offset = car(arguments).value.integer;
     }
   }
@@ -2505,7 +2561,6 @@ const char *const builtin_scroll_left_docstring =
   "\n"
   "";
 Error builtin_scroll_left(Atom arguments, Atom *result) {
-  NO_ARGS(arguments);
   (void)result;
 #ifdef LITE_GFX
   // Use the default offset of one, unless a positive integer value was
@@ -2519,7 +2574,7 @@ Error builtin_scroll_left(Atom arguments, Atom *result) {
                  NULL);
       return err_type;
     }
-    if (car(arguments).value.integer > 0) {
+    if (car(arguments).value.integer >= 0) {
       offset = car(arguments).value.integer;
     }
   }
@@ -2542,7 +2597,6 @@ const char *const builtin_scroll_right_docstring =
   "\n"
   "";
 Error builtin_scroll_right(Atom arguments, Atom *result) {
-  NO_ARGS(arguments);
   (void)result;
 #ifdef LITE_GFX
   // Use the default offset of one, unless a positive integer value was
@@ -2562,23 +2616,85 @@ Error builtin_scroll_right(Atom arguments, Atom *result) {
       return err_type;
     }
     // Only use argument to set offset if it is positive.
-    if (car(arguments).value.integer > 0) {
+    if (car(arguments).value.integer >= 0) {
       offset = car(arguments).value.integer;
     }
   }
   Atom active_window = get_active_window();
   // Prevent unsigned integer overflow.
   Atom scrollxy = list_get(active_window, 3);
-  integer_t old_vertical_offset = cdr(scrollxy).value.integer;
+  integer_t old_horizontal_offset = car(scrollxy).value.integer;
   car(scrollxy).value.integer += offset;
-  if (car(scrollxy).value.integer < old_vertical_offset) {
-    // Restore vertical offset to what it was before overflow.
-    car(scrollxy).value.integer = old_vertical_offset;
+  if (car(scrollxy).value.integer < old_horizontal_offset) {
+    // Restore horizontal offset to what it was before overflow.
+    car(scrollxy).value.integer = old_horizontal_offset;
   }
 #else
   (void)arguments;
 #endif /* #ifdef LITE_GFX */
   return ok;
+}
+
+const char *const builtin_cursor_keep_on_screen_name = "CURSOR-KEEP-ON-SCREEN";
+const char *const builtin_cursor_keep_on_screen_docstring =
+  "(cursor-keep-on-screen WINDOW)\n"
+  "\n"
+  "Keep cursor of WINDOW contents buffer on screen by altering scroll values.\n"
+  "Do NOT pass a malformed window.";
+Error builtin_cursor_keep_on_screen(Atom arguments, Atom *result) {
+  ONE_ARG(arguments);
+  (void)result;
+#ifdef LITE_GFX
+  Atom window = car(arguments);
+  if (!pairp(window)) {
+    MAKE_ERROR(err_type, ERROR_TYPE,
+               arguments,
+               "CURSOR-KEEP-ON-SCREEN requires a single window argument",
+               NULL);
+    return err_type;
+  }
+
+  // WINDOW API
+  Buffer *buffer = car(list_get(window, 4)).value.buffer;
+  Atom scrollxy = list_get(window, 3);
+
+  integer_t visual_row_start = cdr(scrollxy).value.integer;
+  integer_t visual_col_start = car(scrollxy).value.integer;
+  size_t rows = 0;
+  size_t cols = 0;
+  window_size_row_col(&rows, &cols);
+  integer_t visual_row_end = visual_row_start + (integer_t)rows;
+  integer_t visual_col_end = visual_col_start + (integer_t)cols;
+
+  integer_t cursor_row = 0;
+  integer_t cursor_col = 0;
+  buffer_row_col(*buffer, buffer->point_byte, (size_t *)&cursor_row, (size_t *)&cursor_col);
+
+  // VERT
+  if (cursor_row < visual_row_start) {
+    // Off top of screen
+    // scroll up
+    cdr(scrollxy).value.integer -= visual_row_start - cursor_row;
+  } else if (cursor_row >= visual_row_end) {
+    // Off bottom of screen
+    // scroll down
+    cdr(scrollxy).value.integer += 1 + (cursor_row - visual_row_end);
+  }
+  // HORZ
+  if (cursor_col < visual_col_start) {
+    // Off left of screen
+    // scroll left
+    car(scrollxy).value.integer -= visual_col_start - cursor_col;
+  } else if (cursor_col >= visual_col_end) {
+    // Off right of screen
+    // scroll right
+    car(scrollxy).value.integer += 1 + (cursor_col - visual_col_end);
+  }
+
+  return ok;
+#else
+  return ok;
+#endif /* #ifdef LITE_GFX */
 }
 
 Atom terrible_copy_paste_implementation = { .type      = ATOM_TYPE_STRING,
@@ -2721,6 +2837,28 @@ Error builtin_set_carriage_return_character(Atom arguments, Atom *result) {
 # endif
 
   return ok;
+}
+
+const char *const builtin_tree_sitter_update_name = "TREE-SITTER-UPDATE";
+const char *const builtin_tree_sitter_update_docstring =
+  "(tree-sitter-update LANGUAGE QUERIES)\n"
+  "\n"
+  "Update the tree sitter configuration for LANGUAGE with QUERIES.\n"
+  "TREE-SITTER-LANGUAGE still dictates which is active at any given moment.";
+Error builtin_tree_sitter_update(Atom arguments, Atom *result) {
+  TWO_ARGS(arguments);
+#ifdef TREE_SITTER
+  if (!stringp(car(arguments))) {
+    // TODO: return type error;
+    return ok;
+  }
+  const char *lang_string = car(arguments).value.symbol;
+  Atom queries = car(cdr(arguments));
+  return ts_langs_update_queries(lang_string, queries);
+#else
+  *result = nil;
+  return ok;
+#endif /* #ifdef TREE_SITTER */
 }
 
 /*

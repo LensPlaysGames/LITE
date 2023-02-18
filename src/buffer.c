@@ -48,6 +48,10 @@ void buf_hst_create_node(BufferHistoryType type, BufferHistoryNode **head, char 
 }
 
 Error buffer_create_hst_node(Buffer *buffer, BufferHistoryType type, char *data, size_t offset, size_t length) {
+  // Everywhere the buffer is modified and requires a new history node,
+  // there /should/ be a modification that's been done, so this flag
+  // being set here means we don't have to set it everywhere.
+  buffer->modified = 1;
   // If the previous head is of the same type...
   if (buffer->history.undo && buffer->history.undo->type == type) {
     // If the cursor is in the correct position.
@@ -413,6 +417,8 @@ Error buffer_undo(Buffer *buffer) {
   } break;
   }
 
+  buffer->modified = 1;
+
   // Remove node by updating head to head->next;
   *head = (*head)->next;
 
@@ -458,6 +464,8 @@ Error buffer_redo(Buffer *buffer) {
   } break;
   }
 
+  buffer->modified = 1;
+
   // Remove node by updating head to head->next;
   *head = (*head)->next;
 
@@ -468,6 +476,31 @@ Error buffer_redo(Buffer *buffer) {
   return ok;
 }
 
+
+Error buffer_row_col(Buffer buffer, size_t offset, size_t *row, size_t *col) {
+  // TODO: It may be faster to search by traversing rope nodes instead.
+  char *str = buffer_string(buffer);
+  if (!str) {
+    MAKE_ERROR(err, ERROR_GENERIC, nil, "buffer_row_col could not make string from given buffer.", NULL);
+    return err;
+  }
+  for (char *it = str; it && *it && it < str + offset; it = strchr(it+1, '\n')) {
+    *row += 1;
+  }
+  // Rows were counted, we want the row index.
+  if (*row) (*row)--;
+  if (*row) {
+    char *it = str + offset - 1;
+    while (*it != '\n') {
+      *col += 1;
+      it -= 1;
+    }
+  } else {
+    *col = offset;
+  }
+  free(str);
+  return ok;
+}
 
 size_t buffer_mark(Buffer buffer) {
   return buffer.mark_byte &= ~BUFFER_MARK_ACTIVATION_BIT;
@@ -823,13 +856,4 @@ void buffer_free(Buffer* buffer) {
     free(buffer->path);
   }
   free(buffer);
-}
-
-Atom initialize_buffer_or_panic(const char *const path) {
-  Atom buffer = make_buffer(env_create(nil, 0), (char *)path);
-  // TODO: I don't think this check can ever succeed...
-  if (nilp(buffer)) {
-    exit(1);
-  }
-  return buffer;
 }

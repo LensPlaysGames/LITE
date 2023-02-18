@@ -162,17 +162,37 @@ If point is zero, get byte at point."
         (buffer-index buffer 0)
         (buffer-index buffer (- point 1)))))
 
+(defun byte-after-point (buffer)
+  "Get the byte after the point in BUFFER."
+  (buffer-index buffer (+ 1 (buffer-point buffer))))
+
+(defun at-crlf ()
+  "Return T if the two bytes under and after point of CURRENT-BUFFER
+are equal to a CRLF (13, 10) carriage-return/newline pair."
+  (and (eq (byte-at-point current-buffer) "\\r")
+       (eq (byte-after-point current-buffer) "\\n")))
+
 ;; Navigation
 
+(evaluate-file "lisp/std/ascii.lt")
 (evaluate-file "lisp/std/utf8.lt")
 (evaluate-file "lisp/std/utf16.lt")
 (evaluate-file "lisp/std/utf32.lt")
+
+(defun transpose-byte ()
+  "Swap the byte at point with the byte before point, and increment point."
+  (unless (= (point) 0)
+    (let ((before-point (byte-before-point current-buffer)))
+      (remove 1)
+      (forward-byte)
+      (insert before-point))))
 
 (defun beginning-of-line ()
   "Move to the beginning of the current line"
   (if (= (seek-byte "\\n" -1) 0)
       (set-point 0)
       (forward-byte))
+  (cursor-keep-on-screen (active-window))
   current-buffer)
 
 (defun end-of-line ()
@@ -182,6 +202,10 @@ If point is zero, get byte at point."
       (when (= (seek-byte "\\n" 1) 0)
         ;; get to end of last line.
         (forward-bytes 999999999999)))
+  (when (and (eq (byte-at-point current-buffer) "\\n")
+             (eq (byte-before-point current-buffer) "\\r"))
+    (backward-byte))
+  (cursor-keep-on-screen (active-window))
   current-buffer)
 
 ;; "input\nstring\nexample\n" ^ = point
@@ -210,6 +234,7 @@ Attempts to keep point column the same."
           (if (> previous-line-length column-offset)
               (forward-bytes (- column-offset 1))
               (end-of-line))))))
+  (cursor-keep-on-screen (active-window))
   current-buffer)
 
 
@@ -239,6 +264,7 @@ Attempts to keep point column the same."
           (forward-byte)
           (when (> next-line-length column-offset)
             (backward-bytes (- next-line-length column-offset))))))
+  (cursor-keep-on-screen (active-window))
   ;; Return current-buffer, just to stay consistent between different
   ;; control flows.
   current-buffer)
