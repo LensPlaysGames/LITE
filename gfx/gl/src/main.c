@@ -100,6 +100,22 @@ static void r_update(Renderer *r) {
   glBufferSubData(GL_ARRAY_BUFFER, 0, r->vertex_count * sizeof(Vertex), r->vertices);
 }
 
+static void r_render(Renderer *r) {
+  // Use shader program.
+  glUseProgram(r->shader);
+  // Binding the VAO "remembers" the bound buffers and vertex
+  // attributes and such, which is way nicer than having to set all
+  // that state manually, and also a great hardware speedup.
+  glBindVertexArray(r->vao);
+  // Draw amount of triangles that are present in the current frame...
+  glDrawArrays(GL_TRIANGLES, 0, r->vertex_count);
+}
+
+static void r_draw(Renderer *r) {
+  r_update(r);
+  r_render(r);
+}
+
 static void r_vertex(Renderer *r, Vertex v) {
   if (!r->vertices) {
     r->vertex_count = 0;
@@ -1566,16 +1582,7 @@ void draw_gui(GUIContext *ctx) {
   vec2 footline_draw_pos = (vec2){0, (footline_line_count - 1) * line_height_in_pixels(g.face.ft_face) + line_height_in_pixels(g.face.ft_face) * 0.3};
   draw_gui_string_within_rect(ctx->footline, footline_draw_pos, (vec2){g.width, footline_draw_pos.y + footline_height}, ctx->cr_char);
 
-  r_update(&g.rend);
-
-  // Use shader program.
-  glUseProgram(g.rend.shader);
-  // Binding the VAO "remembers" the bound buffers and vertex
-  // attributes and such, which is way nicer than having to set all
-  // that state manually, and also a great hardware speedup.
-  glBindVertexArray(g.rend.vao);
-  // Draw amount of triangles that are present in the current frame...
-  glDrawArrays(GL_TRIANGLES, 0, g.rend.vertex_count);
+  r_draw(&g.rend);
 
   glfwSwapBuffers(g.window);
 }
