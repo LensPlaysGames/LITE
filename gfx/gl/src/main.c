@@ -95,6 +95,23 @@ typedef struct Vertex {
   vec4 color;
 } Vertex;
 
+static const Vertex bl_tri = {
+  { -0.5, -0.5 },
+  { 0, 0 },
+  { 1, 0, 0, 1 },
+};
+static const Vertex top_tri = {
+  { 0, 0.5 },
+  { 0, 0 },
+  { 1, 0, 0, 1 },
+};
+static const Vertex br_tri = {
+  { 0.5, -0.5 },
+  { 0, 0 },
+  { 1, 0, 0, 1 },
+};
+
+
 typedef struct Renderer {
   size_t vertex_capacity;
   size_t vertex_count;
@@ -150,7 +167,7 @@ static void r_vertex(Renderer *r, Vertex v) {
   // Expand if need be
   if (r->vertex_count + 1 >= r->vertex_capacity) {
     size_t new_capacity = r->vertex_capacity * 2;
-    printf("[GFX]:TEXT_RENDER: Vertex capacity increasing from %zu to %zu (%zu to %zu bytes)\n",
+    printf("[GFX]:RENDERER: Vertex capacity increasing from %zu to %zu (%zu to %zu bytes)\n",
            r->vertex_capacity, new_capacity, sizeof(Vertex) * r->vertex_capacity, sizeof(Vertex) * new_capacity);
     r->vertex_capacity = new_capacity;
     Vertex *new_vertices = realloc(r->vertices, sizeof(Vertex) * r->vertex_capacity);
@@ -446,6 +463,7 @@ struct {
   size_t height;
 
   Renderer rend;
+  Renderer simp;
 
   FT_Library ft;
 
@@ -739,57 +757,106 @@ static int init_opengl() {
 
   glViewport(0, 0, g.width, g.height);
 
-  GL_CHECK(glGenVertexArrays(1, &g.rend.vao));
-  GL_CHECK(glGenBuffers(1, &g.rend.vbo));
+  {// TEXT RENDERER
+    GL_CHECK(glGenVertexArrays(1, &g.rend.vao));
+    GL_CHECK(glGenBuffers(1, &g.rend.vbo));
 
-  g.rend.vertex_count = 0;
-  g.rend.vertex_capacity = ((2 << 20) / sizeof(Vertex));
-  g.rend.vertices = malloc(sizeof(*g.rend.vertices) * g.rend.vertex_capacity);
+    g.rend.vertex_count = 0;
+    g.rend.vertex_capacity = ((2 << 20) / sizeof(Vertex));
+    g.rend.vertices = malloc(sizeof(*g.rend.vertices) * g.rend.vertex_capacity);
 
-  GL_CHECK(glBindVertexArray(g.rend.vao));
-  GL_CHECK(glBindBuffer(GL_ARRAY_BUFFER, g.rend.vbo));
-  GL_CHECK(glBufferData(GL_ARRAY_BUFFER, g.rend.vertex_capacity * sizeof(Vertex), g.rend.vertices, GL_DYNAMIC_DRAW));
+    GL_CHECK(glBindVertexArray(g.rend.vao));
+    GL_CHECK(glBindBuffer(GL_ARRAY_BUFFER, g.rend.vbo));
+    GL_CHECK(glBufferData(GL_ARRAY_BUFFER, g.rend.vertex_capacity * sizeof(Vertex), g.rend.vertices, GL_DYNAMIC_DRAW));
 
-  // The layout of the data that the shaders are expecting is specified here.
-  // This must match the `layout`s at the top of the vertex shader.
-  GL_CHECK(glEnableVertexAttribArray(0));
-  GL_CHECK(glEnableVertexAttribArray(1));
-  GL_CHECK(glEnableVertexAttribArray(2));
-  GL_CHECK(
-  glVertexAttribPointer(0,            //> Which attribute to configure
-    2,                                //> Number of elements in attribute
-    GL_FLOAT,                         //> Type of each element
-    GL_FALSE,                         //> Normalise
-    sizeof(Vertex),                   //> Stride
-    (void*)offsetof(Vertex, position) //> Offset
-  ));
-  GL_CHECK(
-  glVertexAttribPointer(1,
-    2,
-    GL_FLOAT,
-    GL_FALSE,
-    sizeof(Vertex),
-    (void*)offsetof(Vertex, uv)
-  ));
-  GL_CHECK(
-  glVertexAttribPointer(2,
-    4,
-    GL_FLOAT,
-    GL_FALSE,
-    sizeof(Vertex),
-    (void*)offsetof(Vertex, color)
-  ));
+    // The layout of the data that the shaders are expecting is specified here.
+    // This must match the `layout`s at the top of the vertex shader.
+    GL_CHECK(glEnableVertexAttribArray(0));
+    GL_CHECK(glEnableVertexAttribArray(1));
+    GL_CHECK(glEnableVertexAttribArray(2));
+    GL_CHECK(
+    glVertexAttribPointer(0,            //> Which attribute to configure
+      2,                                //> Number of elements in attribute
+      GL_FLOAT,                         //> Type of each element
+      GL_FALSE,                         //> Normalise
+      sizeof(Vertex),                   //> Stride
+      (void*)offsetof(Vertex, position) //> Offset
+    ));
+    GL_CHECK(
+    glVertexAttribPointer(1,
+      2,
+      GL_FLOAT,
+      GL_FALSE,
+      sizeof(Vertex),
+      (void*)offsetof(Vertex, uv)
+    ));
+    GL_CHECK(
+    glVertexAttribPointer(2,
+      4,
+      GL_FLOAT,
+      GL_FALSE,
+      sizeof(Vertex),
+      (void*)offsetof(Vertex, color)
+    ));
 
-  GLuint frag;
-  GLuint vert;
-  bool success;
-  // TODO: Look in lite directory for shaders.
-  success = shader_compile("gfx/gl/shaders/vert.glsl", GL_VERTEX_SHADER, &vert);
-  if (!success) return CREATE_GUI_ERR;
-  success = shader_compile("gfx/gl/shaders/frag.glsl", GL_FRAGMENT_SHADER, &frag);
-  if (!success) return CREATE_GUI_ERR;
-  success = shader_program(&g.rend.shader, vert, frag);
-  if (!success) return CREATE_GUI_ERR;
+    GLuint frag;
+    GLuint vert;
+    bool success;
+    // TODO: Install shaders in lite directory with CMake...
+    // TODO: Look in lite directory for shaders.
+    success = shader_compile("gfx/gl/shaders/vert.glsl", GL_VERTEX_SHADER, &vert);
+    if (!success) return CREATE_GUI_ERR;
+    success = shader_compile("gfx/gl/shaders/frag.glsl", GL_FRAGMENT_SHADER, &frag);
+    if (!success) return CREATE_GUI_ERR;
+    success = shader_program(&g.rend.shader, vert, frag);
+    if (!success) return CREATE_GUI_ERR;
+  }
+
+  {// SIMPLE RENDERER
+    GL_CHECK(glGenVertexArrays(1, &g.simp.vao));
+    GL_CHECK(glGenBuffers(1, &g.simp.vbo));
+
+    g.simp.vertex_count = 0;
+    g.simp.vertex_capacity = ((2 << 10) / sizeof(Vertex));
+    g.simp.vertices = malloc(sizeof(*g.simp.vertices) * g.simp.vertex_capacity);
+
+    GL_CHECK(glBindVertexArray(g.simp.vao));
+    GL_CHECK(glBindBuffer(GL_ARRAY_BUFFER, g.simp.vbo));
+    GL_CHECK(glBufferData(GL_ARRAY_BUFFER, g.simp.vertex_capacity * sizeof(Vertex), g.simp.vertices, GL_DYNAMIC_DRAW));
+
+    // The layout of the data that the shaders are expecting is specified here.
+    // This must match the `layout`s at the top of the vertex shader.
+    GL_CHECK(glEnableVertexAttribArray(0));
+    GL_CHECK(glEnableVertexAttribArray(1));
+    GL_CHECK(
+    glVertexAttribPointer(0,            //> Which attribute to configure
+      2,                                //> Number of elements in attribute
+      GL_FLOAT,                         //> Type of each element
+      GL_FALSE,                         //> Normalise
+      sizeof(Vertex),                   //> Stride
+      (void*)offsetof(Vertex, position) //> Offset
+    ));
+    GL_CHECK(
+    glVertexAttribPointer(1,
+      4,
+      GL_FLOAT,
+      GL_FALSE,
+      sizeof(Vertex),
+      (void*)offsetof(Vertex, color)
+    ));
+
+    GLuint frag;
+    GLuint vert;
+    bool success;
+    // TODO: Install shaders in lite directory with CMake...
+    // TODO: Look in lite directory for shaders.
+    success = shader_compile("gfx/gl/shaders/vert_simple.glsl", GL_VERTEX_SHADER, &vert);
+    if (!success) return CREATE_GUI_ERR;
+    success = shader_compile("gfx/gl/shaders/frag_simple.glsl", GL_FRAGMENT_SHADER, &frag);
+    if (!success) return CREATE_GUI_ERR;
+    success = shader_program(&g.simp.shader, vert, frag);
+    if (!success) return CREATE_GUI_ERR;
+  }
 
   // http://www.opengl-tutorial.org/intermediate-tutorials/tutorial-10-transparency/
   GL_CHECK(glEnable(GL_BLEND));
@@ -798,6 +865,10 @@ static int init_opengl() {
   return CREATE_GUI_OK;
 }
 static void fini_opengl()  {
+  glDeleteProgram(g.simp.shader);
+  glDeleteBuffers(1, &g.simp.vbo);
+  glDeleteVertexArrays(1, &g.simp.vao);
+
   glDeleteProgram(g.rend.shader);
   glDeleteBuffers(1, &g.rend.vbo);
   glDeleteVertexArrays(1, &g.rend.vao);
@@ -1642,6 +1713,12 @@ void draw_gui(GUIContext *ctx) {
   draw_gui_string_within_rect(ctx->footline, footline_draw_pos, (vec2){g.width, footline_draw_pos.y + footline_height}, ctx->cr_char);
 
   r_draw(&g.rend);
+
+  /*
+  r_clear(&g.simp);
+  r_tri(&g.simp, bl_tri, top_tri, br_tri);
+  r_draw(&g.simp);
+  */
 
   glfwSwapBuffers(g.window);
 }
