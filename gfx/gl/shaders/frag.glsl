@@ -14,6 +14,5 @@ void main() {
     if (SampledColor.a <= 0) discard;
     SampledColor.a = mix(SampledColor.a, 1, SampledColor.a);
     if (SampledColor.a >= 0.9) SampledColor.a = 1;
-    //FragColor = vec4(mix(bg_color.rgb, SampledColor.rgb, SampledColor.a), max(bg_color.a, SampledColor.a));
     FragColor = SampledColor;
 }

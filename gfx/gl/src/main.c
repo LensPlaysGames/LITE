@@ -19,6 +19,30 @@
 
 #include <shade.h>
 
+
+void CheckOpenGLError(const char* stmt, const char* fname, int line) {
+  GLenum err;
+  bool had_error = false;
+  while ((err = glGetError()) != GL_NO_ERROR) {
+    had_error = true;
+    fprintf(stderr, "OpenGL error %08x, at %s:%i - for %s\n", err, fname, line, stmt);
+  }
+  if (had_error) {
+    fprintf(stderr, "[GFX] OpenGL error occured: exiting program\n");
+    _Exit(1);
+  }
+}
+
+#ifdef _NDEBUG
+# define GL_CHECK(stmt) stmt
+#else
+# define GL_CHECK(stmt) do {                        \
+    stmt;                                           \
+    CheckOpenGLError(#stmt, __FILE__, __LINE__);    \
+  } while (0)
+#endif
+
+
 static size_t count_lines(char *str) {
   if (!str) return 0;
   size_t line_count = 0;
@@ -223,11 +247,11 @@ uint32_t hash_perm32(uint32_t x) {
 static void antialiasing(GLboolean enable, GLboolean use_mipmaps) {
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
   if (enable) {
-    if (use_mipmaps) glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-    else glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    if (use_mipmaps) GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR));
+    else GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
   } else {
-    if (use_mipmaps) glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
-    else glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    if (use_mipmaps) GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST));
+    else GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST));
   }
 }
 
@@ -242,14 +266,25 @@ void glyph_map_init(GlyphMap *map, FT_Face face) {
   map->glyphs = calloc(map->glyph_capacity, sizeof(*map->glyphs));
 
   map->atlas_width = GLYPH_ATLAS_WIDTH;
+
+  static GLint max_texture_size = 0;
+  glGetIntegerv(GL_MAX_TEXTURE_SIZE, &max_texture_size);
+
+  if (map->atlas_width > max_texture_size) {
+    fprintf(stderr, "Glyph atlas can not be created full size, as it has a width dimension (%zu) larger than the maximum texture size for this OpenGL driver: %d.\n", map->atlas_width, max_texture_size);
+    map->atlas_width = max_texture_size;
+  }
+
   map->atlas_height = GLYPH_ATLAS_HEIGHT;
   map->atlas_draw_offset = 0;
-  glGenTextures(1, &map->atlas);
-  glBindTexture(GL_TEXTURE_2D, map->atlas);
+  GL_CHECK(glGenTextures(1, &map->atlas));
+  GL_CHECK(glActiveTexture(GL_TEXTURE0));
+  GL_CHECK(glBindTexture(GL_TEXTURE_2D, map->atlas));
   antialiasing(GL_TRUE, GL_TRUE);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-  glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+  GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER));
+  GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER));
+  GL_CHECK(glPixelStorei(GL_UNPACK_ALIGNMENT, 1));
+  GL_CHECK(
   glTexImage2D(
     GL_TEXTURE_2D,
     0,
@@ -260,7 +295,8 @@ void glyph_map_init(GlyphMap *map, FT_Face face) {
     GL_RED,
     GL_UNSIGNED_BYTE,
     NULL
-  );
+  ));
+  GL_CHECK(glGenerateMipmap(GL_TEXTURE_2D));
 }
 
 void glyph_map_fini(GlyphMap *map) {
@@ -323,7 +359,7 @@ static Glyph *glyph_map_populate(GlyphMap *map, Glyph *entry, uint32_t codepoint
 
   map->glyph_count += 1;
   if (map->glyph_count >= map->glyph_capacity) {
-    fprintf(stderr, "TODO: Expand glyph map.");
+    fprintf(stderr, "TODO: Expand glyph map.\n");
     return NULL;
   }
 
@@ -335,8 +371,8 @@ static Glyph *glyph_map_populate(GlyphMap *map, Glyph *entry, uint32_t codepoint
   entry->bmp_h = map->face->glyph->bitmap.rows;
   entry->bmp_x = map->face->glyph->bitmap_left;
   entry->bmp_y = map->face->glyph->bitmap_top;
-  entry->uvx = (float)entry->x / map->atlas_width;
-  entry->uvy = (float)entry->bmp_h / map->atlas_height;
+  entry->uvx = (double)entry->x / map->atlas_width;
+  entry->uvy = (double)entry->bmp_h / map->atlas_height;
   entry->uvx_max = entry->uvx + ((double)entry->bmp_w / map->atlas_width);
   entry->uvy_max = 0;
   if (entry->uvx_max < entry->uvx) {
@@ -355,8 +391,10 @@ static Glyph *glyph_map_populate(GlyphMap *map, Glyph *entry, uint32_t codepoint
     fprintf(stderr, "TODO: Expand glyph atlas height-wise.\n");
     return NULL;
   }
+  glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D, map->atlas);
   glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+  GL_CHECK(
   glTexSubImage2D(GL_TEXTURE_2D,
     0,
     entry->x,
@@ -366,7 +404,7 @@ static Glyph *glyph_map_populate(GlyphMap *map, Glyph *entry, uint32_t codepoint
     GL_RED,
     GL_UNSIGNED_BYTE,
     map->face->glyph->bitmap.buffer
-  );
+  ));
   glGenerateMipmap(GL_TEXTURE_2D);
 
   map->atlas_draw_offset += entry->bmp_w + 2;
@@ -701,43 +739,46 @@ static int init_opengl() {
 
   glViewport(0, 0, g.width, g.height);
 
-  glGenVertexArrays(1, &g.rend.vao);
-  glGenBuffers(1, &g.rend.vbo);
+  GL_CHECK(glGenVertexArrays(1, &g.rend.vao));
+  GL_CHECK(glGenBuffers(1, &g.rend.vbo));
 
   g.rend.vertex_count = 0;
   g.rend.vertex_capacity = ((2 << 20) / sizeof(Vertex));
   g.rend.vertices = malloc(sizeof(*g.rend.vertices) * g.rend.vertex_capacity);
 
-  glBindVertexArray(g.rend.vao);
-  glBindBuffer(GL_ARRAY_BUFFER, g.rend.vbo);
-  glBufferData(GL_ARRAY_BUFFER, g.rend.vertex_capacity * sizeof(Vertex), g.rend.vertices, GL_DYNAMIC_DRAW);
+  GL_CHECK(glBindVertexArray(g.rend.vao));
+  GL_CHECK(glBindBuffer(GL_ARRAY_BUFFER, g.rend.vbo));
+  GL_CHECK(glBufferData(GL_ARRAY_BUFFER, g.rend.vertex_capacity * sizeof(Vertex), g.rend.vertices, GL_DYNAMIC_DRAW));
 
   // The layout of the data that the shaders are expecting is specified here.
   // This must match the `layout`s at the top of the vertex shader.
-  glEnableVertexAttribArray(0);
-  glEnableVertexAttribArray(1);
-  glEnableVertexAttribArray(2);
+  GL_CHECK(glEnableVertexAttribArray(0));
+  GL_CHECK(glEnableVertexAttribArray(1));
+  GL_CHECK(glEnableVertexAttribArray(2));
+  GL_CHECK(
   glVertexAttribPointer(0,            //> Which attribute to configure
     2,                                //> Number of elements in attribute
     GL_FLOAT,                         //> Type of each element
     GL_FALSE,                         //> Normalise
     sizeof(Vertex),                   //> Stride
     (void*)offsetof(Vertex, position) //> Offset
-  );
+  ));
+  GL_CHECK(
   glVertexAttribPointer(1,
     2,
     GL_FLOAT,
     GL_FALSE,
     sizeof(Vertex),
     (void*)offsetof(Vertex, uv)
-  );
+  ));
+  GL_CHECK(
   glVertexAttribPointer(2,
     4,
     GL_FLOAT,
     GL_FALSE,
     sizeof(Vertex),
     (void*)offsetof(Vertex, color)
-  );
+  ));
 
   GLuint frag;
   GLuint vert;
@@ -751,10 +792,8 @@ static int init_opengl() {
   if (!success) return CREATE_GUI_ERR;
 
   // http://www.opengl-tutorial.org/intermediate-tutorials/tutorial-10-transparency/
-  glEnable(GL_BLEND);
-  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-  glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
+  GL_CHECK(glEnable(GL_BLEND));
+  GL_CHECK(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
 
   return CREATE_GUI_OK;
 }
@@ -785,7 +824,7 @@ int create_gui() {
     return CREATE_GUI_ERR;
   }
 #ifdef _WIN32
-  const char *const facepath = "C:/Windows/Fonts/DejaVuSansMono.ttf";
+  const char *const facepath = "gfx/fonts/apache/DroidSansMono.ttf";
 #elif defined(__unix__)
   // TODO: Unix kind of sucks at a unified font interface, so we'll
   // have to use one packaged with LITE instead of defaulting to a
