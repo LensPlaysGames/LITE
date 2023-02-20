@@ -2,7 +2,6 @@
 out vec4 FragColor;
 
 uniform sampler2D texture1;
-uniform vec4 bg_color;
 
 in vec2 out_uv;
 in vec4 out_color;

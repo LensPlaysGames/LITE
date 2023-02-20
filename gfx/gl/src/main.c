@@ -95,6 +95,23 @@ typedef struct Vertex {
   vec4 color;
 } Vertex;
 
+static const Vertex bl_tri = {
+  { -0.5, -0.5 },
+  { 0, 0 },
+  { 1, 0, 0, 1 },
+};
+static const Vertex top_tri = {
+  { 0, 0.5 },
+  { 0, 0 },
+  { 1, 0, 0, 1 },
+};
+static const Vertex br_tri = {
+  { 0.5, -0.5 },
+  { 0, 0 },
+  { 1, 0, 0, 1 },
+};
+
+
 typedef struct Renderer {
   size_t vertex_capacity;
   size_t vertex_count;
@@ -150,7 +167,7 @@ static void r_vertex(Renderer *r, Vertex v) {
   // Expand if need be
   if (r->vertex_count + 1 >= r->vertex_capacity) {
     size_t new_capacity = r->vertex_capacity * 2;
-    printf("[GFX]:TEXT_RENDER: Vertex capacity increasing from %zu to %zu (%zu to %zu bytes)\n",
+    printf("[GFX]:RENDERER: Vertex capacity increasing from %zu to %zu (%zu to %zu bytes)\n",
            r->vertex_capacity, new_capacity, sizeof(Vertex) * r->vertex_capacity, sizeof(Vertex) * new_capacity);
     r->vertex_capacity = new_capacity;
     Vertex *new_vertices = realloc(r->vertices, sizeof(Vertex) * r->vertex_capacity);
@@ -446,6 +463,7 @@ struct {
   size_t height;
 
   Renderer rend;
+  Renderer simp;
 
   FT_Library ft;
 
@@ -739,57 +757,106 @@ static int init_opengl() {
 
   glViewport(0, 0, g.width, g.height);
 
-  GL_CHECK(glGenVertexArrays(1, &g.rend.vao));
-  GL_CHECK(glGenBuffers(1, &g.rend.vbo));
+  {// TEXT RENDERER
+    GL_CHECK(glGenVertexArrays(1, &g.rend.vao));
+    GL_CHECK(glGenBuffers(1, &g.rend.vbo));
 
-  g.rend.vertex_count = 0;
-  g.rend.vertex_capacity = ((2 << 20) / sizeof(Vertex));
-  g.rend.vertices = malloc(sizeof(*g.rend.vertices) * g.rend.vertex_capacity);
+    g.rend.vertex_count = 0;
+    g.rend.vertex_capacity = ((2 << 20) / sizeof(Vertex));
+    g.rend.vertices = malloc(sizeof(*g.rend.vertices) * g.rend.vertex_capacity);
 
-  GL_CHECK(glBindVertexArray(g.rend.vao));
-  GL_CHECK(glBindBuffer(GL_ARRAY_BUFFER, g.rend.vbo));
-  GL_CHECK(glBufferData(GL_ARRAY_BUFFER, g.rend.vertex_capacity * sizeof(Vertex), g.rend.vertices, GL_DYNAMIC_DRAW));
+    GL_CHECK(glBindVertexArray(g.rend.vao));
+    GL_CHECK(glBindBuffer(GL_ARRAY_BUFFER, g.rend.vbo));
+    GL_CHECK(glBufferData(GL_ARRAY_BUFFER, g.rend.vertex_capacity * sizeof(Vertex), g.rend.vertices, GL_DYNAMIC_DRAW));
 
-  // The layout of the data that the shaders are expecting is specified here.
-  // This must match the `layout`s at the top of the vertex shader.
-  GL_CHECK(glEnableVertexAttribArray(0));
-  GL_CHECK(glEnableVertexAttribArray(1));
-  GL_CHECK(glEnableVertexAttribArray(2));
-  GL_CHECK(
-  glVertexAttribPointer(0,            //> Which attribute to configure
-    2,                                //> Number of elements in attribute
-    GL_FLOAT,                         //> Type of each element
-    GL_FALSE,                         //> Normalise
-    sizeof(Vertex),                   //> Stride
-    (void*)offsetof(Vertex, position) //> Offset
-  ));
-  GL_CHECK(
-  glVertexAttribPointer(1,
-    2,
-    GL_FLOAT,
-    GL_FALSE,
-    sizeof(Vertex),
-    (void*)offsetof(Vertex, uv)
-  ));
-  GL_CHECK(
-  glVertexAttribPointer(2,
-    4,
-    GL_FLOAT,
-    GL_FALSE,
-    sizeof(Vertex),
-    (void*)offsetof(Vertex, color)
-  ));
+    // The layout of the data that the shaders are expecting is specified here.
+    // This must match the `layout`s at the top of the vertex shader.
+    GL_CHECK(glEnableVertexAttribArray(0));
+    GL_CHECK(glEnableVertexAttribArray(1));
+    GL_CHECK(glEnableVertexAttribArray(2));
+    GL_CHECK(
+    glVertexAttribPointer(0,            //> Which attribute to configure
+      2,                                //> Number of elements in attribute
+      GL_FLOAT,                         //> Type of each element
+      GL_FALSE,                         //> Normalise
+      sizeof(Vertex),                   //> Stride
+      (void*)offsetof(Vertex, position) //> Offset
+    ));
+    GL_CHECK(
+    glVertexAttribPointer(1,
+      2,
+      GL_FLOAT,
+      GL_FALSE,
+      sizeof(Vertex),
+      (void*)offsetof(Vertex, uv)
+    ));
+    GL_CHECK(
+    glVertexAttribPointer(2,
+      4,
+      GL_FLOAT,
+      GL_FALSE,
+      sizeof(Vertex),
+      (void*)offsetof(Vertex, color)
+    ));
 
-  GLuint frag;
-  GLuint vert;
-  bool success;
-  // TODO: Look in lite directory for shaders.
-  success = shader_compile("gfx/gl/shaders/vert.glsl", GL_VERTEX_SHADER, &vert);
-  if (!success) return CREATE_GUI_ERR;
-  success = shader_compile("gfx/gl/shaders/frag.glsl", GL_FRAGMENT_SHADER, &frag);
-  if (!success) return CREATE_GUI_ERR;
-  success = shader_program(&g.rend.shader, vert, frag);
-  if (!success) return CREATE_GUI_ERR;
+    GLuint frag;
+    GLuint vert;
+    bool success;
+    // TODO: Install shaders in lite directory with CMake...
+    // TODO: Look in lite directory for shaders.
+    success = shader_compile("gfx/gl/shaders/vert.glsl", GL_VERTEX_SHADER, &vert);
+    if (!success) return CREATE_GUI_ERR;
+    success = shader_compile("gfx/gl/shaders/frag.glsl", GL_FRAGMENT_SHADER, &frag);
+    if (!success) return CREATE_GUI_ERR;
+    success = shader_program(&g.rend.shader, vert, frag);
+    if (!success) return CREATE_GUI_ERR;
+  }
+
+  {// SIMPLE RENDERER
+    GL_CHECK(glGenVertexArrays(1, &g.simp.vao));
+    GL_CHECK(glGenBuffers(1, &g.simp.vbo));
+
+    g.simp.vertex_count = 0;
+    g.simp.vertex_capacity = ((2 << 16) / sizeof(Vertex));
+    g.simp.vertices = malloc(sizeof(*g.simp.vertices) * g.simp.vertex_capacity);
+
+    GL_CHECK(glBindVertexArray(g.simp.vao));
+    GL_CHECK(glBindBuffer(GL_ARRAY_BUFFER, g.simp.vbo));
+    GL_CHECK(glBufferData(GL_ARRAY_BUFFER, g.simp.vertex_capacity * sizeof(Vertex), g.simp.vertices, GL_DYNAMIC_DRAW));
+
+    // The layout of the data that the shaders are expecting is specified here.
+    // This must match the `layout`s at the top of the vertex shader.
+    GL_CHECK(glEnableVertexAttribArray(0));
+    GL_CHECK(glEnableVertexAttribArray(1));
+    GL_CHECK(
+    glVertexAttribPointer(0,            //> Which attribute to configure
+      2,                                //> Number of elements in attribute
+      GL_FLOAT,                         //> Type of each element
+      GL_FALSE,                         //> Normalise
+      sizeof(Vertex),                   //> Stride
+      (void*)offsetof(Vertex, position) //> Offset
+    ));
+    GL_CHECK(
+    glVertexAttribPointer(1,
+      4,
+      GL_FLOAT,
+      GL_FALSE,
+      sizeof(Vertex),
+      (void*)offsetof(Vertex, color)
+    ));
+
+    GLuint frag;
+    GLuint vert;
+    bool success;
+    // TODO: Install shaders in lite directory with CMake...
+    // TODO: Look in lite directory for shaders.
+    success = shader_compile("gfx/gl/shaders/vert_simple.glsl", GL_VERTEX_SHADER, &vert);
+    if (!success) return CREATE_GUI_ERR;
+    success = shader_compile("gfx/gl/shaders/frag_simple.glsl", GL_FRAGMENT_SHADER, &frag);
+    if (!success) return CREATE_GUI_ERR;
+    success = shader_program(&g.simp.shader, vert, frag);
+    if (!success) return CREATE_GUI_ERR;
+  }
 
   // http://www.opengl-tutorial.org/intermediate-tutorials/tutorial-10-transparency/
   GL_CHECK(glEnable(GL_BLEND));
@@ -798,6 +865,10 @@ static int init_opengl() {
   return CREATE_GUI_OK;
 }
 static void fini_opengl()  {
+  glDeleteProgram(g.simp.shader);
+  glDeleteBuffers(1, &g.simp.vbo);
+  glDeleteVertexArrays(1, &g.simp.vao);
+
   glDeleteProgram(g.rend.shader);
   glDeleteBuffers(1, &g.rend.vbo);
   glDeleteVertexArrays(1, &g.rend.vao);
@@ -924,21 +995,6 @@ static void draw_codepoint_background(vec2 draw_position, vec2 draw_cursor_posit
 
   float glyph_width = glyph->bmp_w;
   float glyph_height = glyph->bmp_h;
-  // TODO: It is *absolutely idiotic* to draw a block glyph for the
-  // background. We should just make a g.smpl that has a solid-color
-  // shader that we can use, and we won't have to deal with sampling a
-  // texture or UVs at all.
-  Glyph *block_glyph = glyph_map_find_or_add(&g.face.glyph_map, '-');
-  if (!block_glyph) return;
-  // TODO: Scale small offset based on glyph atlas size.
-  const vec2 uv = {
-    block_glyph->uvx + (((double)block_glyph->bmp_w / 8) / GLYPH_ATLAS_WIDTH),
-    block_glyph->uvy - ((1 + (double)block_glyph->bmp_h / 8) / GLYPH_ATLAS_HEIGHT)
-  };
-  const vec2 uvmax = {
-    block_glyph->uvx_max - (((double)block_glyph->bmp_w / 8) / GLYPH_ATLAS_WIDTH),
-    block_glyph->uvy_max + ((1 + (double)block_glyph->bmp_h / 8) / GLYPH_ATLAS_HEIGHT)
-  };
 
   // TODO: Handle vertical by doing line height calculation for x and using advance for y.
   vec2 bg_posmax = (vec2){
@@ -999,26 +1055,26 @@ static void draw_codepoint_background(vec2 draw_position, vec2 draw_cursor_posit
 
   const Vertex tl = (Vertex){
     .position = screen_position.x, screen_position_max.y,
-    .uv = { uv.x, uvmax.y },
+    .uv = { 0, 0 },
     .color = color
   };
   const Vertex tr = (Vertex){
     .position = screen_position_max.x, screen_position_max.y,
-    .uv = { uvmax.x, uvmax.y },
+    .uv = { 0, 0 },
     .color = color
   };
   const Vertex bl = (Vertex){
     .position = screen_position.x, screen_position.y,
-    .uv = { uv.x, uv.y },
+    .uv = { 0, 0 },
     .color = color
   };
   const Vertex br = (Vertex){
     .position = screen_position_max.x, screen_position.y,
-    .uv = { uvmax.x, uv.y },
+    .uv = { 0, 0 },
     .color = color
   };
 
-  r_quad(&g.rend, tl, tr, bl, br);
+  r_quad(&g.simp, tl, tr, bl, br);
 }
 
 /// This function has lost me my sanity, my sleep at nights, my non-
@@ -1256,32 +1312,21 @@ static void draw_shaped_hb_buffer(const size_t length, const uint32_t *const cod
   hb_glyph_position_t *glyph_pos = hb_buffer_get_glyph_positions(buf, &glyph_count);
   const double divisor = 64.0;
   vec2 pos = starting_position;
-  if (bg_color.w) {
-    for (unsigned int i = 0; i < glyph_count && i < length; ++i) {
-      vec2 draw_pos = pos;
-      draw_pos.x += g.scale * glyph_pos[i].x_offset / divisor;
-      draw_pos.y += g.scale * glyph_pos[i].y_offset / divisor;
-      vec2 draw_cursor_advance = {
-        g.scale * glyph_pos[i].x_advance / divisor,
-        g.scale * glyph_pos[i].y_advance / divisor
-      };
-      // TODO: Pass draw_cursor_advance.y when vertical
-      // TODO: Should just calculate full bounding box, then draw bg of that, rather than drawing background of each glyph, right?
-      draw_codepoint_background(draw_pos, pos, draw_cursor_advance.x, bg_color, codepoints[i]);
-      pos.x += draw_cursor_advance.x;
-      pos.y += draw_cursor_advance.y;
-    }
-  }
-  if (fg_color.w) {
+  if (bg_color.w || fg_color.w) {
     pos = starting_position;
     for (unsigned int i = 0; i < glyph_count && i < length; ++i) {
       vec2 draw_pos = {
         pos.x + ((glyph_pos[i].x_offset / divisor) * g.scale),
         pos.y + ((glyph_pos[i].y_offset / divisor) * g.scale),
       };
+      vec2 draw_cursor_advance = {
+        (glyph_pos[i].x_advance / divisor) * g.scale,
+        (glyph_pos[i].y_advance / divisor) * g.scale,
+      };
+      draw_codepoint_background(draw_pos, pos, draw_cursor_advance.x, bg_color, codepoints[i]);
       draw_codepoint(draw_pos, fg_color, codepoints[i]);
-      pos.x += (glyph_pos[i].x_advance / divisor) * g.scale;
-      pos.y += (glyph_pos[i].y_advance / divisor) * g.scale;
+      pos.x += draw_cursor_advance.x;
+      pos.y += draw_cursor_advance.y;
     }
   }
 }
@@ -1614,6 +1659,7 @@ void draw_gui(GUIContext *ctx) {
   glUseProgram(g.rend.shader);
 
   r_clear(&g.rend);
+  r_clear(&g.simp);
 
   size_t footline_line_count = count_lines(ctx->footline.string);
   size_t footline_height = line_height_in_pixels(g.face.ft_face) * footline_line_count;
@@ -1641,7 +1687,9 @@ void draw_gui(GUIContext *ctx) {
   vec2 footline_draw_pos = (vec2){0, (footline_line_count - 1) * line_height_in_pixels(g.face.ft_face) + line_height_in_pixels(g.face.ft_face) * 0.3};
   draw_gui_string_within_rect(ctx->footline, footline_draw_pos, (vec2){g.width, footline_draw_pos.y + footline_height}, ctx->cr_char);
 
+  r_draw(&g.simp);
   r_draw(&g.rend);
+
 
   glfwSwapBuffers(g.window);
 }
