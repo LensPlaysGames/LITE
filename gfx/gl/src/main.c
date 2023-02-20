@@ -1312,32 +1312,21 @@ static void draw_shaped_hb_buffer(const size_t length, const uint32_t *const cod
   hb_glyph_position_t *glyph_pos = hb_buffer_get_glyph_positions(buf, &glyph_count);
   const double divisor = 64.0;
   vec2 pos = starting_position;
-  if (bg_color.w) {
-    for (unsigned int i = 0; i < glyph_count && i < length; ++i) {
-      vec2 draw_pos = pos;
-      draw_pos.x += g.scale * glyph_pos[i].x_offset / divisor;
-      draw_pos.y += g.scale * glyph_pos[i].y_offset / divisor;
-      vec2 draw_cursor_advance = {
-        g.scale * glyph_pos[i].x_advance / divisor,
-        g.scale * glyph_pos[i].y_advance / divisor
-      };
-      // TODO: Pass draw_cursor_advance.y when vertical
-      // TODO: Should just calculate full bounding box, then draw bg of that, rather than drawing background of each glyph, right?
-      draw_codepoint_background(draw_pos, pos, draw_cursor_advance.x, bg_color, codepoints[i]);
-      pos.x += draw_cursor_advance.x;
-      pos.y += draw_cursor_advance.y;
-    }
-  }
-  if (fg_color.w) {
+  if (bg_color.w || fg_color.w) {
     pos = starting_position;
     for (unsigned int i = 0; i < glyph_count && i < length; ++i) {
       vec2 draw_pos = {
         pos.x + ((glyph_pos[i].x_offset / divisor) * g.scale),
         pos.y + ((glyph_pos[i].y_offset / divisor) * g.scale),
       };
+      vec2 draw_cursor_advance = {
+        (glyph_pos[i].x_advance / divisor) * g.scale,
+        (glyph_pos[i].y_advance / divisor) * g.scale,
+      };
+      draw_codepoint_background(draw_pos, pos, draw_cursor_advance.x, bg_color, codepoints[i]);
       draw_codepoint(draw_pos, fg_color, codepoints[i]);
-      pos.x += (glyph_pos[i].x_advance / divisor) * g.scale;
-      pos.y += (glyph_pos[i].y_advance / divisor) * g.scale;
+      pos.x += draw_cursor_advance.x;
+      pos.y += draw_cursor_advance.y;
     }
   }
 }
