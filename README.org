@@ -32,9 +32,25 @@ of this repository.
 If you have the LITE executable, run it with the ~--help~ argument for
 usage information.
 
+**** LITE GFX
+
+By default, LITE is compiled with a GFX backend, resulting in an
+executable GUI application.
+
+Run it the way that you would normally run a graphical application on
+your OS. Most of the time this means double-clicking the executable
+from a file explorer, or launching the executable from a shell.
+
+NOTE: For ongoing development, it is best to run builds of LITE with a
+working directory of this repository, so it can find the most
+up-to-date LISP sources, fonts, etc.
+
+The executable may be obtained by building from local source.
+# or [[https://github.com/LensPlaysGames/LITE/releases/latest][downloading]] the latest pre-built release.
+
 **** LITE REPL
 
-By default, LITE builds a terminal-only "read, evaluate, print, loop"
+LITE may be built as a terminal-only "read, evaluate, print, loop"
 program (a /REPL/).
 
 To enter the REPL, run the following:
@@ -49,18 +65,6 @@ On Windows:
 
 Any and all arguments following a ~--~ argument are treated as file
 paths and are attempted to be loaded as LITE LISP source files.
-
-**** LITE GFX
-
-LITE may be compiled with GFX, resulting in an executable GUI
-application.
-
-Run it the way that you would normally run a graphical application on
-your OS. Most of the time this means double-clicking the executable
-from a file explorer, or launching the executable from a shell.
-
-The executable may be obtained by building from local source.
-# or [[https://github.com/LensPlaysGames/LITE/releases/latest][downloading]] the latest pre-built release.
 
 *** Building
 
