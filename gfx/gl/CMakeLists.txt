@@ -38,7 +38,11 @@ add_subdirectory(libs/cglm)
 find_package(OpenGL REQUIRED)
 
 # FREETYPE (Font handling, Codepoint -> Bitmap, basic layout)
+set(FT_DISABLE_ZLIB TRUE CACHE BOOL "" FORCE)
+set(FT_DISABLE_BZIP2 TRUE CACHE BOOL "" FORCE)
+set(FT_DISABLE_PNG TRUE CACHE BOOL "" FORCE)
 set(FT_DISABLE_HARFBUZZ TRUE CACHE BOOL "" FORCE)
+set(FT_DISABLE_BROTLI TRUE CACHE BOOL "" FORCE)
 add_subdirectory(libs/freetype)
 
 add_library(GL_LIB STATIC src/main.c src/shade.c)
@@ -85,7 +89,7 @@ ExternalProject_Add(
   PREFIX ${CMAKE_CURRENT_BINARY_DIR}/harfbuzz
   GIT_REPOSITORY https://github.com/harfbuzz/harfbuzz.git
   GIT_TAG main # works with 7.0.0
-  CONFIGURE_COMMAND meson setup . ../ext_harfbuzz -Dtests=disabled -Ddocs=disabled -Dintrospection=disabled
+  CONFIGURE_COMMAND meson setup . ../ext_harfbuzz -Dfreetype=disabled -Dtests=disabled -Ddocs=disabled -Dintrospection=disabled
   USES_TERMINAL_CONFIGURE true
   BUILD_COMMAND meson compile
   BUILD_BYPRODUCTS ${HARFBUZZ_DYLIB_PATH} ${HARFBUZZ_DYLIB_LINK_PATH}
