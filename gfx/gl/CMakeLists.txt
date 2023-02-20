@@ -28,11 +28,11 @@ target_include_directories(
 set(GLFW_BUILD_DOCS     OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_TESTS    OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
-add_subdirectory(libs/glfw)
+add_subdirectory(libs/glfw EXCLUDE_FROM_ALL)
 
 # CGLM
 set(CGLM_STATIC ON CACHE BOOL "" FORCE)
-add_subdirectory(libs/cglm)
+add_subdirectory(libs/cglm EXCLUDE_FROM_ALL)
 
 # OPENGL
 find_package(OpenGL REQUIRED)
@@ -43,7 +43,7 @@ set(FT_DISABLE_BZIP2 TRUE CACHE BOOL "" FORCE)
 set(FT_DISABLE_PNG TRUE CACHE BOOL "" FORCE)
 set(FT_DISABLE_HARFBUZZ TRUE CACHE BOOL "" FORCE)
 set(FT_DISABLE_BROTLI TRUE CACHE BOOL "" FORCE)
-add_subdirectory(libs/freetype)
+add_subdirectory(libs/freetype EXCLUDE_FROM_ALL)
 
 add_library(GL_LIB STATIC src/main.c src/shade.c)
 target_include_directories(
@@ -188,3 +188,22 @@ endif()
 target_link_libraries(GL_LIB PUBLIC fribidi)
 
 set(LITE_GFX_LIBRARY GL_LIB CACHE INTERNAL "" FORCE)
+
+
+if (WIN32)
+  file(TO_CMAKE_PATH $ENV{APPDATA} appdata)
+  install(
+    DIRECTORY shaders
+    DESTINATION "${appdata}/lite/gfx/gl"
+  )
+  install(
+    PROGRAMS ${FRIBIDI_DYLIB_PATH} ${HARFBUZZ_DYLIB_PATH}
+    DESTINATION "${appdata}/lite"
+  )
+else ()
+  install(
+    DIRECTORY shaders
+    DESTINATION "$ENV{HOME}/lite/gfx/gl"
+  )
+endif()
+
