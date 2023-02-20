@@ -817,7 +817,7 @@ static int init_opengl() {
     GL_CHECK(glGenBuffers(1, &g.simp.vbo));
 
     g.simp.vertex_count = 0;
-    g.simp.vertex_capacity = ((2 << 10) / sizeof(Vertex));
+    g.simp.vertex_capacity = ((2 << 16) / sizeof(Vertex));
     g.simp.vertices = malloc(sizeof(*g.simp.vertices) * g.simp.vertex_capacity);
 
     GL_CHECK(glBindVertexArray(g.simp.vao));
@@ -995,21 +995,6 @@ static void draw_codepoint_background(vec2 draw_position, vec2 draw_cursor_posit
 
   float glyph_width = glyph->bmp_w;
   float glyph_height = glyph->bmp_h;
-  // TODO: It is *absolutely idiotic* to draw a block glyph for the
-  // background. We should just make a g.smpl that has a solid-color
-  // shader that we can use, and we won't have to deal with sampling a
-  // texture or UVs at all.
-  Glyph *block_glyph = glyph_map_find_or_add(&g.face.glyph_map, '-');
-  if (!block_glyph) return;
-  // TODO: Scale small offset based on glyph atlas size.
-  const vec2 uv = {
-    block_glyph->uvx + (((double)block_glyph->bmp_w / 8) / GLYPH_ATLAS_WIDTH),
-    block_glyph->uvy - ((1 + (double)block_glyph->bmp_h / 8) / GLYPH_ATLAS_HEIGHT)
-  };
-  const vec2 uvmax = {
-    block_glyph->uvx_max - (((double)block_glyph->bmp_w / 8) / GLYPH_ATLAS_WIDTH),
-    block_glyph->uvy_max + ((1 + (double)block_glyph->bmp_h / 8) / GLYPH_ATLAS_HEIGHT)
-  };
 
   // TODO: Handle vertical by doing line height calculation for x and using advance for y.
   vec2 bg_posmax = (vec2){
@@ -1070,26 +1055,26 @@ static void draw_codepoint_background(vec2 draw_position, vec2 draw_cursor_posit
 
   const Vertex tl = (Vertex){
     .position = screen_position.x, screen_position_max.y,
-    .uv = { uv.x, uvmax.y },
+    .uv = { 0, 0 },
     .color = color
   };
   const Vertex tr = (Vertex){
     .position = screen_position_max.x, screen_position_max.y,
-    .uv = { uvmax.x, uvmax.y },
+    .uv = { 0, 0 },
     .color = color
   };
   const Vertex bl = (Vertex){
     .position = screen_position.x, screen_position.y,
-    .uv = { uv.x, uv.y },
+    .uv = { 0, 0 },
     .color = color
   };
   const Vertex br = (Vertex){
     .position = screen_position_max.x, screen_position.y,
-    .uv = { uvmax.x, uv.y },
+    .uv = { 0, 0 },
     .color = color
   };
 
-  r_quad(&g.rend, tl, tr, bl, br);
+  r_quad(&g.simp, tl, tr, bl, br);
 }
 
 /// This function has lost me my sanity, my sleep at nights, my non-
@@ -1685,6 +1670,7 @@ void draw_gui(GUIContext *ctx) {
   glUseProgram(g.rend.shader);
 
   r_clear(&g.rend);
+  r_clear(&g.simp);
 
   size_t footline_line_count = count_lines(ctx->footline.string);
   size_t footline_height = line_height_in_pixels(g.face.ft_face) * footline_line_count;
@@ -1712,13 +1698,9 @@ void draw_gui(GUIContext *ctx) {
   vec2 footline_draw_pos = (vec2){0, (footline_line_count - 1) * line_height_in_pixels(g.face.ft_face) + line_height_in_pixels(g.face.ft_face) * 0.3};
   draw_gui_string_within_rect(ctx->footline, footline_draw_pos, (vec2){g.width, footline_draw_pos.y + footline_height}, ctx->cr_char);
 
+  r_draw(&g.simp);
   r_draw(&g.rend);
 
-  /*
-  r_clear(&g.simp);
-  r_tri(&g.simp, bl_tri, top_tri, br_tri);
-  r_draw(&g.simp);
-  */
 
   glfwSwapBuffers(g.window);
 }
