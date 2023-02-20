@@ -1393,6 +1393,11 @@ static void draw_gui_string_within_rect(const GUIString gui_string, vec2 xy, vec
       // Render text properties over current line.
       for (GUIStringProperty *it = gui_string.properties; it; it = it->next) {
 
+        // Skip if property is of zero length.
+        if (it->length == 0) {
+          continue;
+        }
+
         // Skip if property is not within current line.
         if (it->offset > offset || it->offset + it->length <= start_of_line_offset) {
           continue;
@@ -1433,33 +1438,47 @@ static void draw_gui_string_within_rect(const GUIString gui_string, vec2 xy, vec
           }
         }
 
+
+        char *prop_offset = line_text + offset_within_line;
+
         // Calculate the length of the propertized text, in bytes.
         // We can't just use the iterator's length because of
         // multi-line text properties.
         size_t propertized_text_length = it->length;
         if (it->offset < start_of_line_offset) {
+          //fprintf(stderr, "chopping %zu bytes off front of propertized_text_length %zu\n", start_of_line_offset - it->offset, propertized_text_length);
           propertized_text_length -= start_of_line_offset - it->offset;
+          //fprintf(stderr, "after chopping off front of propertized_text_length is %zu\n", propertized_text_length);
         }
 
+        // If property starts at end of line, it must only be one byte long.
+        if ((start_of_line_offset + offset_within_line) == offset) {
+          propertized_text_length = 1;
+        }
         // If property extends past end of line, truncate it.
-        if (it->length > 1 && it->offset + it->length > offset) {
-          propertized_text_length = offset - it->offset;
+        else if (it->offset + it->length > offset) {
+          //fprintf(stderr, "truncating propertized_text_length from %zu to %zu\n", propertized_text_length, offset - (start_of_line_offset + offset_within_line));
+
+          // Detect and protect against underflow on unsigned subtraction.
+          size_t old_propertized_text_length = propertized_text_length;
+          propertized_text_length = offset - (start_of_line_offset + offset_within_line);
+          if (propertized_text_length > old_propertized_text_length) {
+            fprintf(stderr, "[GFX]: size_t subtraction underflow detected at %s:%d: can not display text property\n", __FILE__, __LINE__);
+            continue;
+          }
         }
 
-        // TODO: It seems there may be some issue with
-        // propertized_text_length calculation, as obvious when viewing
-        // `#lite_scratchpad#` with C tree sitter mode enabled.
-
-        char *prop_offset = line_text + offset_within_line;
+        if (propertized_text_length == 0) {
+          continue;
+        }
 
         // Handle single-length property at end of buffer after utf32 conversion; skip utf8 count.
         if (!(propertized_text_length == 1 && *prop_offset == '\0')) {
           // Calculate the length of the propertized text, in utf8 codepoints.
           propertized_text_length = utf8_count(prop_offset, propertized_text_length);
-        }
-
-        if (!propertized_text_length) {
-          continue;
+          if (!propertized_text_length) {
+            continue;
+          }
         }
 
         // Create utf32 codepoints from utf8 guistring
