@@ -391,6 +391,8 @@ Atom default_environment(void) {
   defbuiltin(scroll_left);
   defbuiltin(scroll_right);
 
+  defbuiltin(shaders);
+
   defbuiltin(cursor_keep_on_screen);
 
   env_set(environment, make_sym((char *)"PLATFORM"),

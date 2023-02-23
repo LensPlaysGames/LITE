@@ -19,7 +19,6 @@
 
 #include <shade.h>
 
-
 void CheckOpenGLError(const char* stmt, const char* fname, int line) {
   GLenum err;
   bool had_error = false;
@@ -142,12 +141,12 @@ static void r_update(Renderer *r) {
 }
 
 static void r_render(Renderer *r) {
-  // Use shader program.
-  glUseProgram(r->shader);
   // Binding the VAO "remembers" the bound buffers and vertex
   // attributes and such, which is way nicer than having to set all
   // that state manually, and also a great hardware speedup.
   glBindVertexArray(r->vao);
+  // Use shader program.
+  glUseProgram(r->shader);
   // Draw amount of triangles that are present in the current frame...
   glDrawArrays(GL_TRIANGLES, 0, r->vertex_count);
 }
@@ -456,6 +455,7 @@ typedef struct GLFace {
 
 /// STATE
 struct {
+  GLColor fg;
   GLColor bg;
 
   GLFWwindow *window;
@@ -799,8 +799,8 @@ static int init_opengl() {
       (void*)offsetof(Vertex, color)
     ));
 
-    GLuint frag;
     GLuint vert;
+    GLuint frag;
     bool success;
     // TODO: Install shaders in lite directory with CMake...
     // TODO: Look in lite directory for shaders.
@@ -845,8 +845,8 @@ static int init_opengl() {
       (void*)offsetof(Vertex, color)
     ));
 
-    GLuint frag;
     GLuint vert;
+    GLuint frag;
     bool success;
     // TODO: Install shaders in lite directory with CMake...
     // TODO: Look in lite directory for shaders.
@@ -880,8 +880,6 @@ static char created = 0;
 int create_gui() {
   if (created) return CREATE_GUI_ALREADY_CREATED;
   created = 1;
-
-  g.bg = (GLColor){ .r = (float)22 / UINT8_MAX, .g = (float)23 / UINT8_MAX, .b = (float)24 / UINT8_MAX, .a = ((float)UINT8_MAX / 2) / UINT8_MAX };
 
   int status = init_glfw();
   if (status != CREATE_GUI_OK) return status;
@@ -1432,7 +1430,8 @@ static void draw_gui_string_within_rect(const GUIString gui_string, vec2 xy, vec
       if (*line_text != '\0') {
         // TODO: Ensure this only draws within bounds
         size_t length = utf8_count(line_text, offset - start_of_line_offset);
-        render_utf8(line_text, length, draw_pos, vec4_from_gl(fg), vec4_from_gl(bg));
+        // Background is zero because global background is drawn by glClear.
+        render_utf8(line_text, length, draw_pos, vec4_from_gl(g.fg), (vec4){0});
       }
 
       // Render text properties over current line.
@@ -1649,14 +1648,11 @@ void draw_gui(GUIContext *ctx) {
   }
 
   // Update default text property from context.
-  fg = glcolor_from_gui(ctx->default_property.fg);
-  bg = glcolor_from_gui(ctx->default_property.bg);
+  g.fg = glcolor_from_gui(ctx->default_property.fg);
+  g.bg = glcolor_from_gui(ctx->default_property.bg);
 
   glClearColor(g.bg.r, g.bg.g, g.bg.b, g.bg.a);
   glClear(GL_COLOR_BUFFER_BIT);
-
-  glBindVertexArray(g.rend.vao);
-  glUseProgram(g.rend.shader);
 
   r_clear(&g.rend);
   r_clear(&g.simp);
@@ -1696,9 +1692,6 @@ void draw_gui(GUIContext *ctx) {
 
 int do_gui(GUIContext *ctx) {
   if (!ctx) return 0;
-
-  //handle_events();
-  //if (glfwWindowShouldClose(g.window)) return 0;
 
   draw_gui(ctx);
 
@@ -1820,3 +1813,22 @@ void change_window_visibility(enum GFXWindowVisible visible) {
   else glfwHideWindow(g.window);
 }
 
+int change_shaders(const char *vertex_shader_source, const char *fragment_shader_source) {
+  GLuint new_vert_shader;
+  bool success = shader_compile_src(NULL, vertex_shader_source, GL_VERTEX_SHADER, &new_vert_shader);
+  if (!success) return 1;
+
+  GLuint new_frag_shader;
+  success = shader_compile_src(NULL, fragment_shader_source, GL_FRAGMENT_SHADER, &new_frag_shader);
+  if (!success) return 1;
+
+  GLuint new_shader;
+  success = shader_program(&new_shader, new_vert_shader, new_frag_shader);
+  if (!success) return 1;
+
+  GLuint old_shader = g.rend.shader;
+  g.rend.shader = new_shader;
+
+  GL_CHECK(glDeleteProgram(old_shader));
+  return 0;
+}

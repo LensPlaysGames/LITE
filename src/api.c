@@ -515,6 +515,9 @@ GUIContext *initialize_lite_gui_ctx() {
   default_default.bg.g = 23;
   default_default.bg.b = 24;
   default_default.bg.a = UINT8_MAX;
+#ifdef LITE_GL
+  default_default.bg.a = UINT8_MAX / 2 + UINT8_MAX / 3;
+#endif
 
   default_default.offset = 0;
   default_default.length = 0;

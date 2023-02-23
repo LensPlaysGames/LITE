@@ -133,4 +133,9 @@ enum GFXWindowVisible {
 
 void change_window_visibility(enum GFXWindowVisible visible);
 
+#ifdef LITE_GL
+/// @return zero upon success.
+int change_shaders(const char *vertex_shader_source, const char *fragment_shader_source);
+#endif
+
 #endif /* GUI_H */

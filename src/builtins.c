@@ -2843,14 +2843,14 @@ const char *const builtin_tree_sitter_update_name = "TREE-SITTER-UPDATE";
 const char *const builtin_tree_sitter_update_docstring =
   "(tree-sitter-update LANGUAGE QUERIES)\n"
   "\n"
-  "Update the tree sitter configuration for LANGUAGE with QUERIES.\n"
+  "TREE_SITTER only!\nUpdate the tree sitter configuration for LANGUAGE with QUERIES.\n"
   "TREE-SITTER-LANGUAGE still dictates which is active at any given moment.";
 Error builtin_tree_sitter_update(Atom arguments, Atom *result) {
   TWO_ARGS(arguments);
 #ifdef TREE_SITTER
   if (!stringp(car(arguments))) {
-    // TODO: return type error;
-    return ok;
+    MAKE_ERROR(err, ERROR_TYPE, arguments, "tree-sitter-update requires a single string argument", NULL);
+    return err;
   }
   const char *lang_string = car(arguments).value.symbol;
   Atom queries = car(cdr(arguments));
@@ -2859,6 +2859,53 @@ Error builtin_tree_sitter_update(Atom arguments, Atom *result) {
   *result = nil;
   return ok;
 #endif /* #ifdef TREE_SITTER */
+}
+
+
+const char *const builtin_shaders_name = "SHADERS";
+const char *const builtin_shaders_docstring =
+  "(shaders VERT-FILEPATH FRAG-FILEPATH)\n"
+  "\n"
+  "LITE GL only!\nUse new shador program compiled and linked from given shaders.";
+Error builtin_shaders(Atom arguments, Atom *result) {
+  TWO_ARGS(arguments);
+#if defined(LITE_GL)
+  if (!stringp(car(arguments)) || !stringp(car(cdr(arguments)))) {
+    MAKE_ERROR(err, ERROR_TYPE, arguments, "shaders requires two string arguments", NULL);
+    return err;
+  }
+  const char *vert_filepath = car(arguments).value.symbol;
+  const char *frag_filepath = car(cdr(arguments)).value.symbol;
+  // TODO: Check more places
+  if (!file_exists(vert_filepath)) {
+    MAKE_ERROR(err, ERROR_FILE, car(arguments), "shaders requires the vertex shader file to exist", NULL);
+    return err;
+  }
+  if (!file_exists(frag_filepath)) {
+    MAKE_ERROR(err, ERROR_FILE, car(cdr(arguments)), "shaders requires the fragment shader file to exist", NULL);
+    return err;
+  }
+  char *vert_shader = NULL;
+  Error err = file_contents(vert_filepath, &vert_shader);
+  if (err.type) return err;
+  char *frag_shader = NULL;
+  err = file_contents(frag_filepath, &frag_shader);
+  if (err.type) {
+    free(vert_shader);
+    return err;
+  }
+  int status = change_shaders(vert_shader, frag_shader);
+  if (status) {
+    // TODO: return error?
+  }
+  free(frag_shader);
+  free(vert_shader);
+  *result = make_sym("T");
+  return ok;
+#else
+  *result = nil;
+  return ok;
+#endif /* #if defined(LITE_GL) */
 }
 
 /*

@@ -4,6 +4,22 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+bool shader_compile_src(const char *const path, const char *const source, GLenum type, GLuint *out) {
+  // Compile shader from buffer
+  *out = glCreateShader(type);
+  glShaderSource(*out, 1, (const char *const *)&source, NULL);
+  glCompileShader(*out);
+  int success;
+  glGetShaderiv(*out, GL_COMPILE_STATUS, &success);
+  if (!success) {
+    char err_log[512];
+    glGetShaderInfoLog(*out, 512, NULL, err_log);
+    fprintf(stderr, "Failed to compile GLSL shader%s%s\n  %s\n", path ? " at " : "", path ? path : "", err_log);
+    return false;
+  }
+  return true;
+}
+
 bool shader_compile(const char *const path, GLenum type, GLuint *out) {
   FILE *f = fopen(path, "rb");
   if (!f) {
@@ -22,32 +38,18 @@ bool shader_compile(const char *const path, GLenum type, GLuint *out) {
   buffer[size] = '\0';
   fclose(f);
 
-  // Compile shader from buffer
-  *out = glCreateShader(type);
-  glShaderSource(*out, 1, (const char *const *)&buffer, NULL);
-  glCompileShader(*out);
-  int success;
-  glGetShaderiv(*out, GL_COMPILE_STATUS, &success);
-  if (!success) {
-    char err_log[512];
-    glGetShaderInfoLog(*out, 512, NULL, err_log);
-    fprintf(stderr, "Failed to compile GLSL shader at %s\n  %s\n", path, err_log);
-    return false;
-  }
+  bool status = shader_compile_src(path, buffer, type, out);
+
   free(buffer);
-  return true;
+  return status;
 }
 
-/** Create a new program, attaching and linking given shaders.
-  *
-  * NOTE: Deletes both VERT and FRAG shaders given before returning.
-  */
 bool shader_program(GLuint *program, GLuint vert, GLuint frag) {
   *program = glCreateProgram();
   glAttachShader(*program, vert);
   glAttachShader(*program, frag);
   glLinkProgram(*program);
-  int success;
+  GLint success;
   glGetProgramiv(*program, GL_LINK_STATUS, &success);
   if(!success) {
     char err_log[512];
