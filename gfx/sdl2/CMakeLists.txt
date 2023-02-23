@@ -25,6 +25,11 @@ target_link_libraries(
   ${SDL2_LIBRARIES}
   ${SDL2_TTF_LIBRARIES}
 )
+target_compile_definitions(
+  SDL_LIB
+  PUBLIC
+  LITE_SDL2
+)
 
 # Copy SDL2 dynamically linked libraries (.dll)
 if (CMAKE_HOST_WIN32)

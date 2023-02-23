@@ -67,6 +67,11 @@ target_link_libraries(
   cglm
   freetype
 )
+target_compile_definitions(
+  GL_LIB
+  PUBLIC
+  LITE_GL
+)
 
 set(HARFBUZZ_BUILD_SRC_PATH ${CMAKE_CURRENT_BINARY_DIR}/harfbuzz/src/ext_harfbuzz-build/src CACHE STRING "" FORCE)
 if(WIN32)
