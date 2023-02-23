@@ -41,7 +41,7 @@ Error file_contents(const char *path, char **result);
  * @return heap-allocated null-terminated string containing current
  * working directory, or NULL.
  */
-char *get_working_dir();
+char *get_working_dir(void);
 
 /** Get the absolute path of a filepath as a heap allocated string.
  *
