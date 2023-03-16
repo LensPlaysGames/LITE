@@ -1693,7 +1693,6 @@ void draw_gui(GUIContext *ctx) {
                                                            popup_outline_pos.y - popup_outline_size.y);
 
     vec4 color = vec4_from_gl(g.bg);
-    color.w = 1;
 
     const Vertex tl = (Vertex){
       .position = screen_position.x, screen_position_max.y,
