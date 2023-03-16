@@ -1664,7 +1664,63 @@ void draw_gui(GUIContext *ctx) {
 
   // TODO: Use above data about layout to feed proper bounds to rendering functions...
 
-  if (contents_height) {
+  if (ctx->reading) {
+    vec2 popup_size = {
+      (double)g.width / 2 + (double)g.width / 4,
+      (double)g.height / 2 + (double)g.height / 4,
+    };
+    vec2 popup_pos = {
+      (double)g.width / 2 - (popup_size.x / 2),
+      (double)g.height / 2 + (popup_size.y / 2),
+    };
+
+    size_t border_thickness = 4;
+    // Ensure thickness is even.
+    border_thickness &= ~1;
+    vec2 popup_outline_size = popup_size;
+
+    // popup_pos refers to baseline, we want outline to go to the topline.
+    vec2 popup_outline_pos = popup_pos;
+    popup_outline_pos.y += line_height_in_pixels(g.face.ft_face);
+
+    popup_outline_size.x += border_thickness;
+    popup_outline_size.y += border_thickness;
+    popup_outline_pos.x -= (double)border_thickness / 2;
+    popup_outline_pos.y -= (double)border_thickness / 2;
+
+    vec2 screen_position = pixel_to_screen_coordinates(popup_outline_pos.x, popup_outline_pos.y);
+    vec2 screen_position_max = pixel_to_screen_coordinates(popup_outline_pos.x + popup_outline_size.x,
+                                                           popup_outline_pos.y - popup_outline_size.y);
+
+    vec4 color = vec4_from_gl(g.bg);
+    color.w = 1;
+
+    const Vertex tl = (Vertex){
+      .position = screen_position.x, screen_position_max.y,
+      .uv = { 0, 0 },
+      .color = color
+    };
+    const Vertex tr = (Vertex){
+      .position = screen_position_max.x, screen_position_max.y,
+      .uv = { 0, 0 },
+      .color = color
+    };
+    const Vertex bl = (Vertex){
+      .position = screen_position.x, screen_position.y,
+      .uv = { 0, 0 },
+      .color = color
+    };
+    const Vertex br = (Vertex){
+      .position = screen_position_max.x, screen_position.y,
+      .uv = { 0, 0 },
+      .color = color
+    };
+
+    r_quad(&g.simp, tl, tr, bl, br);
+
+    draw_gui_string_within_rect(ctx->popup, popup_pos, popup_size, ctx->cr_char);
+
+  } else if (contents_height) {
     GUIWindow *window = ctx->windows;
     while (window) {
       // display contents gui string
