@@ -1,6 +1,8 @@
 #ifndef LITE_BUFFER_H
 #define LITE_BUFFER_H
 
+#include <stddef.h>
+
 #include <error.h>
 #include <rope.h>
 

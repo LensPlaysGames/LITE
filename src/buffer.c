@@ -855,5 +855,19 @@ void buffer_free(Buffer* buffer) {
   if (buffer->path) {
     free(buffer->path);
   }
+  BufferHistoryNode *hist_node = buffer->history.redo;
+  while (hist_node) {
+    if (hist_node->data) free(hist_node->data);
+    BufferHistoryNode *to_free = hist_node;
+    hist_node = hist_node->next;
+    free(to_free);
+  }
+  hist_node = buffer->history.undo;
+  while (hist_node) {
+    if (hist_node->data) free(hist_node->data);
+    BufferHistoryNode *to_free = hist_node;
+    hist_node = hist_node->next;
+    free(to_free);
+  }
   free(buffer);
 }
