@@ -659,7 +659,7 @@ TreeSitterLanguage *ts_langs_find_lang(const char *lang) {
   }
   return NULL;
 }
-TreeSitterLanguage *ts_langs_find_free() {
+TreeSitterLanguage *ts_langs_find_free(void) {
   for (int i = 0; i < TS_LANG_MAX; ++i) {
     if (!ts_langs[i].used) {
       return ts_langs + i;
@@ -678,7 +678,7 @@ TreeSitterLanguage *ts_langs_new(const char *lang_string) {
   // FIXME: More error checks
   lang->lang = strdup(lang_string);
   lang->library_handle = so_load_ts(lang_string);
-  lang->lang_func = so_get_ts(lang->library_handle, lang_string);
+  lang->lang_func = (TSLanguage *(*)(void))so_get_ts(lang->library_handle, lang_string);
   lang->parser = ts_parser_new();
   lang->query_count = 0;
   lang->queries = NULL;
@@ -689,7 +689,7 @@ Error ts_langs_update_queries(const char *lang_string, struct Atom queries) {
   TreeSitterLanguage *lang = ts_langs_new(lang_string);
   // Free existing queries, if any.
   if (lang->query_count) {
-    for (int i = 0; i < lang->query_count; ++i) {
+    for (size_t i = 0; i < lang->query_count; ++i) {
       TreeSitterQuery ts_query = lang->queries[i];
       ts_query_delete(ts_query.query);
     }
@@ -732,8 +732,6 @@ Error ts_langs_update_queries(const char *lang_string, struct Atom queries) {
       printf("ERROR in tree-sitter query specification: Query must be a string\n");
       continue;
     }
-
-    // TODO: Lots of color typechecking...
 
     if (!pairp(cdr(query))) {
       // invalid query
@@ -825,7 +823,7 @@ Error ts_langs_update_queries(const char *lang_string, struct Atom queries) {
     TSQuery *new_query = ts_query_new
                            (ts_parser_language(lang->parser),
                             query_string.value.symbol,
-                            strlen(query_string.value.symbol),
+                            (uint32_t)strlen(query_string.value.symbol),
                             &query_error_offset, &query_error);
 
     if (query_error != TSQueryErrorNone) {
@@ -945,13 +943,13 @@ int gui_loop(void) {
 #endif
 
   // Free all GUIWindows!
-  GUIWindow *window = gctx->windows;
-  while (window) {
-    free_properties(window->contents);
-    free(window->contents.string);
-    GUIWindow *next_window = window->next;
-    free(window);
-    window = next_window;
+  GUIWindow *gui_window = gctx->windows;
+  while (gui_window) {
+    free_properties(gui_window->contents);
+    free(gui_window->contents.string);
+    GUIWindow *next_gui_window = gui_window->next;
+    free(gui_window);
+    gui_window = next_gui_window;
   }
   gctx->windows = NULL;
 
@@ -996,7 +994,7 @@ int gui_loop(void) {
 
           // (contents . properties)
           && pairp(car(cdr(cdr(cdr(cdr(window))))))
-          // TODO: Allow for windows with contents other than buffers?
+          // TODO: Allow for windows with contents other than buffers.
           && bufferp(car(car(cdr(cdr(cdr(cdr(window)))))))
           ))
       continue;
@@ -1086,8 +1084,13 @@ int gui_loop(void) {
 
       cursor_property->offset = current_buffer.value.buffer->point_byte;
       cursor_property->length = 1;
-      // TODO: Make this a user-configurable option.
+
       // Extend cursor property to include all utf8 continuation bytes
+      // TODO: Make this a user-configurable option. i.e. the byte length of
+      // the cursor depends on the byte length of the character at the cursor in
+      // a given encoding. So the user option would be "default encoding" or
+      // something like that, and that would let us know if we need to parse
+      // utf8 continuation bytes, utf16 surrogate pairs, etc.
       char byte = rope_index(current_buffer.value.buffer->rope,
                              current_buffer.value.buffer->point_byte + cursor_property->length);
       // Max amount of iterations, protect against infinite loop when continuation byte at end...
@@ -1177,8 +1180,8 @@ int gui_loop(void) {
       if (language && language->query_count) {
 
         // TODO: Get rid of static variables here...
-        static size_t last_frame_vertical_offset = -1;
-        static size_t last_frame_horizontal_offset = -1;
+        static size_t last_frame_vertical_offset = (size_t)-1;
+        static size_t last_frame_horizontal_offset = (size_t)-1;
         char view_modified = new_gui_window->contents.vertical_offset != last_frame_vertical_offset
                              || new_gui_window->contents.horizontal_offset != last_frame_horizontal_offset;
         last_frame_vertical_offset = new_gui_window->contents.vertical_offset;
@@ -1234,26 +1237,26 @@ int gui_loop(void) {
               for (size_t i = 0; i < upper_bound; ++i) {
                 new_parse_string = strchr(parse_string + 1, '\n');
                 if (!new_parse_string) break;
-                parse_length -= new_parse_string - parse_string;
+                parse_length -= (size_t)(new_parse_string - parse_string);
                 parse_string = new_parse_string;
               }
             }
-            parse_offset = parse_string - contents_string;
+            parse_offset = (size_t)(parse_string - contents_string);
             if (parse_length > TREE_SITTER_MAX_PARSE_LENGTH) {
               parse_length = TREE_SITTER_MAX_PARSE_LENGTH;
             }
-            language->tree = ts_parser_parse_string(language->parser, NULL, parse_string, parse_length);
+            language->tree = ts_parser_parse_string(language->parser, NULL, parse_string, (uint32_t)parse_length);
           } else {
             parse_offset = 0;
             begin_visual_range = NULL;
             end_visual_range = NULL;
-            language->tree = ts_parser_parse_string(language->parser, NULL, contents_string, contents_length);
+            language->tree = ts_parser_parse_string(language->parser, NULL, contents_string, (uint32_t)contents_length);
           }
         }
         for (size_t i = 0; i < language->query_count; ++i) {
           TreeSitterQuery *query = language->queries + i;
-          size_t begin = begin_visual_range ? begin_visual_range - contents_string : (size_t)0;
-          size_t end = end_visual_range ? end_visual_range - contents_string : SIZE_MAX;
+          size_t begin = begin_visual_range ? (size_t)(begin_visual_range - contents_string) : 0;
+          size_t end = end_visual_range ? (size_t)(end_visual_range - contents_string) : SIZE_MAX;
           add_property_from_query_matches(new_gui_window, ts_tree_root_node(language->tree),
                                           parse_offset, begin, end,
                                           query->query, query->fg, query->bg);

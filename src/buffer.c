@@ -393,22 +393,28 @@ Error buffer_undo(Buffer *buffer) {
 
   switch (node->type) {
   case BUF_HST_INSERT: {
+    // TODO: Use node->length. Basically, we should be able to get away
+    // with just adjusting a node's length in certain cases, rather than
+    // reallocating and everything.
+
     Rope *new_rope = rope_remove_span(buffer->rope, node->offset, node->length);
     if (!new_rope) {
-      MAKE_ERROR(err, ERROR_GENERIC, nil, "UNDO Could not remove from buffer's rope.", NULL);
+      MAKE_ERROR(err, ERROR_GENERIC, nil, "UNDO:INSERT Could not remove from buffer's rope.", NULL);
       return err;
     }
     buffer->point_byte = node->offset;
     buffer->rope = new_rope;
   } break;
   case BUF_HST_REMOVE: {
-    // TODO: Use node->length
     Rope *new_rope = rope_insert(buffer->rope, node->offset, node->data);
     if (!new_rope) {
-      MAKE_ERROR(err, ERROR_GENERIC, nil, "UNDO Could not insert into buffer's rope.", NULL);
+      MAKE_ERROR(err, ERROR_GENERIC, nil, "UNDO:REMOVE Could not insert into buffer's rope.", NULL);
       return err;
     }
+
+    // Place cursor at the end of the inserted text.
     buffer->point_byte = node->offset + node->length;
+
     buffer->rope = new_rope;
   } break;
   default: {
@@ -440,7 +446,6 @@ Error buffer_redo(Buffer *buffer) {
   BufferHistoryNode *node = *head;
   switch(node->type) {
     case BUF_HST_INSERT: {
-    // TODO: Use node->length
     Rope *new_rope = rope_insert(buffer->rope, node->offset, node->data);
     if (!new_rope) {
       MAKE_ERROR(err, ERROR_GENERIC, nil, "REDO Could not insert into buffer's rope.", NULL);

@@ -229,7 +229,7 @@ char file_exists(const char *path) {
   return 0;
 }
 
-char *get_working_dir() {
+char *get_working_dir(void) {
 #if _WIN32
   // Requires direct.h
   char *out = _getcwd(NULL, 0);

@@ -507,9 +507,9 @@ static void symbol_table_expand(SymbolTable *table) {
 
 static SymbolTable table = {0};
 
-void print_symbol_table() { symbol_table_print(table); }
+void print_symbol_table(void) { symbol_table_print(table); }
 
-Atom symbol_table() {
+Atom symbol_table(void) {
   Atom out = nil;
   char **entry = table.data;
   for (size_t i = 0; i < table.data_capacity; ++i, ++entry) {

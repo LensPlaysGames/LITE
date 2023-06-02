@@ -120,7 +120,7 @@ Error builtin_docstring(Atom arguments, Atom *result) {
   // FIXME: The docstring could be set to this value instead of
   // creating this new string each time the docstring is fetched.
   // This is absolutely horrid code... OML.
-  // TODO: The code references was removed. It was really bad, and
+  // TODO: The code referenced was removed. It was really bad, and
   // causing a lot of bugs, so I removed it. We really should
   // automatically add the signature of something to it's docstring,
   // but I am not really sure if it should be here.
@@ -1856,14 +1856,17 @@ Error builtin_substring(Atom arguments, Atom *result) {
     *result = make_string("");
     return ok;
   }
+  size_t length_int = (size_t)length.value.integer;
+
   size_t string_length = strlen(string.value.symbol);
   if (offset.value.integer >= (integer_t)string_length) {
     *result = make_string("");
     return ok;
   }
 
-  char *str = malloc(length.value.integer + 1);
-  snprintf(str, length.value.integer + 1, "%s", string.value.symbol + offset.value.integer);
+
+  char *str = malloc(length_int + 1);
+  snprintf(str, length_int + 1, "%s", string.value.symbol + offset.value.integer);
   str[length.value.integer] = '\0';
   *result = make_string(str);
   free(str);
@@ -1999,7 +2002,7 @@ Error builtin_evaluate_file(Atom arguments, Atom *result) {
       free(path);
       if (err.type == ERROR_FILE) {
         // Treat current buffer path as directory (no trailing separator).
-        char *path = string_trijoin(current_buffer.value.buffer->path, "/", filepath.value.symbol);
+        path = string_trijoin(current_buffer.value.buffer->path, "/", filepath.value.symbol);
         err = evaluate_file(*genv(), path, result);
         free(path);
       }
@@ -2090,16 +2093,22 @@ Error builtin_apply(Atom arguments, Atom *result) {
       break;
     }
     if (nilp(arguments)) {
-      // TODO: Better error.
-      ARG_ERR(arguments);
+      MAKE_ERROR(arg_error, ERROR_ARGUMENTS,
+                 arguments,
+                 "(apply): Not enough arguments passed to applied function!",
+                 NULL);
+      return arg_error;
     }
     env_set(environment, car(argument_names), car(arguments));
     argument_names = cdr(argument_names);
     arguments = cdr(arguments);
   }
   if (!nilp(arguments)) {
-    // TODO: Better error.
-    ARG_ERR(arguments);
+    MAKE_ERROR(arg_error, ERROR_ARGUMENTS,
+               arguments,
+               "(apply): Too many arguments passed to applied function!",
+               NULL);
+    return arg_error;
   }
   // Evaluate body of closure.
   while (!nilp(body)) {

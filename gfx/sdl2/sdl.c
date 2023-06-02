@@ -975,8 +975,8 @@ void window_size(size_t *width, size_t *height) {
 }
 
 void window_size_row_col(size_t *rows, size_t *cols) {
-  size_t char_w = 0;
-  size_t char_h = 0;
+  int char_w = 0;
+  int char_h = 0;
   TTF_SizeText(font, "M", &char_w, &char_h);
   window_size(cols, rows);
   *rows /= char_h;

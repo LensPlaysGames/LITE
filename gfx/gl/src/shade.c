@@ -21,6 +21,11 @@ bool shader_compile_src(const char *const path, const char *const source, GLenum
 }
 
 bool shader_compile(const char *const path, GLenum type, GLuint *out) {
+  if (!path) {
+    fprintf(stderr, "Refusing NULL path in shader_compile()\n");
+    return false;
+  }
+
   FILE *f = fopen(path, "rb");
   if (!f) {
     fprintf(stderr, "Could not open shader at %s\n", path);

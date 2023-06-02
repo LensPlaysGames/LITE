@@ -176,7 +176,7 @@ Error evaluate_return_value(Atom *stack, Atom *expr, Atom *environment, Atom *re
   *environment = list_get(*stack, 1);
   Atom operator = list_get(*stack, 2);
   Atom body = list_get(*stack, 5);
-  Atom arguments;
+  Atom arguments = nil; // NOTE: Doesn't need initialised, if we're going for efficiency.
   if (!nilp(body)) {
     return evaluate_apply(stack, expr, environment);
   }
@@ -207,7 +207,7 @@ Error evaluate_return_value(Atom *stack, Atom *expr, Atom *environment, Atom *re
         || (define_locality = !strcmp(operator.value.symbol, "SET")) != 0) {
       // Here is where env_set is called, since
       // arguments have now been evaluated.
-      Atom arguments = list_get(*stack, 4);
+      arguments = list_get(*stack, 4);
       Atom symbol = car(arguments);
       Atom docstring = cdr(arguments);
       if(stringp(docstring)) {

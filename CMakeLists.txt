@@ -82,10 +82,18 @@ if (NOT MSVC)
   target_compile_options(
     LITE
     PRIVATE
-    -Wall
-    -Wextra
-    -Wconversion
-    -pedantic
+    -Wall -Wextra
+    -Wshadow -Wconversion
+
+    -Werror=return-type -Werror=implicit-function-declaration
+    -Werror=implicit-int -Werror=pointer-arith
+    -Werror=incompatible-pointer-types
+
+    -Wno-unused-parameter -Wno-unused-function
+    -Wno-format-zero-length -Wno-comment
+    -Wno-cast-function-type
+
+    -fdiagnostics-color=always
   )
 endif()
 
