@@ -52,6 +52,7 @@ Error buffer_create_hst_node(Buffer *buffer, BufferHistoryType type, char *data,
   // there /should/ be a modification that's been done, so this flag
   // being set here means we don't have to set it everywhere.
   buffer->modified = 1;
+  buffer->needs_redraw = 1;
   // If the previous head is of the same type...
   if (buffer->history.undo && buffer->history.undo->type == type) {
     // If the cursor is in the correct position.
@@ -424,6 +425,7 @@ Error buffer_undo(Buffer *buffer) {
   }
 
   buffer->modified = 1;
+  buffer->needs_redraw = 1;
 
   // Remove node by updating head to head->next;
   *head = (*head)->next;
@@ -470,6 +472,7 @@ Error buffer_redo(Buffer *buffer) {
   }
 
   buffer->modified = 1;
+  buffer->needs_redraw = 1;
 
   // Remove node by updating head to head->next;
   *head = (*head)->next;
@@ -849,6 +852,9 @@ Error buffer_save(Buffer buffer) {
                , NULL);
     return err;
   }
+  // If everything went well, the buffer now matches exactly what is on
+  // disk, and hasn't been modified.
+  buffer.modified = 0;
   return ok;
 }
 

@@ -1032,11 +1032,9 @@ int gui_loop(void) {
       contents_string = buffer_string(*contents.value.buffer);
       contents_length = contents.value.buffer->rope->weight;
       contents_modified = contents.value.buffer->modified;
-      // If buffer is modified, unset it's modified status.
-      if (contents.value.buffer->modified) {
-        // FIXME: This is required for this to work, but it requires
-        // that nothing else ever use this flag, really.
-        contents.value.buffer->modified = 0;
+      // If buffer needs redrawn, unset it's status, as it is about to be drawn.
+      if (contents.value.buffer->needs_redraw) {
+        contents.value.buffer->needs_redraw = 0;
       }
     } else if ((stringp(contents) || symbolp(contents)) && contents.value.symbol) {
       contents_string = strdup(contents.value.symbol);

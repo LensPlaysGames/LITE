@@ -61,6 +61,7 @@ typedef struct Buffer {
   BufferHistory history;
 
   char modified;
+  char needs_redraw;
 } Buffer;
 
 /** Open file or create new if one doesn't exist.
