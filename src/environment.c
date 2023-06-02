@@ -263,8 +263,11 @@ int boundp(Atom environment, Atom symbol) {
                        (char *)builtin_##name##_docstring));    \
   } while (0)
 
+#ifndef LITE_DEFAULT_ENVIRONMENT_INITIAL_CAPACITY
+# define LITE_DEFAULT_ENVIRONMENT_INITIAL_CAPACITY 2 << 8
+#endif /* LITE_DEFAULT_ENVIRONMENT_INITIAL_CAPACITY */
 Atom default_environment(void) {
-  Atom environment = env_create(nil, 2 << 7);
+  Atom environment = env_create(nil, LITE_DEFAULT_ENVIRONMENT_INITIAL_CAPACITY);
   env_set(environment, make_sym("T"), make_sym("T"));
 
   defbuiltin(quit_lisp);

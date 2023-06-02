@@ -520,10 +520,12 @@ Atom symbol_table(void) {
   return out;
 }
 
-// TODO: uppercase value symbol in search.
+#ifndef LITE_SYMBOL_TABLE_INITIAL_CAPACITY
+# define LITE_SYMBOL_TABLE_INITIAL_CAPACITY 1024
+#endif /* LITE_SYMBOL_TABLE_INITIAL_CAPACITY */
 Atom make_sym(char *value) {
   if (table.data_capacity == 0) {
-    table = symbol_table_create(256);
+    table = symbol_table_create(LITE_SYMBOL_TABLE_INITIAL_CAPACITY);
   }
 
   // Try to get existing entry in symbol table.
