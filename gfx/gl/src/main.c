@@ -1,6 +1,8 @@
 #include <api.h>
 #include <gui.h>
 #include <keystrings.h>
+#include <file_io.h> // get_working_dir, getlitedir
+#include <utility.h> // string_trijoin
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
@@ -749,6 +751,43 @@ static void fini_glfw() {
   glfwTerminate();
 }
 
+/// Return a pointer to a string containing the full path to a file specified at the given relative path.
+//  1. If file exists at PATH, open buffer at PATH.
+//  2. Try PATH relative to current working directory.
+//  3. Try PATH relative to LITE directory (install location).
+/// NOTE: Caller responsible for freeing heap-allocated string return
+/// value, when not NULL.
+static char *try_find_file(const char *path) {
+  if (file_exists(path)) {
+    return allocate_string(path);
+  }
+
+  char *working_path = NULL;
+
+  // Attempt to load from current working directory.
+  char *cwd = get_working_dir();
+  if (cwd) {
+    working_path = string_trijoin(cwd, "/", path);
+    free(cwd);
+    if (file_exists(working_path)) {
+      return working_path;
+    }
+  }
+
+  // Attempt to load from lite application data directory.
+  char *litedir = getlitedir();
+  if (litedir) {
+    working_path = string_trijoin(litedir, "/", path);
+    free(litedir);
+    if (file_exists(working_path)) {
+      return working_path;
+    }
+  }
+
+  free(working_path);
+  return NULL;
+}
+
 static int init_opengl() {
   if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
     fprintf(stderr, "Could not load OpenGL (GLAD failure)");
@@ -802,14 +841,27 @@ static int init_opengl() {
     GLuint vert;
     GLuint frag;
     bool success;
-    // TODO: Install shaders in lite directory with CMake...
-    // TODO: Look in lite directory for shaders.
-    success = shader_compile("gfx/gl/shaders/vert.glsl", GL_VERTEX_SHADER, &vert);
+
+    char *vertex_shader_path = try_find_file("gfx/gl/shaders/vert.glsl");
+    if (!vertex_shader_path) {
+      fprintf(stderr, "Could not locate vertex shader\n");
+      return CREATE_GUI_ERR;
+    }
+    char *fragment_shader_path = try_find_file("gfx/gl/shaders/frag.glsl");
+    if (!vertex_shader_path) {
+      // Interning go brr
+      fprintf(stderr, "Could not locate fragment shader\n");
+      return CREATE_GUI_ERR;
+    }
+
+    success = shader_compile(vertex_shader_path, GL_VERTEX_SHADER, &vert);
     if (!success) return CREATE_GUI_ERR;
-    success = shader_compile("gfx/gl/shaders/frag.glsl", GL_FRAGMENT_SHADER, &frag);
+    success = shader_compile(fragment_shader_path, GL_FRAGMENT_SHADER, &frag);
     if (!success) return CREATE_GUI_ERR;
     success = shader_program(&g.rend.shader, vert, frag);
     if (!success) return CREATE_GUI_ERR;
+    free(vertex_shader_path);
+    free(fragment_shader_path);
   }
 
   {// SIMPLE RENDERER
@@ -848,14 +900,26 @@ static int init_opengl() {
     GLuint vert;
     GLuint frag;
     bool success;
-    // TODO: Install shaders in lite directory with CMake...
-    // TODO: Look in lite directory for shaders.
-    success = shader_compile("gfx/gl/shaders/vert_simple.glsl", GL_VERTEX_SHADER, &vert);
+
+    char *vertex_shader_path = try_find_file("gfx/gl/shaders/vert_simple.glsl");
+    if (!vertex_shader_path) {
+      fprintf(stderr, "Could not locate simple vertex shader\n");
+      return CREATE_GUI_ERR;
+    }
+    char *fragment_shader_path = try_find_file("gfx/gl/shaders/frag_simple.glsl");
+    if (!vertex_shader_path) {
+      fprintf(stderr, "Could not locate simple fragment shader\n");
+      return CREATE_GUI_ERR;
+    }
+
+    success = shader_compile(vertex_shader_path, GL_VERTEX_SHADER, &vert);
     if (!success) return CREATE_GUI_ERR;
-    success = shader_compile("gfx/gl/shaders/frag_simple.glsl", GL_FRAGMENT_SHADER, &frag);
+    success = shader_compile(fragment_shader_path, GL_FRAGMENT_SHADER, &frag);
     if (!success) return CREATE_GUI_ERR;
     success = shader_program(&g.simp.shader, vert, frag);
     if (!success) return CREATE_GUI_ERR;
+    free(vertex_shader_path);
+    free(fragment_shader_path);
   }
 
   // http://www.opengl-tutorial.org/intermediate-tutorials/tutorial-10-transparency/
@@ -892,22 +956,15 @@ int create_gui() {
     fprintf(stderr, "Could not initialize freetype, sorry\n");
     return CREATE_GUI_ERR;
   }
-#ifdef _WIN32
-  const char *const facepath = "gfx/fonts/apache/DroidSansMono.ttf";
-#elif defined(__unix__)
-  // TODO: Unix kind of sucks at a unified font interface, so we'll
-  // have to use one packaged with LITE instead of defaulting to a
-  // known system font...
-  const char *const facepath = "/usr/share/fonts/DroidSansMono.ttf";
-#endif
-  g.face.filepath = strdup(facepath);
+  const char *const default_facepath = "gfx/fonts/apache/DroidSansMono.ttf";
+  g.face.filepath = try_find_file(default_facepath);
   if (!g.face.filepath) {
-    fprintf(stderr, "Could not duplicate facepath\n");
+    fprintf(stderr, "Could not find font at \"%s\"\n", g.face.filepath);
     return CREATE_GUI_ERR;
   }
-  ft_err = FT_New_Face(g.ft, facepath, 0, &g.face.ft_face);
+  ft_err = FT_New_Face(g.ft, g.face.filepath, 0, &g.face.ft_face);
   if (ft_err) {
-    fprintf(stderr, "Could not initialize freetype face from font file at %s, sorry\n", facepath);
+    fprintf(stderr, "Could not initialize freetype face from font file at %s, sorry\n", g.face.filepath);
     return CREATE_GUI_ERR;
   }
   size_t font_height = 18;
