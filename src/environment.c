@@ -314,6 +314,8 @@ Atom default_environment(void) {
   defbuiltin(numgt_or_eq);
 
   defbuiltin(copy);
+  defbuiltin(function_body);
+  defbuiltin(function_parameters);
   defbuiltin(apply);
 
   defbuiltin(print);

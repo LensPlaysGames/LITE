@@ -1762,6 +1762,47 @@ Error builtin_copy(Atom arguments, Atom *result) {
   return copy_impl(&car(arguments), result);
 }
 
+const char *const builtin_function_body_name = "FUNCTION-BODY";
+const char *const builtin_function_body_docstring =
+  "(function-body FUNCTION)\n"
+  "\n"
+  "Return the body of FUNCTION as data.";
+Error builtin_function_body(Atom arguments, Atom *result) {
+  ONE_ARG(arguments);
+  Atom function = car(arguments);
+  if (!closurep(function) && !macrop(function)) {
+    pretty_print_atom(function);
+    MAKE_ERROR(err, ERROR_TYPE,
+               function,
+               "FUNCTION-BODY expected closure or macro!",
+               NULL);
+    return err;
+  }
+  // NOTE: MUST match types.c make_closure output.
+  return copy_impl(&cdr(cdr(function)), result);
+}
+
+const char *const builtin_function_parameters_name = "FUNCTION-PARAMETERS";
+const char *const builtin_function_parameters_docstring =
+  "(function-parameters FUNCTION)\n"
+  "\n"
+  "Return the parameters of FUNCTION as data.";
+Error builtin_function_parameters(Atom arguments, Atom *result) {
+  ONE_ARG(arguments);
+  Atom function = car(arguments);
+  if (!closurep(function) && !macrop(function)) {
+    pretty_print_atom(function);
+    MAKE_ERROR(err, ERROR_TYPE,
+               function,
+               "FUNCTION-PARAMETERS expected closure or macro!",
+               NULL);
+    return err;
+  }
+  // NOTE: MUST match types.c make_closure output.
+  return copy_impl(&car(cdr(function)), result);
+}
+
+
 const char *const builtin_to_symbol_name = "TO-SYMBOL";
 const char *const builtin_to_symbol_docstring =
   "(to-symbol ATOM)\n"

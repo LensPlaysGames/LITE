@@ -133,6 +133,8 @@ builtin(string_index);
 // OTHER
 
 builtin(copy);
+builtin(function_body);
+builtin(function_parameters);
 
 builtin(evaluate_string);
 builtin(evaluate_file);
