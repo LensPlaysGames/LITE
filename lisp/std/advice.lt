@@ -1,0 +1,51 @@
+;;; LITE LISP FUNCTION ADVICE
+;;; Depends on:
+;;; -> basics.lt
+
+(defmacro advice-add (original-func-symbol
+                      advice-kind-symbol
+                      advising-func-symbol)
+  "Advise ORIGINAL-FUNC according to ADVICE-KIND with ADVISING-FUNC."
+  (if (eq advice-kind-symbol 'around)
+      (let ((original-func (evaluate original-func-symbol)))
+        `(set ,original-func-symbol
+              (lambda args (--advice
+                            '(,original-func-symbol ,original-func)
+                            ',advising-func-symbol
+                            args))))
+      (error "ADVICE-ADD: Unrecognised advice-kind-symbol argument")))
+
+;; TODO: I don't know how to actually extract (part of) the body of a
+;; function from a function. I don't think car/cdr will work due to
+;; type issues. Might need a built-in that returns a function's body as
+;; data.
+;;(defmacro advice-remove (original-func-symbol)
+;;  `(set ,original-func-symbol ))
+
+;; This is called when an advised function is called.
+;; (--advice 'foo 'bar <args>) : produced by advice-add
+(defun --advice (original around-advisor . rest)
+  "You probably don't want to call this or use this directly.
+This function is inserted by advice-add and removed by advice-remove.
+
+'around  :: Given a function to advise, `foo`, and the advising
+            function `bar`, make further calls to `foo` act like
+            `(lambda args (bar foo args))` where `args` is the
+            parameter signature of `foo`."
+  (when around-advisor
+    (apply around-advisor `(,(car (cdr original)) ,@(car rest)))))
+
+
+;; Just a small confidence check.
+(defun foo (a b c) ""
+  (+ a b c))
+(foo 17 17 35)
+(defun bar (oldfun a b c) ""
+  (+ (apply oldfun `(,a ,b ,c)) 1))
+(advice-add foo around bar)
+(when (! (= (foo 17 17 35) 70))
+  (error "Advice doesn't work, sweet pea"))
+;; TODO: (advice-remove foo), check answer again.
+;; FIXME: We don't have a way to unbind symbols, currently.
+(set foo nil)
+(set bar nil)

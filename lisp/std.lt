@@ -4,6 +4,7 @@
 (evaluate-file "lisp/std/basics.lt")
 (evaluate-file "lisp/std/maths.lt")
 (evaluate-file "lisp/std/lists.lt")
+(evaluate-file "lisp/std/advice.lt")
 (evaluate-file "lisp/std/structures.lt")
 
 ;; UTILITY
