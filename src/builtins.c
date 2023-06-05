@@ -2058,8 +2058,7 @@ const char *const builtin_apply_docstring =
   "Call FUNCTION with the given ARGUMENTS and return the result.";
 Error builtin_apply(Atom arguments, Atom *result) {
   TWO_ARGS(arguments);
-  Atom function;
-  function = car(arguments);
+  Atom function = car(arguments);
   arguments = car(cdr(arguments));
   // I think is to prevent against improper list argument? I'm not
   // sure, it was a long time ago at this point.
@@ -2070,9 +2069,16 @@ Error builtin_apply(Atom arguments, Atom *result) {
                NULL);
     return err;
   }
+
+  if (function.type == ATOM_TYPE_SYMBOL) {
+    Error err = evaluate_expression(function, *genv(), &function);
+    if (err.type) { return err; }
+  }
+
   if (function.type == ATOM_TYPE_BUILTIN) {
     return (*function.value.builtin.function)(arguments, result);
   } else if (function.type != ATOM_TYPE_CLOSURE) {
+    pretty_print_atom(function);
     MAKE_ERROR(err, ERROR_TYPE,
                arguments,
                "APPLY requires the first argument be a builtin or closure",
@@ -2095,7 +2101,7 @@ Error builtin_apply(Atom arguments, Atom *result) {
     if (nilp(arguments)) {
       MAKE_ERROR(arg_error, ERROR_ARGUMENTS,
                  arguments,
-                 "(apply): Not enough arguments passed to applied function!",
+                 "APPLY: Not enough arguments passed to applied function!",
                  NULL);
       return arg_error;
     }
@@ -2106,7 +2112,7 @@ Error builtin_apply(Atom arguments, Atom *result) {
   if (!nilp(arguments)) {
     MAKE_ERROR(arg_error, ERROR_ARGUMENTS,
                arguments,
-               "(apply): Too many arguments passed to applied function!",
+               "APPLY: Too many arguments passed to applied function!",
                NULL);
     return arg_error;
   }
