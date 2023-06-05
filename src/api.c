@@ -188,34 +188,49 @@ int handle_character_dn_modifiers(Atom current_keymap, size_t *keybind_recurse_c
   // HANDLE MODIFIER KEYMAPS
   int out = 1;
   out = handle_modifier(GUI_MODKEY_LSUPER, 1, &current_keymap, keybind_recurse_count);
-  if (out == 0) { return 0; }
+  if (out == 0) return 0;
   out = handle_modifier(GUI_MODKEY_RSUPER, 1, &current_keymap, keybind_recurse_count);
-  if (out == 0) { return 0; }
+  if (out == 0) return 0;
   out = handle_modifier(GUI_MODKEY_LCTRL,  1, &current_keymap, keybind_recurse_count);
-  if (out == 0) { return 0; }
+  if (out == 0) return 0;
   out = handle_modifier(GUI_MODKEY_RCTRL,  1, &current_keymap, keybind_recurse_count);
-  if (out == 0) { return 0; }
+  if (out == 0) return 0;
   out = handle_modifier(GUI_MODKEY_LALT,   1, &current_keymap, keybind_recurse_count);
-  if (out == 0) { return 0; }
+  if (out == 0) return 0;
   out = handle_modifier(GUI_MODKEY_RALT,   1, &current_keymap, keybind_recurse_count);
-  if (out == 0) { return 0; }
+  if (out == 0) return 0;
   out = handle_modifier(GUI_MODKEY_LSHIFT, 1, &current_keymap, keybind_recurse_count);
-  if (out == 0) { return 0; }
+  if (out == 0) return 0;
   out = handle_modifier(GUI_MODKEY_RSHIFT, 1, &current_keymap, keybind_recurse_count);
-  if (out == 0) { return 0; }
+  if (out == 0) return 0;
   env_set(*genv(), make_sym("CURRENT-KEYMAP"), current_keymap);
   return 1;
 }
 
 void handle_keydown(char *keystring) {
+#ifdef LITE_DBG
   int debug_keybinding = env_non_nil(*genv(), make_sym("DEBUG/KEYBINDING"));
   if (debug_keybinding) printf("Keydown: %s\n", keystring ? keystring : "NULL");
+#endif /* LITE_DBG */
+
   if (!keystring) return;
   const size_t keybind_recurse_limit = 256;
   size_t keybind_recurse_count = 0;
-  // Get current keymap from LISP environment.
+
+  // Get current keymap from global LISP environment.
+  // This allows for two separate keypresses to further navigate the
+  // keymap hierarchy: that is, if key "a" is bound to a keymap, and
+  // within that keymap the key "b" is bound to the string "ab", then
+  // first pressing "a" will cause CURRENT-KEYMAP to be updated to the
+  // keymap bound to "a". Pressing "b" once more will find the
+  // valid keybinding (string "ab") and insert its contents.
   Atom current_keymap = nil;
   env_get(*genv(), make_sym("CURRENT-KEYMAP"), &current_keymap);
+
+  // Confidence Check: If the user has borked their current keymap,
+  // somehow (accidental let binding, possibly), we reset a `nil`
+  // keymap to the top-level root keymap (stored at "KEYMAP" in global
+  // environment).
   if (nilp(current_keymap)) {
     env_get(*genv(), make_sym("KEYMAP"), &current_keymap);
     if (nilp(current_keymap)) {
@@ -224,51 +239,114 @@ void handle_keydown(char *keystring) {
       // library), or the user has purposefully borked it.
       // TODO: Do something like restoring default keymap or something
       // that is more useful than just flopping around like a dead fish.
+      // Maybe even crashing the program would be better than just
+      // sitting there unresponsively. The user pressed a button, and
+      // acknowledging that is important!
       fprintf(stdout, "ERROR: There is no bound keymap!\n");
     }
   }
+
+#ifdef LITE_DBG
   if (debug_keybinding) {
     printf("Current keymap: ");
     pretty_print_atom(current_keymap);
     putchar('\n');
   }
+#endif /* LITE_DBG */
+
   Atom current_buffer = nil;
   env_get(*genv(), make_sym("CURRENT-BUFFER"), &current_buffer);
+  // TODO: If CURRENT-BUFFER is somehow borked, maybe we should wait
+  // until a keybind actually requires it to fail. Either way, the way
+  // we silently return here with no error or message to the user about
+  // where their keypress went is bad.
   if (!bufferp(current_buffer)) {
     return;
   }
 
+  // Basically, modifiers have specially-named keymaps that are
+  // traversed in a specific order; this function does that.
   if (!handle_character_dn_modifiers(current_keymap, &keybind_recurse_count)) {
     return;
   }
 
+  // ENTER THE LOOP
+  // This is where it gets a bit messy, but it's not /too/ bad. The
+  // gist of it is this: within the current-keymap, find the mapping
+  // corresponding to the keystring we have recieved (the key pressed):
+  // we call this a `keybind`. The keybind is then handled in different
+  // ways based on it's type.
+  //
+  // POSSIBLE KEYBIND TYPES:
+  // - nil       :: If a keystring is not bound within an alist, keybind
+  //                will be nil. If we are in the root keymap, then the key
+  //                simply isn't bound. Right now, the behaviour of
+  //                pressing an unbound key is to just insert the keystring
+  //                into the current buffer. Otherwise, if the current
+  //                keymap is /not/ the root keymap, then we reset the
+  //                current keymap to the root keymap and try again. I'm
+  //                not so sure if this is correct/expected behaviour.
+  //                It seems kind of confusing, but at the same time
+  //                allows one to press "C-x" followed by "z", and when
+  //                "z" isn't bound it will default to the root keymap
+  //                (which inserts the character). It would probably
+  //                make a million times more sense to just ignore the
+  //                unbound keypress and give the user a message
+  //                (somehow) like "blah is undefined keystring".
+  // - string    :: Sets the keystring representing the pressed key to
+  //                this new string, without modifying keymap(s) at all.
+  //                If "a" is bound to "b" and "b" is bound to
+  //                "(do-thing)", then pressing "a" will (eventually)
+  //                call "(do-thing)". This also works in tandem with
+  //                the behaviour regarding unbound keys, as if the
+  //                user provides "I am a big boi!" as the keystring,
+  //                it will almost certainly not be bound, and in that
+  //                case it will insert itself into the buffer as is.
+  //                This gives the /effect/ of strings just being data
+  //                to insert while also keeping the ability to have a
+  //                key rebound to another key, or have eight keys all
+  //                bound to one virtual key that does something
+  //                (like "<backspace>").
+  // - symbol    :: If it's a symbol, we first check if it's "IGNORE"
+  //                or "SELF-INSERT". IGNORE is self-explanatory.
+  //                SELF-INSERT will insert the keystring itself into
+  //                the current buffer.
+  // - alist     :: A keystring bound to an alist is a "nested keymap".
+  //                When a binding of this type is found, CURRENT-KEYMAP is
+  //                updated to the bound alist.
+  // - anything  :: Anything that isn't one of the types up above will
+  //                be evaluated as LITE LISP, with the result of the
+  //                evaluation being drawn to the footline.
   while (keystring && keybind_recurse_count < keybind_recurse_limit) {
     env_get(*genv(), make_sym("CURRENT-KEYMAP"), &current_keymap);
+
+#ifdef LITE_DBG
     if (debug_keybinding) {
       printf("Current keymap: ");
       pretty_print_atom(current_keymap);
       putchar('\n');
     }
+#endif /* LITE_DBG */
 
     Atom keybind = alist_get(current_keymap, make_string(keystring));
 
+#ifdef LITE_DBG
     if (debug_keybinding) {
       printf("Got keybind: ");
       pretty_print_atom(keybind);
       putchar('\n');
     }
+#endif /* LITE_DBG */
 
     if (alistp(keybind)) {
       // Nested keymap, rebind current keymap.
-      if (debug_keybinding) {
-        printf("Nested keymap found, updating CURRENT-KEYMAP\n");
-      }
+      if (debug_keybinding) printf("Nested keymap found, updating CURRENT-KEYMAP\n");
       env_set(*genv(), make_sym("CURRENT-KEYMAP"), keybind);
       break;
     }
-    Atom root_keymap = nil;
-    env_get(*genv(), make_sym("KEYMAP"), &root_keymap);
     if (nilp(keybind)) {
+      Atom root_keymap = nil;
+      env_get(*genv(), make_sym("KEYMAP"), &root_keymap);
       // If keybind is nil, it means that the keystring is not bound in current keymap.
       if (pairp(current_keymap) && pairp(root_keymap)
           && current_keymap.value.pair == root_keymap.value.pair)
@@ -324,36 +402,48 @@ void handle_keydown(char *keystring) {
       keystring = (char *)keybind.value.symbol;
       // Go around again!
       keybind_recurse_count += 1;
-      if (debug_keybinding) {
-        printf("keybind_recurse_count: %zu\n", keybind_recurse_count);
-      }
+
+#ifdef LITE_DBG
+      if (debug_keybinding) printf("keybind_recurse_count: %zu\n", keybind_recurse_count);
+#endif /* LITE_DBG */
+
       continue;
-      // String is either empty or invalid, either way we should probably return an error.
     }
+
+#ifdef LITE_DBG
     if (debug_keybinding) {
       printf("Attempting to evaluate keybind: ");
       print_atom(keybind);
       putchar('\n');
     }
+#endif /* LITE_DBG */
+
     Atom result = nil;
     Error err = evaluate_expression(keybind, *genv(), &result);
     if (err.type) {
       printf("KEYBIND ");
       print_error(err);
       update_gui_string(&gctx->footline, error_string(err));
+      Atom root_keymap = nil;
+      env_get(*genv(), make_sym("KEYMAP"), &root_keymap);
       env_set(*genv(), make_sym("CURRENT-KEYMAP"), root_keymap);
       return;
     }
 
-    if (user_quit) {
-      return;
-    }
+    // After evaluation, we need to check if the user has quit, in
+    // which case we need to immediately return in order to respect the
+    // wishes of the user.
+    if (user_quit) return;
 
+#ifdef LITE_DBG
     if (debug_keybinding) {
       printf("Result: ");
       print_atom(result);
       putchar('\n');
     }
+#endif /* LITE_DBG */
+
+    // Set the contents of the footline based on the result of the evaluated keybind.
     update_gui_string(&gctx->footline, atom_string(result, NULL));
 
     // Keystring handled through evaluation, break out of keystring
