@@ -15,12 +15,13 @@
                             args))))
       (error "ADVICE-ADD: Unrecognised advice-kind-symbol argument")))
 
-;; TODO: I don't know how to actually extract (part of) the body of a
-;; function from a function. I don't think car/cdr will work due to
-;; type issues. Might need a built-in that returns a function's body as
-;; data.
+;; TODO: Okay, we can get a function's body, but we still aren't able
+;; to interpret the actual data of a closure as a closure. So we will
+;; need some builtin that turns the data representation of a closure
+;; into an actual closure type atom, not just lists.
 ;;(defmacro advice-remove (original-func-symbol)
-;;  `(set ,original-func-symbol ))
+;;  "Bind the passed symbol to the original unadvised function."
+;;  `(set ,original-func-symbol (cadr (cadr (caar (function-body (evaluate ,original-func-symbol)))))))
 
 ;; This is called when an advised function is called.
 ;; (--advice 'foo 'bar <args>) : produced by advice-add
