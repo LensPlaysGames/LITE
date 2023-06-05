@@ -21,7 +21,7 @@
 ;; into an actual closure type atom, not just lists.
 ;;(defmacro advice-remove (original-func-symbol)
 ;;  "Bind the passed symbol to the original unadvised function."
-;;  `(set ,original-func-symbol (cadr (cadr (caar (function-body (evaluate ,original-func-symbol)))))))
+;;  `(set ,original-func-symbol (cadr (cadr (cadr (car (function-body ,original-func-symbol)))))))
 
 ;; This is called when an advised function is called.
 ;; (--advice 'foo 'bar <args>) : produced by advice-add
@@ -36,17 +36,21 @@ This function is inserted by advice-add and removed by advice-remove.
   (when around-advisor
     (apply around-advisor `(,(car (cdr original)) ,@(car rest)))))
 
-
 ;; Just a small confidence check.
 (defun foo (a b c) ""
   (+ a b c))
-(foo 17 17 35)
+(foo 17 17 35) ;; 69
+
 (defun bar (oldfun a b c) ""
   (+ (apply oldfun `(,a ,b ,c)) 1))
+(bar 'foo 17 17 35) ;; 70
+
 (advice-add foo around bar)
 (when (! (= (foo 17 17 35) 70))
   (error "Advice doesn't work, sweet pea"))
+
 ;; TODO: (advice-remove foo), check answer again.
+
 ;; FIXME: We don't have a way to unbind symbols, currently.
 (set foo nil)
 (set bar nil)

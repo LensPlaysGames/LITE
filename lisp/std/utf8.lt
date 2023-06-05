@@ -27,7 +27,7 @@ You should probably call `utf8-forward-char` instead of this."
   ;; Move byte forward by one byte, ensure it's moved by one, then do
   ;; the whole thing again if at a continuation byte.
   (when (and (= (forward-byte) 1) (utf8-point-at-continuation-byte-p))
-    (utf8-forward-char)))
+    (utf8-forward-char-impl)))
 
 (defun utf8-forward-char ()
   "Increment point of `CURRENT-BUFFER` by one utf8 codepoint."
@@ -41,7 +41,8 @@ You should probably call `utf8-forward-char` instead of this."
 (defun utf8-backward-char-impl ()
   "Decrement point of `CURRENT-BUFFER` by one utf8 codepoint.
 You should probably call `utf8-backward-char` instead of this."
-  (when (and (= (backward-byte) 1) (utf8-point-at-continuation-byte-p))
+  (when (and (= (backward-byte) -1)
+             (utf8-point-at-continuation-byte-p))
     (utf8-backward-char-impl)))
 
 (defun utf8-backward-char ()
