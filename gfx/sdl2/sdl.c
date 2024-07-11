@@ -106,41 +106,54 @@ int change_font(const char *path, size_t size) {
   if (dir) {
 
     working_path = string_trijoin(dir, "/gfx/fonts/apache/", path);
-    free(dir);
-    if (!working_path) { return 2; }
+    if (!working_path) {
+      free(dir);
+      return 2;
+    }
     working_font = TTF_OpenFont(working_path, size);
     free(working_path);
     if (working_font) {
+      free(dir);
       font = working_font;
       return 0;
     }
 
     working_path = string_trijoin(dir, "/gfx/fonts/", path);
-    free(dir);
-    if (!working_path) { return 2; }
+    if (!working_path) {
+      free(dir);
+      return 2;
+    }
     working_font = TTF_OpenFont(working_path, size);
     free(working_path);
     if (working_font) {
+      free(dir);
       font = working_font;
       return 0;
     }
 
     working_path = string_trijoin(dir, "/gfx/", path);
-    free(dir);
-    if (!working_path) { return 2; }
+    if (!working_path) {
+      free(dir);
+      return 2;
+    }
     working_font = TTF_OpenFont(working_path, size);
     free(working_path);
     if (working_font) {
+      free(dir);
       font = working_font;
       return 0;
     }
 
     working_path = string_trijoin(dir, "/", path);
     free(dir);
-    if (!working_path) { return 2; }
+    if (!working_path) {
+      free(dir);
+      return 2;
+    }
     working_font = TTF_OpenFont(working_path, size);
     free(working_path);
     if (working_font) {
+      free(dir);
       font = working_font;
       return 0;
     }
@@ -150,10 +163,14 @@ int change_font(const char *path, size_t size) {
 # if defined (_WIN32) || defined (_WIN64)
 
   working_path = string_join("C:/Windows/fonts/", path);
-  if (!working_path) { return 2; }
+    if (!working_path) {
+      free(dir);
+      return 2;
+    }
   working_font = TTF_OpenFont(working_path, size);
   free(working_path);
   if (working_font) {
+    free(dir);
     font = working_font;
     return 0;
   }
@@ -161,19 +178,27 @@ int change_font(const char *path, size_t size) {
 # elif defined (__unix)
 
   working_path = string_join("/usr/share/fonts/", path);
-  if (!working_path) { return 2; }
+    if (!working_path) {
+      free(dir);
+      return 2;
+    }
   working_font = TTF_OpenFont(working_path, size);
   free(working_path);
   if (working_font) {
+    free(dir);
     font = working_font;
     return 0;
   }
 
   working_path = string_join("/usr/local/share/fonts/", path);
-  if (!working_path) { return NULL; }
+    if (!working_path) {
+      free(dir);
+      return 2;
+    }
   working_font = TTF_OpenFont(working_path, size);
   free(working_path);
   if (working_font) {
+    free(dir);
     font = working_font;
     return 0;
   }
@@ -232,13 +257,14 @@ int create_gui() {
   // TODO: Do not hard-code font size!
   // Attempt to load font(s) included with LITE distribution.
   const size_t font_size = 18;
-  if (!font) { change_font("DroidSansMono.ttf"      , font_size); }
-  if (!font) { change_font("RobotoMono-Regular.ttf" , font_size); }
-  if (!font) { change_font("DroidSans.ttf"          , font_size); }
-  if (!font) { change_font("Tinos-Regular.ttf"      , font_size); }
+  if (!font) { change_font("DroidSansMono.ttf", font_size); }
+  if (!font) { change_font("RobotoMono-Regular.ttf", font_size); }
+  if (!font) { change_font("DroidSans.ttf", font_size); }
+  if (!font) { change_font("Tinos-Regular.ttf", font_size); }
   // At this point, hail mary for a system font.
-  if (!font) { change_font("UbuntuMono-R.ttf"       , font_size); }
-  if (!font) { change_font("Arial.ttf"              , font_size); }
+  if (!font) { change_font("UbuntuMono-R.ttf", font_size); }
+  if (!font) { change_font("liberation-mono/LiberationMono-Regular.ttf", font_size); }
+  if (!font) { change_font("Arial.ttf", font_size); }
   // Finally, if no font was found anywhere, error out.
   if (!font) {
     printf("GFX::SDL: SDL_ttf could not open a font.\n"
