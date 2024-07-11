@@ -40,6 +40,7 @@ endif()
 add_executable(
   LITE
   $<$<BOOL:${LITE_GFX}>:src/api.c>
+  $<$<BOOL:${TREE_SITTER}>:src/tree_sitter.c>
   src/builtins.c
   src/buffer.c
   src/error.c
