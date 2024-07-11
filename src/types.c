@@ -618,11 +618,13 @@ Atom make_buffer(Atom environment, char *path) {
   while (!nilp(buffer_table_it)) {
     Atom a = car(buffer_table_it);
     if (strcmp(a.value.buffer->path, buffer_path) == 0) {
+      free(buffer_path);
       return a;
     }
     buffer_table_it = cdr(buffer_table_it);
   }
   // Create new buffer and add it to buffer table.
+  // NOTE: buffer_path now owned by buffer.
   Buffer *buffer = buffer_create(buffer_path);
   if (!buffer) {
     MAKE_ERROR(err, ERROR_MEMORY, nil
@@ -632,9 +634,18 @@ Atom make_buffer(Atom environment, char *path) {
     return nil;
   }
   buffer->environment = environment;
+
   Atom result = nil;
+  gcol_generic_allocation(&result, buffer);
+  gcol_generic_allocation(&result, buffer->path);
+
+  // FIXME: Rope contents probably don't get freed since we aren't calling
+  // rope_free().
+  gcol_generic_allocation(&result, buffer->rope);
+
   result.type = ATOM_TYPE_BUFFER;
   result.value.buffer = buffer;
+
   buffer_table = cons(result, buffer_table);
   return result;
 }
