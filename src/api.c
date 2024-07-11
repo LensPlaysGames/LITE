@@ -648,9 +648,9 @@ void *so_load(const char *library_path) {
   }
   out = lib;
 #elif defined(__unix__)
-  out = dlopen(library_path);
+  out = dlopen(library_path, RTLD_NOW);
   if (out == NULL) {
-    fprintf("Error from dlopen(\"%s\"):\n  \"%s\"\n", library_path, dlerror());
+    fprintf(stdout, "Error from dlopen(\"%s\"):\n  \"%s\"\n", library_path, dlerror());
     so_return_error;
   }
   // Clear any existing error.
@@ -671,13 +671,13 @@ void *so_get(void *data, const char *symbol) {
     so_return_error;
   }
 #elif defined(__unix__)
-  out = (void *)dlsym(*data, library_path);
+  out = (void *)dlsym(data, symbol);
   char *error = dlerror();
   if (error) {
     fprintf(stdout,
-            "Could not load tree sitter language function from library loaded at \"%s\"\n"
+            "Could not load symbol \"%s\" from dynamically loaded library.\n"
             "  \"%s\"\n",
-            library_path,
+            symbol,
             error);
     so_return_error;
   }
