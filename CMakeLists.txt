@@ -123,6 +123,12 @@ https://github.com/tree-sitter/tree-sitter.git")
   )
 endif()
 
+# Enable AddressSanitizer if requested
+if (ENABLE_ASAN)
+  target_compile_options(LITE PUBLIC -fsanitize=address)
+  target_link_options(LITE PUBLIC -fsanitize=address)
+  target_compile_definitions(LITE PUBLIC ENABLE_ASAN=1)
+endif()
 
 # Doxygen Documentation Target
 find_program(DOXYGEN_PROGRAM doxygen)
