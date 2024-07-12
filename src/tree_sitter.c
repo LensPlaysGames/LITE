@@ -8,6 +8,11 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#ifdef LITE_GFX
+#include <api.h>
+#include <gfx.h>
+#endif
+
 #if defined(_WIN32)
 #include <windows.h>
 #elif defined(__unix__)

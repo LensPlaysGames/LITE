@@ -7,6 +7,10 @@
 
 #include <tree_sitter/api.h>
 
+#ifdef LITE_GFX
+#include <gfx.h>
+#endif
+
 typedef uint32_t RGBA;
 #define RGBA_R(a) ((uint8_t)((((RGBA)a) & (0xff000000)) >> 24))
 #define RGBA_G(a) ((uint8_t)((((RGBA)a) & (0x00ff0000)) >> 16))
@@ -49,7 +53,15 @@ typedef struct TreeSitterLanguage {
 #define TS_LANG_MAX TREE_SITTER_LANGUAGE_MAXIMUM
 extern TreeSitterLanguage ts_langs[TS_LANG_MAX];
 
+TreeSitterLanguage *ts_langs_new(const char *lang_string);
 Error ts_langs_update_queries(const char *lang_string, struct Atom queries);
+void ts_langs_delete(const char *lang_string);
+void ts_langs_delete_one(TreeSitterLanguage *lang);
+void ts_langs_delete_all();
+
+#ifdef LITE_GFX
+void add_property_from_query_matches(GUIWindow *window, TSNode root, size_t offset, size_t narrow_begin, size_t narrow_end, TSQuery *ts_query, RGBA fg, RGBA bg);
+#endif
 
 #endif /* LITE_TREE_SITTER_H */
 

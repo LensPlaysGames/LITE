@@ -12,6 +12,8 @@
 
 #include <stdint.h>
 
+#include <gfx.h>
+
 /// Get global GUI Context.
 typedef struct GUIContext GUIContext;
 GUIContext *gui_ctx(void);
@@ -50,5 +52,10 @@ int enter_lite_gui(void);
 
 /// One iteration of the LITE GFX runtime loop.
 int gui_loop(void);
+
+/// Add PROPERTY to beginning of STRING properties linked list.
+/// Returns boolean-like value (0 == failure).
+/// NOTE: Used by LITE as well as backend.
+int add_property(GUIString *string, GUIStringProperty *property);
 
 #endif /* API_H */
