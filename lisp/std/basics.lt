@@ -16,6 +16,7 @@ Most often used to get the next element in a list.")
 ;; https://en.wikipedia.org/wiki/Fold_(higher-order_function)
 
 ;; Fold List Left
+
 (define foldl
     (lambda (some-function initial-value some-list)
       (if some-list
@@ -23,9 +24,24 @@ Most often used to get the next element in a list.")
                  (some-function initial-value (car some-list))
                  (cdr some-list))
           initial-value))
-  ;; TODO: This is a terrible docstring, because it's wrong!
-  "Apply SOME-FUNCTION to each element within SOME-LIST in reverse order,
-as well as place INITIAL-VALUE at the beginning of SOME-LIST.")
+  "Given a list SOME-LIST, apply SOME-FUNCTION to every pair of elements
+in the list, starting with INITIAL-VALUE and the first element of SOME-LIST
+as the first and second parameter, then continuing to call SOME-FUNCTION with
+that accumulated value and the rest of the elements of SOME-LIST.
+
+The following call:
+(foldl + 0 '(17 18 34))
+becomes
+(+ (+ (+ 0 17) 18) 34)
+
+I dearly hope you /see/, with your /eyes/, that the parentheses group
+around the first element (on the left!) and expand from there.
+
+Note that folding right would become
+(+ 17 (+ 18 (+ 34 0)))
+
+The parens clearly group around the last element (on the right!) in the
+list and expand from there.")
 
 ;; Fold List Right
 (define foldr
@@ -36,8 +52,24 @@ as well as place INITIAL-VALUE at the beginning of SOME-LIST.")
                                 initial-value
                                 (cdr some-list)))
           initial-value))
-  "Applies SOME-FUNCTION to each element within SOME-LIST,
-as well as places INITIAL-VALUE at the end of SOME-LIST.")
+  "Given a list SOME-LIST, apply SOME-FUNCTION to each pair of elements
+in the list, starting with the last element of SOME-LIST and INITIAL-VALUE
+as the first and second parameter, then continuing to call SOME-FUNCTION with
+the previous element of SOME-LIST and the accumulated value.
+
+The following call:
+(foldr + 0 '(17 18 34))
+becomes
+(+ 17 (+ 18 (+ 34 0)))
+
+I dearly hope you /see/, with your /eyes/, that the parentheses group
+around the last element (on the right!) and expand from there.
+
+Note that folding left would become
+(+ (+ (+ 0 17) 18) 34)
+
+The parens clearly group around the first element (on the left!) in the
+list and expand from there.")
 
 ;; LIST UTILITY FUNCTIONS
 
